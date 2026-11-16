@@ -176,7 +176,37 @@ run at the same time.
 
 ---
 
-## 5. What the steps do
+## 5. Output
+
+```
+results/variant_comparison/
+├── input/            preprocessed VCF, SV input, sample list, reference FASTA
+├── sv/CHR/           bi-allelic, SV, SV locus and merged SV VCFs per chromosome
+├── small_variants/
+│   ├── samples/      per-sample small variant VCFs
+│   └── merged/CHR/   merged small variants, SNVs and indels per chromosome
+├── counts/           per-chromosome counts
+├── variant_comparison_summary.tsv
+├── variant_comparison_by_class.tsv
+└── variant_comparison_shared_loci.tsv
+```
+
+Main tables:
+
+- `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
+  SVs and small variants at the locus and allele level, with the novel
+  percentage
+- `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
+  insertion, deletion, complex). A complex locus holds alleles of more than one
+  class, or multi-base substitutions
+- `variant_comparison_shared_loci.tsv` — shared SV loci carrying a
+  KPR-specific allele, and the number of such alleles
+- `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
+- `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
+
+---
+
+## 6. What the steps do
 
 The pipeline has two branches that share the same preprocessed input and meet
 again at the counting step:
@@ -400,36 +430,6 @@ KPR (n = 14) versus HPRC (n = 47), GRCh38, `variant_comparison_summary.tsv`:
 
 In addition, 10,211 KPR-specific SV alleles were found in 4,783 SV loci shared
 with HPRC (`variant_comparison_shared_loci.tsv`).
-
----
-
-## 6. Output
-
-```
-results/variant_comparison/
-├── input/            preprocessed VCF, SV input, sample list, reference FASTA
-├── sv/CHR/           bi-allelic, SV, SV locus and merged SV VCFs per chromosome
-├── small_variants/
-│   ├── samples/      per-sample small variant VCFs
-│   └── merged/CHR/   merged small variants, SNVs and indels per chromosome
-├── counts/           per-chromosome counts
-├── variant_comparison_summary.tsv
-├── variant_comparison_by_class.tsv
-└── variant_comparison_shared_loci.tsv
-```
-
-Main tables:
-
-- `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
-  SVs and small variants at the locus and allele level, with the novel
-  percentage
-- `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
-  insertion, deletion, complex). A complex locus holds alleles of more than one
-  class, or multi-base substitutions
-- `variant_comparison_shared_loci.tsv` — shared SV loci carrying a
-  KPR-specific allele, and the number of such alleles
-- `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
-- `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
 
 ---
 
