@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Ensembl gene annotation
-# Ensemble_gene_annotation.sh -- template only, NOT IMPLEMENTED.
-# Usage: bash Ensemble_gene_annotation.sh [help|all]
 set -euo pipefail
 usage() {
   cat <<'HELP'
