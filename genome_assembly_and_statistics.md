@@ -326,11 +326,24 @@ quality summary tables together with graph input manifests.
 4. Chen Y, et al. (2021). Accurate long-read de novo assembly evaluation with Inspector. *Genome Biology*. https://doi.org/10.1186/s13059-021-02527-4
 5. Gurevich A, et al. (2013). QUAST: quality assessment tool for genome assemblies. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btt086
 
-## Software
+## Software and versions
 
-FastQC 0.12.1 · HiFiAdapterFilt 3.0 · Porechop 0.2.4 · Trimmomatic 0.39 ·
-HiFiasm 0.24 (0.25 for ONT mode) · Flye 2.9.5 · gfatools · Kraken2 · seqkit ·
-Inspector 1.3 · QUAST-LG 5.3 · Minigraph 0.21 · HMM-Flagger 1.0.0 ·
-RepeatMasker 4.1.6 · etrf · sdust · Liftoff 1.6.3 · pbmm2 1.17 · pbsv 2.9.0 ·
-Sniffles 2.2 · SVIM 2.0.0 · SVIM-asm 1.0.3 · SURVIVOR · samtools · minimap2 ·
-jq
+The versions below follow the manuscript Methods. Tools that implement
+auxiliary command-line operations without a version in the manuscript
+are listed separately; their precise versions should be captured in
+the execution log rather than assumed.
+
+| Analysis stage | Software (manuscript version) |
+|---|---|
+| Raw-read QC and trimming | FastQC 0.12.1; HiFiAdapterFilt 3.0; Porechop 0.2.4; Trimmomatic 0.39; Guppy 6.5.7 (ONT basecalling) |
+| Genome assembly | HiFiasm 0.24 (HiFi/Hi-C); HiFiasm 0.25 (ONT evaluation); Flye 2.9.5 |
+| Polishing and assembly assessment | Inspector 1.3; QUAST 5.3; HMM-Flagger 1.0.0; Minigraph 0.21 |
+| Repeats and annotation | RepeatMasker 4.1.6; Liftoff 1.6.3; etrf; sdust |
+| Read-based structural variants | pbmm2 1.17; pbsv 2.9.0; Sniffles 2.2; SVIM 2.0.0 |
+| Assembly-based structural variants | SVIM-asm 1.0.3 |
+| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; jq |
+
+The manuscript's GATK-based short-read sample-selection workflow is
+separate from this long-read assembly stage; it used bwa-mem2 2.2.1,
+GATK 4.3.0.0, SHAPEIT5 5.1.1, fastSTRUCTURE 1.0,
+PLINK 2.0 and GenoCore 1.0 [1].
