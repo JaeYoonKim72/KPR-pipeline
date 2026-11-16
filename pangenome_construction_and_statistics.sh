@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-#
-# Constructing a Korean pangenome reveals distinct haplotypes at the amylase
-# locus
-#
-# pangenome_construction_and_statistics.sh
-#
-# Usage: bash pangenome_construction_and_statistics.sh <step>
-#        (see docs for the step list and for the required inputs)
-
 set -euo pipefail
-
-###############################################################################
-# Configuration
-###############################################################################
 
 THREADS=${THREADS:-16}
 CACTUS_MEM=${CACTUS_MEM:-800Gi}       # --consMemory
@@ -95,10 +82,7 @@ mkdir -p "${GRAPH_OUT}" "${INDEX_OUT}" "${STAT_OUT}" "${VAR_OUT}" \
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
-###############################################################################
 # Step 1. Pangenome graph construction
-###############################################################################
-
 construct() {
   log "step 1: pangenome graph construction"
 
@@ -140,10 +124,7 @@ construct() {
   log "step 1 finished"
 }
 
-###############################################################################
 # Step 2. Graph indexing and format conversion
-###############################################################################
-
 index_graph() {
   log "step 2: graph indexing"
 
@@ -187,10 +168,7 @@ index_graph() {
   log "step 2 finished"
 }
 
-###############################################################################
 # Step 3. Graph statistics and pangenome size
-###############################################################################
-
 graph_stats() {
   log "step 3: graph statistics"
 
@@ -208,10 +186,7 @@ graph_stats() {
   log "step 3 finished"
 }
 
-###############################################################################
 # Step 4. Variant identification from the graph
-###############################################################################
-
 # Total number of variants and the number of sites with one, two or more
 # alternative alleles.
 count_alleles() {
@@ -302,10 +277,7 @@ variants() {
   log "step 4 finished"
 }
 
-###############################################################################
 # Step 5. Pangenome growth curves and node frequency classes
-###############################################################################
-
 growth() {
   log "step 5: pangenome growth curves"
 
@@ -355,10 +327,7 @@ growth() {
   log "step 5 finished"
 }
 
-###############################################################################
 # Step 6. Allele mapping of the assemblies onto the graph
-###############################################################################
-
 allele_mapping() {
   log "step 6: allele mapping"
 
@@ -398,10 +367,7 @@ allele_mapping() {
   log "step 6 finished"
 }
 
-###############################################################################
 # Step 7. Bubbles and non-reference nodes
-###############################################################################
-
 nonref_nodes() {
   log "step 7: bubbles and non-reference nodes"
 
@@ -491,10 +457,7 @@ nonref_nodes() {
   log "step 7 finished"
 }
 
-###############################################################################
 # Step 8. Annotation of the large bubbles
-###############################################################################
-
 bubble_annotation() {
   log "step 8: bubble annotation"
 
@@ -549,10 +512,7 @@ bubble_annotation() {
   log "step 8 finished"
 }
 
-###############################################################################
 # Step 9. Non-reference sequence carried by each sample
-###############################################################################
-
 nonref_sequence() {
   log "step 9: non-reference sequence"
 
@@ -655,10 +615,6 @@ nonref_sequence() {
 
   log "step 9 finished"
 }
-
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<EOF
