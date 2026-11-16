@@ -1,68 +1,131 @@
 # Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus
 
-Analysis pipelines used in the Korean Pangenome Reference (KPR) study, covering
-long-read genome assembly, pangenome graph construction, pangenome-based
-short-read mapping and variant calling, and the analysis of the amylase (AMY)
-locus.
+Analysis workflows and reproducible methods for the Korean Pangenome
+Reference (KPR) study: genome assembly, annotations, pangenome
+construction, graph-variant comparison, variant benchmarking, AMY
+structural haplotypes and flanking-region population genetics.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Pipelines
 
-Run in the order below; each script consumes the output of the previous one.
+The numbered stages below follow the project's planned manuscript workflow.
+**Stages 2 and 5 are placeholders** (not implemented; their scripts
+explicitly refuse `all` until developed). Stage 7 remains named
+`5.Population_genetics_in_AMY_flanking_locus.sh` for compatibility with
+the existing GitHub branch and manuscript notes.
 
-| # | Script | Description | Documentation |
-|---|---|---|---|
-| 1 | `genome_assembly_and_statistics.sh` | Long-read and Hi-C read QC, haplotype-resolved *de novo* assembly, polishing, assembly statistics, repeat and gene annotation, structural variant detection | [docs](genome_assembly_and_statistics.md) |
-| 2 | `pangenome_construction_and_statistics.sh` | Pangenome graph construction from the quality-controlled assemblies, graph statistics, graph-derived variants, growth curves, bubbles and non-reference sequence | [docs](pangenome_construction_and_statistics.md) |
-| 2-1 | `pangenome_variant_comparison.sh` | SV and small-variant decomposition of the graph-derived variants and comparison between the KPR and HPRC haplotypes at the locus and allele level | [docs](pangenome_variant_comparison.md) |
-| 3 | `pangenome_short_read_mapping.sh` | Short-read mapping to the pangenome graph and graph-based small variant and structural variant calling | [docs](pangenome_short_read_mapping.md) |
-| 4 | `AMY_locus_analysis.sh` | Structural haplotype analysis of the AMY locus (no copy-based SNP population statistics) | [docs](AMY_locus_analysis.md) |
-| 5 | `5.Population_genetics_in_AMY_flanking_locus.sh` | Within- and between-population statistics for distal/proximal AMY flanks (focal estimates; optional selscan) | [docs](5.Population_genetics_in_AMY_flanking_locus.md) |
+| # | Script | Description | Documentation | Status |
+|---|---|---|---|---|
+| 1 | `genome_assembly_and_statistics.sh` | Long-read and Hi-C QC; haplotype-resolved assembly, polishing, QC, repeats, SVs | [docs](genome_assembly_and_statistics.md) | Implemented |
+| 2 | `Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE gene annotation stage | [docs](Ensemble_gene_annotation.md) | Placeholder |
+| 3 | `pangenome_construction_and_statistics.sh` | Graph construction, graph metrics, bubble and nonreference sequence analyses | [docs](pangenome_construction_and_statistics.md) | Implemented |
+| 4 | `pangenome_variant_comparison.sh` | SV/small-variant deconstruction, allele merging and KPR–HPRC comparison | [docs](pangenome_variant_comparison.md) | Implemented |
+| 5 | `Variant_benchmark.sh` | Reserved variant benchmarking against truth sets | [docs](Variant_benchmark.md) | Placeholder |
+| 6 | `AMY_locus_analysis_in_pagenomegraph.sh` | Structural AMY haplotype architectures and tree in the HPRC+KPR graph; no copy-specific population SNP statistics | [docs](AMY_locus_analysis_in_pagenomegraph.md) | Implemented |
+| 7 | `5.Population_genetics_in_AMY_flanking_locus.sh` | Distal/proximal locus-level π, θW, Tajima D, LD, nSL, FST, XP-nSL; optional individual and genomic CIs | [docs](5.Population_genetics_in_AMY_flanking_locus.md) | Focal + SNP-based optional CIs; incomplete normalized haplotype/background metrics |
 
-Helper scripts called by the pipelines: `decon_split.sh`, `typecount.py`,
-`wline_sample_nodes.py`, `amy_haplotype_tags.py`, `msa_to_vcf.py`,
-`hudson_fst.py`, `plot_haplotypes.R`, `sv_merge_alleles.py`,
-`dedup_sample.py`, `count_groups.py` and `summarize_variant_comparison.py`.
-The new step 5 uses `amy_flank_popgen.py` and `amy_flank_population_stats.py`.
-They live next to the pipelines and can also be run on their own; see the
-documentation of each pipeline.
+The existing [pangenome short-read mapping](pangenome_short_read_mapping.md)
+workflow (`pangenome_short_read_mapping.sh`) remains available as
+a **supporting standalone pipeline** rather than a numbered stage in
+this revised seven-step overview.
+
+**Scope of the AMY revision:** The graph-based stage 6 describes
+structural variation. The population-genetic stage 7 analyzes
+unique distal/proximal flanking sequences at the locus level. It does
+not calculate per-copy SNP π/FST/LD for the paralogous AMY genes.
 
 ## Quick start
 
-Every script reads its paths from the environment; nothing is hard-coded.
+All scripts read paths and options from environment variables (or
+the listed command-line arguments). Create/activate the environment
+appropriate to each analysis before starting. Example run sequence
+for **implemented** stages:
 
 ```bash
-export DATA_DIR=/path/to/fastq        # input sequencing data
-export REF_DIR=/path/to/reference     # reference files
-export OUT_DIR=/path/to/results       # output directory
-export LIST_DIR=/path/to/lists        # sample lists
+export DATA_DIR=/path/to/fastq
+export REF_DIR=/path/to/reference
+export GRAPH_DIR=/path/to/graphs
+export OUT_DIR=/path/to/results
+export LIST_DIR=/path/to/lists
 export THREADS=32
 
 bash genome_assembly_and_statistics.sh all
+# Step 2 Ensemble_gene_annotation.sh: planned, not implemented
 bash pangenome_construction_and_statistics.sh all
 bash pangenome_variant_comparison.sh all
-bash pangenome_short_read_mapping.sh all
-bash AMY_locus_analysis.sh all
-
-# Separately, after preparing a joint phased SNP VCF and population lists:
-# export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
-# export POPS="KOR=/path/to/KOR.samples CHN=/path/to/CHN.samples"
-# export CALLABLE_BED=/path/to/GRCh38.StrictMask.bed.gz
-# bash 5.Population_genetics_in_AMY_flanking_locus.sh all
+# Step 5 Variant_benchmark.sh: planned, not implemented
+bash AMY_locus_analysis_in_pagenomegraph.sh all
 ```
 
-Each script also accepts a single step name instead of `all`, which is
-recommended on a cluster where individual steps are submitted as array jobs.
-Run a script without arguments to list its steps. See the documentation linked
-above for the inputs, reference files and outputs of each pipeline.
+The AMY population-genetics stage takes **a joint, phased, biallelic
+SNP VCF and disjoint population sample-ID lists**, not copy-specific
+gene alignments. It can be run independently of graph structural steps:
+
+```bash
+# Recommended: activate the environment providing selscan v3.0.1
+mamba create -n amy_popgen -c conda-forge -c bioconda python bcftools selscan=3.0.1
+conda activate amy_popgen
+
+export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
+export POPS="KOR=/path/to/KOR302.txt CHN=/path/to/CHN.txt"
+export CALLABLE_BED=/path/to/GRCh38.StrictMask.nonN.bed.gz
+export OUT_DIR=/path/to/results/amy_flanking
+bash 5.Population_genetics_in_AMY_flanking_locus.sh all
+```
+
+With **one** population, only within-population statistics are
+performed. With **two or more**, the first population is the query
+for Hudson FST and phased XP-nSL comparisons. If selscan v3.0.1 is
+missing, nSL and XP-nSL are **skipped with a warning** while other
+analyses continue.
+
+Individual bootstrap/jackknife and genomic block bootstrap default
+to **OFF**. To enable fast exploratory CIs:
+
+```bash
+INDIVIDUAL_CI=1 IND_BOOT_REPS=100 IND_JACKKNIFE_FRACTION=0.30 \
+GENOMIC_BOOTSTRAP=1 GENOMIC_CHROMS=chr1 GENOMIC_BLOCK_MB=50 \
+GENOMIC_BOOT_REPS=100 GENOMIC_WINDOW_STEP=1000 \
+bash 5.Population_genetics_in_AMY_flanking_locus.sh all
+```
+
+Our manuscript instead used **10,000** bootstrap replicates,
+full leave-one-person-out jackknife, and **chr1–22 / 5-Mb
+physical chromosome-stratified block bootstrap (10,000 draws)**.
+Those settings, estimator equations, window definitions and currently
+unsupported metrics are documented in [stage 7](5.Population_genetics_in_AMY_flanking_locus.md).
+Use verified manuscript tables rather than automatically equating
+exploratory public-pipeline values with the final X1/X2/X3 numbers.
 
 ## Requirements
 
-Unix shell environment with the third-party tools listed in the documentation
-of each pipeline available on `PATH`. Reference genomes and annotation files
-are downloaded separately; the download URLs are given in the configuration
-block at the top of each script.
+- Unix/Bash, Python 3.9+, and the tools noted in each stage's
+  documentation. Variant extraction requires `bcftools` and a
+  coordinate-sorted/indexed VCF; structural graph workflows require
+  graph tools (minigraph, gfabase, odgi, etc.).
+- To obtain **nSL and XP-nSL**, activate a mamba/conda environment
+  containing **selscan v3.0.1**. Missing selscan skips only those
+  statistics, never installs it automatically.
+- Stage 7 needs GRCh38 flanking SNP calls and a
+  `StrictMask(20160622) ∩ non-N` callable BED for appropriate
+  denominator lengths. It does not download private cohort data.
+- Stage 7's optional genomewide feature needs an indexed
+  joint all-chromosome VCF (chr1 for the default pilot, chr1–22
+  for the manuscript-scale configuration).
+- Stages 2 and 5 are placeholders; they exit with
+  `NOT IMPLEMENTED` rather than report false success.
+
+### Helper scripts
+
+`amy_flank_popgen.py` (focal π/θW/Tajima D/LD/FST),
+`amy_flank_population_stats.py` (matched phased SNPs for XP-nSL),
+`amy_flank_individual_ci.py` (optional individual CIs),
+`amy_flank_genomic_background.py` (optional windowed genomic percentiles),
+`amy_haplotype_tags.py` and other helper scripts are kept in the
+repository root. Legacy `hudson_fst.py` and `msa_to_vcf.py` are
+retained for provenance but **not invoked** for paralog-specific
+population genetic statistics by stage 6 or 7.
 
 ## Data availability
 
