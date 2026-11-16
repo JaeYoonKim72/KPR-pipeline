@@ -11,9 +11,8 @@ structural haplotypes and flanking-region population genetics.
 
 The numbered stages below follow the project's planned manuscript workflow.
 **Stages 2 and 5 are placeholders** (not implemented; their scripts
-explicitly refuse `all` until developed). Stage 7 remains named
-`5.Population_genetics_in_AMY_flanking_locus.sh` for compatibility with
-the existing GitHub branch and manuscript notes.
+explicitly refuse `all` until developed). Stage 7 uses
+`Population_genetics_in_AMY_flanking_locus.sh`.
 
 | # | Script | Description | Documentation | Status |
 |---|---|---|---|---|
@@ -23,7 +22,7 @@ the existing GitHub branch and manuscript notes.
 | 4 | `pangenome_variant_comparison.sh` | SV/small-variant deconstruction, allele merging and KPR–HPRC comparison | [docs](pangenome_variant_comparison.md) | Implemented |
 | 5 | `Variant_benchmark.sh` | Reserved variant benchmarking against truth sets | [docs](Variant_benchmark.md) | Placeholder |
 | 6 | `AMY_locus_analysis_in_pagenomegraph.sh` | Structural AMY haplotype architectures and tree in the HPRC+KPR graph; no copy-specific population SNP statistics | [docs](AMY_locus_analysis_in_pagenomegraph.md) | Implemented |
-| 7 | `5.Population_genetics_in_AMY_flanking_locus.sh` | Distal/proximal locus-level π, θW, Tajima D, LD, nSL, FST, XP-nSL; optional individual and genomic CIs | [docs](5.Population_genetics_in_AMY_flanking_locus.md) | Focal + SNP-based optional CIs; incomplete normalized haplotype/background metrics |
+| 7 | `Population_genetics_in_AMY_flanking_locus.sh` | Distal/proximal locus-level π, θW, Tajima D, LD, nSL, FST, XP-nSL; optional individual and genomic CIs | [docs](Population_genetics_in_AMY_flanking_locus.md) | Focal + SNP-based optional CIs; incomplete normalized haplotype/background metrics |
 
 The existing [pangenome short-read mapping](pangenome_short_read_mapping.md)
 workflow (`pangenome_short_read_mapping.sh`) remains available as
@@ -71,7 +70,7 @@ export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
 export POPS="KOR=/path/to/KOR.txt CHN=/path/to/CHN.txt"
 export CALLABLE_BED=/path/to/GRCh38.StrictMask.nonN.bed.gz
 export OUT_DIR=/path/to/results/amy_flanking
-bash 5.Population_genetics_in_AMY_flanking_locus.sh all
+bash Population_genetics_in_AMY_flanking_locus.sh all
 ```
 
 With **one** population, only within-population statistics are
@@ -87,14 +86,14 @@ to **OFF**. To enable fast exploratory CIs:
 INDIVIDUAL_CI=1 IND_BOOT_REPS=100 IND_JACKKNIFE_FRACTION=0.30 \
 GENOMIC_BOOTSTRAP=1 GENOMIC_CHROMS=chr1 GENOMIC_BLOCK_MB=50 \
 GENOMIC_BOOT_REPS=100 GENOMIC_WINDOW_STEP=1000 \
-bash 5.Population_genetics_in_AMY_flanking_locus.sh all
+bash Population_genetics_in_AMY_flanking_locus.sh all
 ```
 
 Our manuscript instead used **10,000** bootstrap replicates,
 full leave-one-person-out jackknife, and **chr1–22 / 5-Mb
 physical chromosome-stratified block bootstrap (10,000 draws)**.
 Those settings, estimator equations, window definitions and currently
-unsupported metrics are documented in [stage 7](5.Population_genetics_in_AMY_flanking_locus.md).
+unsupported metrics are documented in [stage 7](Population_genetics_in_AMY_flanking_locus.md).
 Use verified manuscript tables rather than automatically equating
 exploratory public-pipeline values with the final X1/X2/X3 numbers.
 
