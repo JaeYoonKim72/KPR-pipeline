@@ -1,14 +1,4 @@
 #!/usr/bin/env Rscript
-# Draw the gene structure of each haplotype next to the phylogenetic tree of
-# the tagged sequences, as in Figure 4b.
-#
-# Usage:
-#   Rscript plot_haplotypes.R <gene_tags.tsv> <tree.treefile> <output.pdf>
-#
-#   gene_tags.tsv   long table written by amy_haplotype_tags.py, with the
-#                   columns haplotype, order, node, orientation, gene, length
-#   tree.treefile   Newick tree written by IQ-TREE 2
-
 suppressPackageStartupMessages({
   library(ape)
   library(ggplot2)
