@@ -1,22 +1,4 @@
 #!/usr/bin/env bash
-#
-# decon_split.sh
-#
-# Split a VCF produced by vg deconstruct by variant size and by variant type.
-#
-#   small variants   every alternative allele differs from the reference by
-#                    less than 50 bp, and the site carries no allele of 50 bp
-#                    or more
-#   structural       every alternative allele differs from the reference by
-#   variants         50 bp or more
-#
-# Sites whose alternative alleles mix substitutions and length-changing
-# alleles are separated into "only_mixed" files and excluded from the
-# insertion and deletion sets, so that each final file holds one unambiguous
-# category.
-#
-# Usage: bash decon_split.sh <input.vcf.gz> [min_sv_length]
-
 set -euo pipefail
 
 INPUT=${1:?usage: bash decon_split.sh <input.vcf.gz> [min_sv_length]}
@@ -26,11 +8,8 @@ NAME=$(basename "${INPUT}")
 DIR=$(dirname "${INPUT}")
 OUT="${DIR}/${NAME%.vcf.gz}"
 
-###############################################################################
 # 1. Length difference between the reference allele and every alternative
 #    allele of each site
-###############################################################################
-
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
   | awk '{
       split($4, alts, ",")
@@ -40,11 +19,8 @@ bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
                                              : length($3) - length(alts[i])
     }' > "${OUT}.var_sizes.txt"
 
-###############################################################################
 # 2. Sites holding at least one structural allele, and sites holding only
 #    small alleles
-###############################################################################
-
 awk -v m="${MINSV}" '$5 >= m {print $1, $2}' "${OUT}.var_sizes.txt" \
   | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.SVs_list.txt"
 
@@ -59,11 +35,8 @@ bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.SVs_list.txt") "${INPUT}" \
 bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.Smalls_list.txt") "${INPUT}" \
   -Oz -o "${OUT}.var_sizes.Smalls_list.vcf.gz"
 
-###############################################################################
 # 3. Structural variants: keep only the sites where every alternative allele
 #    is structural
-###############################################################################
-
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${OUT}.var_sizes.SVs_list.vcf.gz" \
   | awk -v m="${MINSV}" '{
       split($4, alts, ","); all_large = 1
@@ -133,10 +106,7 @@ bcftools filter -i 'strlen(ALT) > strlen(REF)' \
   | bcftools norm --rm-dup all -Oz \
     -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.INS.INS.vcf.gz"
 
-###############################################################################
 # 4. Small variants: deletions, insertions and substitutions
-###############################################################################
-
 bcftools view -H "${OUT}.var_sizes.Smalls_list.vcf.gz" \
   | awk -F'\t' '{
       split($5, alts, ","); has_snp = 0; has_indel = 0
