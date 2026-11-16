@@ -68,12 +68,12 @@ Analyses use GRCh38-aligned, diploid SNP genotypes from
 consent-eligible KOR302 individuals and public 1000 Genomes
 populations. The earlier 818-person cohort and all derived
 inputs are excluded. The code supports configurable cohort
-lists, focal intervals, optional uncertainty analyses, and
+lists, distal/proximal flanking intervals, optional uncertainty analyses, and
 independently generated genomic backgrounds. Status and
 implementation limits are summarized below.
 
 **Implementation status.** The public `all` workflow calculates
-focal pi, projected Watterson's theta, an exploratory projected
+distal/proximal flanking-region pi, projected Watterson's theta, an exploratory projected
 Tajima's D, within-flank LD, cross-flank LD, Hudson FST, and,
 when selscan v3.0.1 is available, raw nSL/XP-nSL scores.
 Individual-level bootstrap/jackknife is implemented for
@@ -86,6 +86,13 @@ Do not treat these public exploratory outputs as automatically
 identical to the verified manuscript tables.
 
 ---
+
+**Terminology:** Earlier pipeline variables, filenames and helper-script options
+use the historical term `focal` for the AMY distal or proximal
+flanking interval(s), as opposed to their genomic background windows.
+Throughout the biological interpretation below, the regions are
+identified as the **distal flanking region** and the
+**proximal flanking region**, rather than as a single focal locus.
 
 ## 1. Set up
 
@@ -216,7 +223,7 @@ does not require equal sample counts.
 
 Genotype-level DP≥10 and GQ≥20, sample-level consent/QC, and SHAPEIT5
 phasing/IMPUTE5 imputation are **upstream inputs**, not operations carried
-out by this script. The focal Python statistic engine additionally enforces
+out by this script. The distal/proximal flanking-region Python statistic engine additionally enforces
 genotype call rate ≥90% **for each relevant population**. All SNPs used in
 π/θW/Tajima's D and FST retain low-frequency variants (no MAF filter).
 LD requires MAF≥0.05; nSL/XP-nSL core MAF is independently configurable.
@@ -227,7 +234,7 @@ This file is BED0 (0-based half-open). No callable BED produces
 a loud warning and uses the **physical length** as a denominator;
 this is not equivalent to the paper's masked analysis.
 
-In our revision the focal population was KOR302; the eight public
+In our revision the KOR comparison population was KOR302; the eight public
 comparison populations are CHN, CDX, JPT, KHV, SAS, EUR, AMR and AFR.
 The historic 818-person dataset and all 818-derived files are excluded.
 
@@ -341,11 +348,11 @@ listed under `9.6`.
 | `fst` | Hudson FST | ≥2 | `stats/hudson_fst.tsv` |
 | `nsl` | Unphased nSL raw core scores | ≥1, selscan | `selscan/` |
 | `xpnsl` | Phased XP-nSL raw core scores | ≥2, selscan | `selscan/` |
-| `individual_ci` | Bootstrap and jackknife for SNP-derived focal statistics | ≥1 | `individual_ci/individual_ci.tsv` |
+| `individual_ci` | Bootstrap and jackknife for SNP-derived distal/proximal flanking-region statistics | ≥1 | `individual_ci/individual_ci.tsv` |
 | `genomic` | 1-kb genomic background windows, block-bootstrap genomic percentile | ≥1; genomewide VCF | `genomic/genomic_percentile_ci.tsv` |
-| `all` | Above focal steps; optional CI and genomic if ON | ≥1 | `status.tsv` |
+| `all` | Above distal/proximal flanking-region steps; optional CI and genomic if ON | ≥1 | `status.tsv` |
 
-`all` ALWAYS attempts focal within and eligible between statistics.
+`all` ALWAYS attempts distal/proximal flanking-region within and eligible between statistics.
 `INDIVIDUAL_CI` and `GENOMIC_BOOTSTRAP` are OFF by default, even
 when the run mode is `all`. Use the corresponding environment variables
 or switches to enable them. `nsl`/`xpnsl` are skipped with a warning if
@@ -414,7 +421,7 @@ results/amy_flanking_population_genetics/
 
 Correspondence with paper supplementary tables:
 
-| Table | Within/between | Current public-code focal coverage | Additional published metrics |
+| Table | Within/between | Current public-code distal/proximal flanking-region coverage | Additional published metrics |
 |---|---|---|---|
 | X1 | Within | π, θW, exploratory Tajima D, raw nSL | Validated projected Tajima D, normalized nSL; all genomic ranks/CIs |
 | X2 | Within | Within-LD, across-LD corrected r² | Distance-matched LD enrichment and genomewide LD rank/interval |
@@ -497,33 +504,33 @@ SNP pairs**, not the square of the mean r.
 ### 6.5 Cross-flank / across-locus LD
 
 Across-locus LD is estimated by pairing eligible SNPs from the distal
-and proximal unique flanks. The focal output `stats/across_ld.tsv`
+and proximal unique flanks. The distal/proximal flanking output `stats/across_ld.tsv`
 contains the arithmetic mean of sample-size-corrected dosage r² and
-its valid pair count for each population. A focal r² alone does not
+its valid pair count for each population. A distal/proximal flanking-region r² alone does not
 quantify excess LD relative to the genome: enrichment requires a
 separately estimated, distance-matched background.
 
 For a consistent estimator and pair inclusion rule:
 
-- `F` is the mean focal cross-flank r².
+- `F` is the mean distal/proximal flanking-region cross-flank r².
 - `B_k` is the mean genomic r² for SNP pairs separated by distance
   bin `k` (1-kb bins).
-- `w_k` is the fraction of eligible focal SNP pairs in bin `k`.
-- `B = sum_k(w_k * B_k)` is the focal-distance-weighted background.
+- `w_k` is the fraction of eligible distal/proximal flanking SNP pairs in bin `k`.
+- `B = sum_k(w_k * B_k)` is the distal/proximal flanking-region-distance-weighted background.
 - `enrichment = F / B` and `delta = F - B`.
 
 For example, F = 0.12 and B = 0.03 would give a fourfold
 enrichment and a delta of 0.09. Both F and B must use identical
 population, QC, MAF, callable-region and r² definitions. A
-corrected-r² focal estimate cannot be divided by a raw-r² background.
+corrected-r² distal/proximal flanking-region estimate cannot be divided by a raw-r² background.
 
 **Distance-filter distinction.** This public helper uses all
 eligible distal-by-proximal pairs and does not impose the
 original study's additional 190–370-kb distance band. To
 reproduce the completed cross-SVR analysis, impose that same
-190–370-kb band on the focal and genomic pairs. The original
+190–370-kb band on the distal/proximal flanking-region and genomic pairs. The original
 background used chromosome 1 distance-matched pairs, with
-weights from the focal 1-kb pair-distance histogram. It is not
+weights from the distal/proximal flanking-region 1-kb pair-distance histogram. It is not
 an all-autosome rank. Section 9.2 explains how to use the
 previously derived results and compute a corrected-r² ratio.
 
@@ -532,7 +539,7 @@ previously derived results and compute a corrected-r² ratio.
 Unphased nSL is calculated with selscan v3.0.1 [6–8,12].
 The core must meet MAF >= 0.05 by default; low-frequency
 markers may contribute to extension under `--keep-low-freq`.
-The focal extension stops at the flank boundary and uses
+The distal/proximal flanking-region extension stops at the flank boundary and uses
 `--max-extend-nsl 50` by default.
 
 #### Normalize the nSL results
@@ -543,12 +550,12 @@ normalization reference uses chromosomes 2–22 and 100
 core-allele-frequency bins. Each core is standardized as
 `z_i = (raw_nSL_i - mean_bin) / sd_bin`. The background
 must be computed with consistent core-MAF, phasing mode,
-QC filters and extension cap; the two short AMY focal files
+QC filters and extension cap; the two short AMY distal and proximal flanking files
 must not be used to estimate the reference distribution.
 
 First generate raw unphased nSL scores across chr2–22
 for each population, using `selscan --nsl --unphased`
-and the same options as the focal run. With these
+and the same options as the distal/proximal flanking-region run. With these
 independently derived background files in place:
 
 ~~~bash
@@ -575,7 +582,7 @@ nSL and the proportion of valid cores with absolute
 normalized nSL > 2. Repeat for CHN, CDX, JPT, KHV,
 SAS, EUR, AMR and AFR with each population's own
 reference log. Do not pool populations. The current
-public wrapper generates only raw focal nSL scores;
+public wrapper generates only raw distal/proximal flanking-region nSL scores;
 genomewide reference scans, normalization and ranking
 remain independent downstream steps.
 
@@ -600,7 +607,7 @@ in **both** populations and callable-mask requirements are used.
 No additional MAF filter is applied. A negative estimated FST is
 retained rather than truncated to zero.
 
-The KOR302 paper's focal shared SNP counts were 166 (distal) and
+The KOR302 paper's distal/proximal flanking-region shared SNP counts were 166 (distal) and
 128 (proximal). These numbers are dataset-dependent and are
 **not hardcoded** into the script.
 
@@ -623,7 +630,7 @@ Fit the normalization reference separately for each
 ordered population pair, using phased genomewide
 autosomal XP-nSL scores with consistent QC, sites
 and extension settings. Exclude AMY from fitting the
-reference distribution to avoid focal self-inclusion.
+reference distribution to avoid distal/proximal flanking-region self-inclusion.
 
 First generate genomewide raw XP-nSL files on
 chr1–22 for KOR versus each reference population,
@@ -669,7 +676,7 @@ CDX has exactly 93 individuals, so its entire
 cohort occurs in each replicate; only the KOR
 subset changes. These descriptive subsampling
 intervals are not implemented in the public helper,
-which currently produces raw focal XP-nSL only.
+which currently produces raw distal/proximal flanking-region XP-nSL only.
 
 ---
 
@@ -736,7 +743,7 @@ must not be treated as equivalent.
 ### 9.1 Matched-size sliding-window backgrounds
 
 For each flank independently, take windows of the **same physical
-length** as the focal flank: distal `105,364 bp` and proximal
+length** as the distal or proximal AMY flank: distal `105,364 bp` and proximal
 `66,001 bp`, with a **1,000-bp (1 kb) step** along the chosen
 background chromosome(s). The entire locus span
 `chr1:103,456,163–103,826,698` and every background window
@@ -745,7 +752,7 @@ overlapping this span are excluded.
 Windows lacking callable bases or a valid denominator for a
 statistic are omitted. Hudson FST background calculations
 can additionally require callable-base length within ±10%
-of the corresponding focal flank (`GENOMIC_FST_CALLABLE_MATCH=0.10`).
+of the corresponding distal or proximal AMY flank (`GENOMIC_FST_CALLABLE_MATCH=0.10`).
 This is the callable-matched primary background defined for
 our manuscript; unmatched windows are a sensitivity analysis.
 For the physical chr1 pilot, the default still uses the callable
@@ -767,7 +774,7 @@ r², with the same physical length as the distal
 filters, and the same maximum pair separation
 (<100 kb distal; <60 kb proximal). Exclude windows
 overlapping chr1:103456163–103826698. Compare
-the focal within-LD mean to the distribution of
+the distal/proximal flanking-region within-LD mean to the distribution of
 eligible window means; the genomic median can
 serve as the denominator of an exploratory fold
 enrichment, and the full distribution supports
@@ -778,16 +785,16 @@ rather than an unstable fold ratio.
 **Cross-flank LD.** A valid genomic comparison
 must account for the dependence of r² on
 physical SNP-pair separation. Within each
-population, partition focal SNP pairs into
+population, partition distal/proximal flanking SNP pairs into
 1-kb distance bins. Let `w_k` be the proportion
-of focal pairs in bin k, and let `B_k` be the
+of distal/proximal flanking-region pairs in bin k, and let `B_k` be the
 mean genomic r² in that distance bin, after
 applying the same SNP, callable, sample and
 r² filters. The matched reference is
 `B = sum_k(w_k * B_k)`. Report the
 observed mean `F`, the ratio `F/B`
 and the difference `F-B`. This preserves
-the observed focal pair-distance distribution.
+the observed distal/proximal flanking-region pair-distance distribution.
 A geometry-matched background may additionally
 preserve both flank lengths and their relative
 physical displacement; such analyses should
@@ -795,7 +802,7 @@ be labeled separately from the earlier
 chromosome 1 pair-distance-matched analysis.
 
 **Completed KOR example: original raw-r²
-cross-SVR analysis.** The focal mean raw
+cross-SVR analysis.** The distal/proximal flanking-region mean raw
 r² was **0.469826650626** and the
 chromosome 1 distance-matched mean raw r²
 was **0.0198553931296**, yielding
@@ -806,7 +813,7 @@ used 1-kb pair-distance-bin matching and
 the original 190–370-kb restriction.
 They do not represent all-autosome LD
 enrichment and cannot be applied to
-the corrected-r² focal file without
+the corrected-r² distal/proximal flanking file without
 recomputing the corrected-r² background.
 
 **How to use the public outputs.**
@@ -845,7 +852,7 @@ with open(focal_path, newline="") as handle:
 PY
 ~~~
 
-This command joins **already computed** focal and
+This command joins **already computed** distal/proximal flanking-region and
 matched-genomic estimates; it does not perform genomic
 LD estimation or bootstrapping. To estimate uncertainty
 for an LD ratio by individual resampling, recompute
@@ -869,7 +876,7 @@ remain separate from `amy_flank_genomic_background.py`.
 
 ### 9.3 Upper-tail genomic percentile
 
-For focal estimate `T_focal` and `W` eligible background windows:
+For distal/proximal flanking-region estimate `T_focal` and `W` eligible background windows:
 
 `P_upper = 100 × #{w : T_w ≥ T_focal} / W`.
 
@@ -950,7 +957,7 @@ methods reproducible once those modules are supplied.
 
 ## Software
 
-Bash; Python 3.9+ (standard-library focal/CI/genomic helpers);
+Bash; Python 3.9+ (standard-library distal/proximal flanking-region/CI/genomic helpers);
 bedtools, bgzip and tabix for reference-mask preparation;
 bcftools 1.15+ for indexed VCF operations; selscan **v3.0.1**
 for unphased nSL and phased XP-nSL. For final normalization,
