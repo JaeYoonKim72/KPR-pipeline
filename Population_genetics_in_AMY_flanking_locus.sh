@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SRC_DIR="${SCRIPT_DIR}/src"
 VCF="${VCF:-}"
 OUT_DIR="${OUT_DIR:-./results/amy_flanking_population_genetics}"
 DISTAL="${DISTAL:-chr1:103456163-103561526}"
@@ -34,6 +35,8 @@ usage() {
 cat <<'EOF'
 Usage: bash Population_genetics_in_AMY_flanking_locus.sh all [options]
 Steps: all, diversity, ld, across_ld, fst, nsl, xpnsl, individual_ci, genomic
+Distal and proximal flanking regions are the two AMY intervals analyzed.
+Legacy "focal" names in helper options or output files refer to these flanks.
 Required: VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
           POPS="KOR=/path/KOR.samples CHN=/path/CHN.samples"
           OR repeated --pop NAME=sample_file
@@ -138,7 +141,7 @@ calc() {
  --distal "$DISTAL" --proximal "$PROXIMAL" --projection "$PROJECTION_N" \
  --callrate "$CALL_RATE" --ld-maf "$LD_MAF" --distal-ld-max "$LD_DISTAL_MAX" \
  --proximal-ld-max "$LD_PROXIMAL_MAX" --only "$1" "${MASKOPT[@]}" "${PYPOPS[@]}"
- status "$1" all both DONE focal_point_estimate
+ status "$1" all both DONE distal_proximal_flanking_estimate
 }
 SELSCAN_OK=0
 check_selscan() {
