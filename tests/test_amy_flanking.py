@@ -21,8 +21,8 @@ class AMYTests(unittest.TestCase):
     def test_single_site_estimators(self):
         self.assertAlmostEqual(f.projection(1,10,2),0.2)
         r=f.r2_corrected(
-            ["chr1","100",".","A","G",".",".",".","GT","0|0","0|1","1|1"],
-            ["chr1","150",".","C","T",".",".",".","GT","0|0","0|1","1|1"])
+            f.calls(["chr1","100",".","A","G",".",".",".","GT","0|0","0|1","1|1"]),
+            f.calls(["chr1","150",".","C","T",".",".",".","GT","0|0","0|1","1|1"]))
         self.assertAlmostEqual(r,1.0)
         self.assertEqual(f.pf(float("nan")),"NA")
 
