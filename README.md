@@ -68,7 +68,7 @@ mamba create -n amy_popgen -c conda-forge -c bioconda python bcftools selscan=3.
 conda activate amy_popgen
 
 export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
-export POPS="KOR=/path/to/KOR302.txt CHN=/path/to/CHN.txt"
+export POPS="KOR=/path/to/KOR.txt CHN=/path/to/CHN.txt"
 export CALLABLE_BED=/path/to/GRCh38.StrictMask.nonN.bed.gz
 export OUT_DIR=/path/to/results/amy_flanking
 bash 5.Population_genetics_in_AMY_flanking_locus.sh all
