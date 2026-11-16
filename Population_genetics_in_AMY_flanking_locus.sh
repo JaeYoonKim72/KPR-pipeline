@@ -126,18 +126,18 @@ else
  echo "[WARNING] No StrictMask BED: physical length, not callable bp, used for diversity denominator." >&2
 fi
 # Use indexed region extraction to avoid streaming whole-autosome VCFs for
-# focal estimators and individual resampling. Never reuse stale extracted VCFs.
-prepare_focal_vcf() {
- if [[ -z "${FOCAL_VCF:-}" ]]; then
-   FOCAL_VCF="$OUT_DIR/intermediate/focal.vcf.gz"
+# distal/proximal flanking estimators and individual resampling. Never reuse stale extracted VCFs.
+prepare_flanking_vcf() {
+ if [[ -z "${FLANK_VCF:-}" ]]; then
+   FLANK_VCF="$OUT_DIR/intermediate/amy_distal_proximal_flanking.vcf.gz"
    bcftools view -r "$DISTAL,$PROXIMAL" -m2 -M2 -v snps \
-     -Oz -o "$FOCAL_VCF" "$VCF"
-   bcftools index -f "$FOCAL_VCF"
+     -Oz -o "$FLANK_VCF" "$VCF"
+   bcftools index -f "$FLANK_VCF"
  fi
 }
 calc() {
- prepare_focal_vcf
- python3 "$SRC_DIR/amy_flank_popgen.py" --vcf "$FOCAL_VCF" --out "$OUT_DIR/stats" \
+ prepare_flanking_vcf
+ python3 "$SRC_DIR/amy_flank_popgen.py" --vcf "$FLANK_VCF" --out "$OUT_DIR/stats" \
  --distal "$DISTAL" --proximal "$PROXIMAL" --projection "$PROJECTION_N" \
  --callrate "$CALL_RATE" --ld-maf "$LD_MAF" --distal-ld-max "$LD_DISTAL_MAX" \
  --proximal-ld-max "$LD_PROXIMAL_MAX" --only "$1" "${MASKOPT[@]}" "${PYPOPS[@]}"
@@ -240,9 +240,9 @@ run_xpnsl() {
 # Optional CI for SNP-level pi/thetaW/TajimaD/within-LD/across-LD/FST.
 # selscan-based nSL/XP-nSL CI needs separate reruns + genomewide normalization.
 run_individual_ci() {
- prepare_focal_vcf
+ prepare_flanking_vcf
  python3 "$SRC_DIR/amy_flank_individual_ci.py" \
-  --vcf "$FOCAL_VCF" --out "$OUT_DIR/individual_ci" \
+  --vcf "$FLANK_VCF" --out "$OUT_DIR/individual_ci" \
   --distal "$DISTAL" --proximal "$PROXIMAL" \
   --projection "$PROJECTION_N" --callrate "$CALL_RATE" \
   --bootstrap-reps "$IND_BOOT_REPS" \
@@ -255,7 +255,7 @@ run_individual_ci() {
 
 run_genomic() {
  [[ -s "$GENOME_VCF" ]] || { echo "[ERROR] GENOME_VCF missing: $GENOME_VCF" >&2; return 1; }
- # A stand-alone genomic run creates focal point values if not yet present.
+ # A stand-alone genomic run creates distal/proximal flanking estimates if not yet present.
  if [[ ! -s "$OUT_DIR/stats/diversity.tsv" ]]; then calc diversity; fi
  if (( ${#NAMES[@]} > 1 )) && [[ ! -s "$OUT_DIR/stats/hudson_fst.tsv" ]]; then calc fst; fi
  local additional=()
