@@ -50,10 +50,8 @@ export LIST_DIR=/path/to/lists
 export THREADS=32
 
 bash genome_assembly_and_statistics.sh all
-# Step 2 Ensemble_gene_annotation.sh: planned, not implemented
 bash pangenome_construction_and_statistics.sh all
 bash pangenome_variant_comparison.sh all
-# Step 5 Variant_benchmark.sh: planned, not implemented
 bash AMY_locus_analysis_in_pagenomegraph.sh all
 ```
 
@@ -62,8 +60,7 @@ SNP VCF and disjoint population sample-ID lists**, not copy-specific
 gene alignments. It can be run independently of graph structural steps:
 
 ```bash
-# Recommended: activate the environment providing selscan v3.0.1
-mamba create -n amy_popgen -c conda-forge -c bioconda python bcftools selscan=3.0.1
+mamba create -n amy_popgen -c conda-forge -c bioconda python bcftools bedtools htslib selscan=3.0.1
 conda activate amy_popgen
 
 export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
