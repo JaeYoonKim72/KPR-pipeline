@@ -104,7 +104,7 @@ extract_inputs() {
    dest="$OUT_DIR/intermediate/$name.$reg.vcf.gz"
    if [[ ! -s "$dest" ]]; then
     if [[ -n "$CALLABLE_BED" ]]; then
-      bcftools view -r "$coords" -R "$CALLABLE_BED" -S "${LISTS[$i]}" -m2 -M2 -v snps \
+      bcftools view -r "$coords" -T "$CALLABLE_BED" -S "${LISTS[$i]}" -m2 -M2 -v snps \
         -Oz -o "$dest" "$VCF"
     else
       bcftools view -r "$coords" -S "${LISTS[$i]}" -m2 -M2 -v snps \
