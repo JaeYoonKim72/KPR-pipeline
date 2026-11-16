@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Variant benchmarking
-# Variant_benchmark.sh -- template only, NOT IMPLEMENTED.
-# Usage: bash Variant_benchmark.sh [help|all]
 set -euo pipefail
 usage() {
   cat <<'HELP'
