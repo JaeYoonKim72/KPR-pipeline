@@ -1,13 +1,56 @@
 # AMY_locus_analysis_in_pagenomegraph.sh
 
-Structural analysis of the AMY region in the combined HPRC+KPR pangenome graph.
-This step identifies graph bubbles, extracts the locus subgraph, reconstructs
-AMY gene-order haplotypes and infers a haplotype phylogeny.
+## Scope and rationale
 
-This script **does not** treat individual AMY gene copies as independent diploid
-SNP loci. Copy-level FST, nucleotide diversity and LD were excluded from the
-revision. For locus-level short-read SNP analyses of distal and proximal
-unique flanks, see [Population genetics of AMY flanks](5.Population_genetics_in_AMY_flanking_locus.md).
+The chromosome 1 amylase (AMY) locus consists of the salivary
+amylase gene family AMY1, the pancreatic amylase genes AMY2A
+and AMY2B, and the AMYP1 pseudogene. Large near-identical
+tandem and segmental duplications create a broad range of
+copy-number states, gene orientations and structural
+haplotypes. The **structurally variable region (SVR)** can
+change substantially in size between haplotypes and
+is difficult to reconstruct with one linear reference.
+Long-read haplotype assemblies and graph-based paths
+allow the physical ordering and orientation of the
+repeated segments to be examined directly [1–3].
+
+This stage identifies AMY-related structural bubbles
+in the augmented HPRC+KPR graph, extracts the
+corresponding subgraph, annotates AMY gene
+segments, reconstructs ordered gene-copy patterns
+and summarizes the structural haplotypes represented
+by the input assemblies. MAFFT alignment and IQ-TREE 2
+provide a sequence-based phylogenetic description
+of the resulting haplotypes. The tree organizes
+sequence relationships; it does not itself prove
+the timing, selection history or functional impact
+of a duplication event.
+
+The KPR manuscript evaluated **124 assembly/reference
+paths**: 28 Korean haplotype assemblies, 94 HPRC
+v1.0 haplotype assemblies, and the GRCh38 and
+CHM13 reference sequences. This analysis identified
+31 structural architectures, 17 of which were
+represented among the 28 Korean assemblies.
+Six haplotype architectures were observed only
+in the sampled Korean assembly panel, not in
+the HPRC comparisons. Their absence from those
+relatively small comparison panels should not
+be interpreted as population-wide exclusivity.
+The structural panel also remains distinct
+from the separate 302-person diploid SNP
+cohort used for flanking population genetics [1].
+
+**Analysis boundary.** This script does not
+treat individual AMY gene copies as independent
+diploid SNP loci. Copy-level FST, nucleotide
+diversity and LD from separated paralogs are
+not part of the revised analysis because
+variable copy number and potential interlocus
+gene conversion complicate independent allelic
+sampling. For locus-level population statistics
+using unique distal/proximal sequences, see
+[Population genetics of AMY flanks](Population_genetics_in_AMY_flanking_locus.md).
 
 Part of the [KPR-pipeline](README.md).
 
@@ -88,6 +131,109 @@ the Bolognini distal/proximal regions used by step 7.
 | `haplotype_tree` | Assemble per-haplotype sequences, MAFFT alignment, IQ-TREE 2 and R plotting |
 | `all` | Run the four structural steps in order |
 
+### 3.1 Selection of a structurally complex locus
+
+Large bubbles provide candidates for multi-allelic
+or copy-number-variable sequence structures.
+The pipeline selects bubbles >10 kb with at
+least five per-sample allele observations,
+intersects them with protein-coding gene
+annotations and prioritizes the AMY gene
+cluster. These are *graph structural*
+selection criteria, not variant-allele
+frequency thresholds in a diploid population.
+The selected bubble interval and reference
+path coordinate must be recorded together:
+the script's extraction interval
+`chr1:103570000-103760000` is an adjustable
+subgraph boundary, not the unique distal/
+proximal windows of Bolognini et al. [2].
+
+### 3.2 Structural subgraph reconstruction
+
+The graph is extracted with gfabase and
+converted for odgi analysis. Node/edge
+orientation, path traversal and
+gene overlaps determine the order of
+AMY segments for each haplotype.
+Inversions change gene orientation,
+whereas duplications alter repeat
+unit counts; both must be retained
+when defining a structural class.
+A path missing part of the requested
+region or an ambiguous gene annotation
+requires manual review, rather than
+automatic assignment to the nearest
+copy-number class. Bandage provides
+a structural overview, not a genome
+assembly validity check.
+
+### 3.3 AMY structural haplotype naming
+
+The manuscript grouped haplotypes
+first by AMY1 copy number (H1–H7),
+then by AMY2A copy number (A0–A2),
+and subsequently by gene orientation
+and AMYP1 presence (S subtypes).
+For example, H5A1-S5 denotes a
+particular AMY1/AMY2A copy-count
+combination with a defined
+substructure; the subtype must be
+read from the gene-order annotation.
+Structural configurations that share
+AMY1 counts should not be collapsed
+if AMY2A content or gene direction
+differs. The manuscript reported
+no H6 assembly in its 124-path panel;
+that observation does not imply
+that H6 cannot exist in other samples.
+
+### 3.4 Haplotype sequence relationships
+
+MAFFT aligns the reconstructed
+haplotype-associated sequences, and
+IQ-TREE 2 estimates a nucleotide-based
+phylogenetic tree. Tree tips must
+retain the source path, population,
+sample identifier and structural
+HxAy-Sz label. Similar structural
+arrangements can evolve independently
+on distinct SNP backgrounds,
+as documented by Bolognini et al.;
+consequently, a structural tree and
+a single-copy flanking SNP tree
+address related but different
+evolutionary questions [2,3].
+The manuscript observed matching
+AMY1 H-group placement among
+72 of 85 shared haplotypes in a
+comparison to the prior HPRC analysis,
+which supports broad comparability
+without implying identical
+subtype definitions.
+
+### 3.5 Population-panel description and limitations
+
+Population annotations summarize
+how frequently each **assembly path**
+carries an observed structural class.
+The relevant denominators are
+the number of haplotype assemblies
+in each panel, not the number of
+individual gene copies. Reference
+paths GRCh38 and CHM13 are included
+in structure comparison but excluded
+from population-panel frequencies.
+The small HPRC East Asian panel
+and the absence of independently
+measured function prevent claims
+that a structural class is fixed,
+uniquely Korean or itself under
+diet-associated selection.
+The separate population-genetics
+pipeline evaluates diploid SNPs
+in the unique SVR flanks.
+
 The former steps `gene_copies`, `copy_snps` and `population_stats`
 are intentionally no longer supported. Existing supporting scripts may remain
 in this repository for provenance, but are **not** invoked by `all`.
@@ -131,7 +277,27 @@ The results characterize **graph-based locus architecture** and are not
 the same as π, θW, Tajima's D, LD, nSL, Hudson FST or XP-nSL from
 the separate flank-level population pipeline.
 
+The principal outputs support manuscript Figure 4 and
+Supplementary Tables S23–S24: the node/gene structure
+map; distinct HxAy-Sz structures; sequence tree;
+AMY1 copy-number group counts; and distribution
+across KOR, HPRC-EAS and HPRC-nEAS assembly panels.
+Check that the total panel count reconciles to
+28 + 94 + 2 reference paths, that population
+statistics exclude the two references, and that
+multiple haplotype paths from the same donor are
+not described as independent people. Structural
+counts may differ if the graph, assembly panel,
+gene interval or class definition changes.
+
 ---
+
+## References
+
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; Figure 4 and Tables S23–S24.
+2. Bolognini D, et al. (2024). Recurrent evolution and selection shape structural diversity at the amylase locus. *Nature* 634:617–625. https://doi.org/10.1038/s41586-024-07911-1
+3. Yilmaz F, et al. (2024). Reconstruction of the human amylase locus reveals ancient duplications seeding modern-day variation. *Science*. https://doi.org/10.1126/science.adn0609
+4. Usher CL, et al. (2015). Structural forms of the human amylase locus and their relationships to SNPs, haplotypes and obesity. *Nature Genetics*. https://doi.org/10.1038/ng.3340
 
 ## Software
 
