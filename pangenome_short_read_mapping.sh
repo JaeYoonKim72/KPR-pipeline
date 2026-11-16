@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-#
-# Constructing a Korean pangenome reveals distinct haplotypes at the amylase
-# locus
-#
-# pangenome_short_read_mapping.sh
-#
-# Usage: bash pangenome_short_read_mapping.sh <step>
-#        (see docs for the step list and for the required inputs)
-
 set -euo pipefail
-
-###############################################################################
-# Configuration
-###############################################################################
 
 THREADS=${THREADS:-8}
 
@@ -75,10 +62,7 @@ mkdir -p "${READ_OUT}" "${INDEX_OUT}" "${REF_OUT}" "${GAF_OUT}" "${BAM_OUT}" \
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
-###############################################################################
 # Step 1. Reference preparation
-###############################################################################
-
 prepare_reference() {
   log "step 1: reference preparation"
 
@@ -114,10 +98,7 @@ prepare_reference() {
   log "step 1 finished"
 }
 
-###############################################################################
 # Step 2. Read preparation
-###############################################################################
-
 read_prep() {
   log "step 2: read preparation"
 
@@ -142,10 +123,7 @@ read_prep() {
   log "step 2 finished"
 }
 
-###############################################################################
 # Step 3. k-mer index of each sample
-###############################################################################
-
 kmer_index() {
   log "step 3: k-mer counting"
 
@@ -167,10 +145,7 @@ kmer_index() {
   log "step 3 finished"
 }
 
-###############################################################################
 # Step 4. Read mapping to the pangenome graph
-###############################################################################
-
 giraffe() {
   log "step 4: vg giraffe mapping"
 
@@ -200,10 +175,7 @@ giraffe() {
   log "step 4 finished"
 }
 
-###############################################################################
 # Step 5. Projection of the alignments onto the linear reference
-###############################################################################
-
 surject() {
   log "step 5: vg surject"
 
@@ -231,10 +203,7 @@ surject() {
   log "step 5 finished"
 }
 
-###############################################################################
 # Step 6. BAM clean-up
-###############################################################################
-
 bam_cleanup() {
   log "step 6: BAM clean-up"
 
@@ -265,10 +234,7 @@ bam_cleanup() {
   log "step 6 finished"
 }
 
-###############################################################################
 # Step 7. Small variant calling
-###############################################################################
-
 small_variants() {
   log "step 7: small variant calling"
 
@@ -315,10 +281,7 @@ small_variants() {
   log "step 7 finished"
 }
 
-###############################################################################
 # Step 8. Structural variant calling
-###############################################################################
-
 sv_variants() {
   log "step 8: structural variant calling"
 
@@ -373,10 +336,7 @@ sv_variants() {
   log "step 8 finished"
 }
 
-###############################################################################
 # Step 9. Variant classification and genotype filtering
-###############################################################################
-
 # Split one call set into SNPs, bi-allelic SNPs, indels and structural
 # variants, and the structural variants into insertions and deletions.
 #   $1 = input vcf.gz   $2 = output prefix
@@ -443,10 +403,7 @@ classify() {
   log "step 9 finished"
 }
 
-###############################################################################
 # Step 10. Linear reference baseline
-###############################################################################
-
 grch38_baseline() {
   log "step 10: GRCh38 baseline"
 
@@ -507,10 +464,6 @@ grch38_baseline() {
 
   log "step 10 finished"
 }
-
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<EOF
