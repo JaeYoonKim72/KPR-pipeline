@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-#
-# Constructing a Korean pangenome reveals distinct haplotypes at the amylase
-# locus
-#
-# pangenome_variant_comparison.sh
-#
-# Usage: bash pangenome_variant_comparison.sh <step>
-#        (see docs for the step list and for the required inputs)
-
 set -euo pipefail
-
-###############################################################################
-# Configuration
-###############################################################################
 
 JOBS=${JOBS:-4}                       # chromosomes or samples processed in parallel
 
@@ -106,10 +93,7 @@ run_jobs() {
   (( FAIL == 0 )) || { log "  ${FN} failed, see ${JOB_LOG}/${FN}.*.log"; exit 1; }
 }
 
-###############################################################################
 # Step 1. Input preparation
-###############################################################################
-
 prepare_input() {
   log "step 1: input preparation"
 
@@ -150,10 +134,7 @@ prepare_input() {
   log "step 1 finished"
 }
 
-###############################################################################
 # Step 2. SV decomposition and loci
-###############################################################################
-
 sv_decompose_chr() {
   local CHR=$1
   local OUT="${SV_OUT}/${CHR}"
@@ -190,10 +171,7 @@ sv_decompose() {
   log "step 2 finished"
 }
 
-###############################################################################
 # Step 3. SV allele merging
-###############################################################################
-
 sv_merge_chr() {
   local CHR=$1
   local OUT="${SV_OUT}/${CHR}"
@@ -219,10 +197,7 @@ sv_merge() {
   log "step 3 finished"
 }
 
-###############################################################################
 # Step 4. Small variant decomposition, per sample
-###############################################################################
-
 small_decompose_sample() {
   local S=$1
   local OUT="${SMALL_OUT}/samples/${S}"
@@ -261,10 +236,7 @@ small_decompose() {
   log "step 4 finished"
 }
 
-###############################################################################
 # Step 5. Small variant merging, per chromosome
-###############################################################################
-
 small_merge_chr() {
   local CHR=$1
   local OUT="${SMALL_OUT}/merged/${CHR}"
@@ -293,10 +265,7 @@ small_merge() {
   log "step 5 finished"
 }
 
-###############################################################################
 # Step 6. Group comparison counts
-###############################################################################
-
 # Genotype table of a VCF, the input of count_groups.py.
 gt_table() { bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' "$1"; }
 
@@ -325,10 +294,7 @@ count() {
   log "step 6 finished"
 }
 
-###############################################################################
 # Step 7. Summary tables
-###############################################################################
-
 summary() {
   log "step 7: summary tables"
 
@@ -341,10 +307,6 @@ summary() {
 
   log "step 7 finished"
 }
-
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<EOF
