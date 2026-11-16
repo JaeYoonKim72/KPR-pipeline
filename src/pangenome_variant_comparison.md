@@ -27,13 +27,14 @@ Install the tools listed under [Software](#software) and make sure they are on
 PanSVMerger is used from its repository, at the commit used in the study:
 
 ```bash
-git clone https://github.com/Asian-Pan-Genome/PanSVMerger.git
-git -C PanSVMerger checkout 9d9827f
+git clone https://github.com/Asian-Pan-Genome/PanSVMerger.git src/PanSVMerger
+git -C src/PanSVMerger checkout 9d9827f
 ```
 
 `sv_merge_alleles.py` imports the clustering functions of
-`PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` if the
-repository is not cloned next to the pipeline.
+`src/PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` to an
+absolute path if the repository is installed elsewhere. The external
+PanSVMerger source is not bundled in this repository.
 
 ### 1.2 Input
 
@@ -171,7 +172,7 @@ run at the same time.
 | `RTG_MAXLEN` | `5000` | records with a longer allele are not passed to rtg |
 | `RTG_MEM` | `8g` | rtg heap size |
 | `SORT_MEM` | `8G` | `bcftools sort` buffer |
-| `PANSVMERGER` | `./PanSVMerger/scripts/SV.merge_variants.py` | PanSVMerger script |
+| `PANSVMERGER` | `./src/PanSVMerger/scripts/SV.merge_variants.py` | External PanSVMerger clustering script |
 | `JOBS` | `4` | chromosomes or samples processed in parallel |
 
 ---
