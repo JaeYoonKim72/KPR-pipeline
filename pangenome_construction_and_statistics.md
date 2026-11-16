@@ -1,15 +1,53 @@
 # pangenome_construction_and_statistics.sh
 
-Construction of the pangenome graphs with Minigraph–Cactus, graph indexing, and
-assessment of the graphs: graph statistics, pangenome size, variants derived
-from the graph, growth curves, bubbles, non-reference nodes and non-reference
-sequence.
+## Scope and rationale
+
+A single linear reference captures only one sequence arrangement
+at a given locus. Differences in population haplotypes,
+insertions, deletions and segmental duplications are therefore
+incompletely represented by one coordinate path. A pangenome
+graph instead represents sequences as nodes and connections
+as edges, with individual haplotypes traversing graph paths.
+Graph construction makes shared and alternative sequence
+arrangements directly comparable, while preserving the
+provenance of each input assembly [1–3].
+
+This workflow builds two Minigraph–Cactus graphs from
+quality-controlled, haplotype-resolved assemblies: **KPR**,
+containing 28 Korean haplotype assemblies from 14 individuals;
+and **HPRC+KPR**, combining those 28 assemblies with the
+94 HPRC v1.0 haplotype assemblies, for 122 population
+haplotypes. CHM13 and GRCh38 reference paths may also be
+present in graph files, and must not be mistaken for
+additional sampled people. The CHM13 sequence serves as
+the main graph backbone for comparison; GRCh38 provides
+a familiar annotation and variant-comparison coordinate
+system. Input sample names, path names and reference
+path membership must remain consistent [1].
+
+The graph analyses quantify how additional KOR sequences
+change the available representation of genomic variation:
+graph nodes, edges and path complexity; SNPs, MNPs,
+indels and structural variants; shared versus
+population-panel-specific variants; pangenome growth;
+non-reference sequence accumulation; frequency classes
+and repeat composition. Graph-based estimates provide
+a representation of observed assemblies, not a direct
+estimate of population allele frequency unless sampling
+and denominators are explicitly accounted for.
+
+In the manuscript, the combined HPRC+KPR graph contained
+approximately 87.3 million nodes and 120.9 million edges,
+with an estimated graph size near 3.2 Gb. Adding KOR
+assemblies contributed approximately 1.6 million SNPs
+and 0.2 million indels beyond HPRC alone, while the
+non-reference sequence component grew from about
+130 Mb in HPRC to about 152 Mb in the augmented graph.
+These values describe the published cohort and pipeline
+configuration; they are not expected constants of
+every rerun.
 
 Part of the [KPR-pipeline](README.md) repository.
-
-Two graphs are built: the KPR pangenome from the KOR haplotype assemblies, and
-a combined HPRC+KPR pangenome that additionally includes the HPRC haplotype
-assemblies.
 
 ---
 
@@ -202,6 +240,58 @@ normalisation are internal Minigraph–Cactus stages and are not overridden.
 
 ## 5. What the analysis steps do
 
+### 5.1 Input identity and graph construction checks
+
+Use the two QC-approved haplotype FASTA files for each
+KOR individual from the preceding assembly workflow.
+The HPRC haplotypes are treated as additional assembly
+paths, not as separate individuals when the two paths
+belong to the same diploid donor. Confirm that the
+seqfile contains the intended populations, both haplotypes
+where expected, and one entry for each assembly path.
+The sample name and haplotype suffix must agree with
+the names encoded in the FASTA. A mismatched name
+changes downstream sample grouping and sharing
+statistics even when graph construction succeeds.
+
+Minigraph–Cactus aligns input paths to the reference-backed
+graph, resolves nucleotide-level differences and emits
+normalized graph/VCF representations. The input sequence
+ordering is held constant across study graphs for
+reproducibility, but the order reflects an analysis
+configuration and must not be interpreted as an
+evolutionary branching order. The reference backbone,
+software versions, path ordering and filtering choices
+are part of graph provenance.
+
+### 5.2 Graph structure and saturation
+
+`odgi stats` reports nodes, edges, paths and steps;
+graph length is not simply the summed sizes of all
+input haplotypes, because shared sequence is
+represented once in the graph. `odgi heaps`
+estimates how pangenome content changes with the
+number of sampled paths using 200 permutations.
+The graph statistics should be compared on identical
+node/edge conventions and comparable filtered or
+unfiltered graph states. Growth trajectories require
+the same reference definition and sampling unit
+when KPR and HPRC are compared.
+
+### 5.3 Population-panel and sample-level comparisons
+
+Small variants and structural variants are compared
+between HPRC and KPR paths within the combined graph.
+A variant absent from a panel is **panel-specific
+within the sampled assemblies**, not necessarily
+private to that population worldwide. Per-sample
+variant counts distinguish an individual/haplotype
+record from a variant site shared by multiple paths.
+African samples may contribute larger numbers of
+observed variants for demographic and ascertainment
+reasons; compare populations with appropriate
+denominators and document unequal panel sizes.
+
 ### Variant classification
 
 `vg deconstruct -P <path> -a` is run three ways: against each reference path,
@@ -255,6 +345,41 @@ and for the annotation step.
 The large bubbles are intersected with the gene and exon BED files, flagged
 against the list of medically relevant genes, joined to the merged allele
 table, and filtered into the target sets.
+
+### 5.4 Panacus growth curves and node sharing
+
+Panacus evaluates graph growth as assembly paths are
+added, and `odgi heaps` provides an independent
+size-related summary. Nodes are partitioned by
+frequency among the selected input paths:
+singletons are observed in one path, doubletons
+in two, common nodes in 5–95% of paths and
+core nodes in more than 95%. These categories
+describe **assembly-path prevalence** and depend
+on whether a panel has one or two haplotypes
+per individual. Avoid describing two haplotypes
+from one donor as two independent individuals.
+A continued rise in singleton content suggests
+that rare non-reference sequence remains
+under-sampled; it does not imply that common
+variant discovery is equally incomplete.
+
+### 5.5 Non-reference bubbles, annotation and repeats
+
+Non-reference nodes are identified relative to
+the explicitly designated reference paths.
+A node can be absent from GRCh38 while present
+in CHM13, so report which reference is used.
+Large structural bubbles are intersected with
+GENCODE gene/exon annotations and the curated
+medically relevant gene list. RepeatMasker
+characterizes the associated sequence by
+repeat class. Counts of bubbles, nodes, alleles
+and physical base pairs are distinct quantities
+and should not be pooled without a stated
+unit and threshold. The manuscript compares
+the frequency and content of repeat-rich
+non-reference components between KPR and HPRC.
 
 ### Non-reference sequence
 
@@ -311,9 +436,37 @@ Main tables:
 - `nonreference_sequence/GRAPH/classes/*.fa` — sequence of each frequency class
 
 The indexed graph in `index/` and the GBZ in `graph/` are the input for
-`pangenome_short_read_mapping.sh`.
+`pangenome_short_read_mapping.sh`. The HPRC+KPR graph also supplies the
+AMY locus analysis described in
+[AMY_locus_analysis_in_pagenomegraph.md](AMY_locus_analysis_in_pagenomegraph.md).
+
+### Interpretation and audit points
+
+The main checks for manuscript Figure 3 are the
+relative graph complexities and content (Table S19);
+the SNP/indel/SV counts and their panel intersections
+(Figure 3b–d, Table S20); the accumulation of
+non-reference sequence (Figure 3e, Table S21);
+and the repeat composition of panel-specific
+non-reference sequences (Figure 3f–g, Table S22).
+Keep the exact sample/path counts, frequency
+denominators and reference assignment with each table.
+Variant records at the same coordinate with
+different alleles may be counted separately.
+Multiple nodes in one bubble are not necessarily
+independent SV events. Graph representation and
+variant discovery are dependent on alignment,
+deconstruction, filtering and backbone choice.
 
 ---
+
+## References
+
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; sections "Integrating Korean diversity into a pangenome framework" and "Assessment of the pangenome graph".
+2. Hickey G, et al. (2024). Pangenome graph construction from genome alignments with Minigraph-Cactus. *Nature Biotechnology*. https://doi.org/10.1038/s41587-023-01793-w
+3. Liao WW, et al. (2023). A draft human pangenome reference. *Nature*. https://doi.org/10.1038/s41586-023-05896-x
+4. Guarracino A, et al. (2022). ODGI: understanding pangenome graphs. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btac308
+5. Parmigiani L, et al. (2024). Panacus: fast and exact pangenome growth and core size estimation. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btae720
 
 ## Software
 
