@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-#
-# Constructing a Korean pangenome reveals distinct haplotypes at the amylase
-# locus
-#
-# AMY_locus_analysis_in_pagenomegraph.sh
-#
-# Usage: bash AMY_locus_analysis_in_pagenomegraph.sh <step>
-#        (see docs for the step list and for the required inputs)
-
 set -euo pipefail
-
-###############################################################################
-# Configuration
-###############################################################################
 
 THREADS=${THREADS:-8}
 
@@ -60,10 +47,7 @@ mkdir -p "${BUBBLE_OUT}" "${SUB_OUT}" "${HAP_OUT}" "${STAT_OUT}" "${LOG_OUT}" "$
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
-###############################################################################
 # Step 1. Selection of the regions of interest
-###############################################################################
-
 select_regions() {
   log "step 1: bubble selection"
 
@@ -116,10 +100,7 @@ select_regions() {
   log "step 1 finished"
 }
 
-###############################################################################
 # Step 2. Extraction and visualisation of the subgraph
-###############################################################################
-
 extract_subgraph() {
   log "step 2: subgraph extraction"
 
@@ -181,10 +162,7 @@ extract_subgraph() {
   log "step 2 finished"
 }
 
-###############################################################################
 # Step 3. Haplotype structure of the region
-###############################################################################
-
 tag_haplotypes() {
   log "step 3: haplotype tagging"
 
@@ -227,10 +205,7 @@ tag_haplotypes() {
   log "step 3 finished"
 }
 
-###############################################################################
 # Step 4. Phylogeny of the tagged sequences
-###############################################################################
-
 haplotype_tree() {
   log "step 4: haplotype phylogeny"
 
@@ -295,10 +270,6 @@ PY
 
   log "step 4 finished"
 }
-
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<EOF
