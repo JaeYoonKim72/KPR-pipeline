@@ -468,8 +468,24 @@ deconstruction, filtering and backbone choice.
 4. Guarracino A, et al. (2022). ODGI: understanding pangenome graphs. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btac308
 5. Parmigiani L, et al. (2024). Panacus: fast and exact pangenome growth and core size estimation. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btae720
 
-## Software
+## Software and versions
 
-Minigraph–Cactus 2.9 (Minigraph 0.19) · vg 1.63.1 · odgi 0.9.0 ·
-Panacus 0.4.1 · gfatools 0.5 · bedtools · bcftools 1.16 · samtools ·
-RepeatMasker 4.1.6 · Python 3
+The following versions are taken from the manuscript Methods and the
+corresponding commands in the workflow.
+
+| Operation | Software (manuscript version) |
+|---|---|
+| Graph construction | Minigraph–Cactus 2.9; Minigraph 0.19 in the construction pipeline |
+| Graph alignment/allele extraction | Minigraph 0.21 for later allele calls |
+| Graph indexing and variant deconstruction | vg 1.63.1 |
+| Graph structure, paths and heaps | odgi 0.9.0 |
+| Growth and core sequence | Panacus 0.4.1 |
+| Bubble and graph extraction | gfatools 0.5; gfabase 0.5 |
+| Repetitive sequence annotation | RepeatMasker 4.1.6 |
+| Supporting utilities | bcftools (workflow specifies 1.16), bedtools, samtools, Python 3 |
+
+The manuscript describes CHM13 as the backbone for its
+pangenome comparison. The public wrapper also exposes
+`REFERENCE` and `REF_PATHS` as configurable settings
+(defaults are recorded in section 4); these must match
+the intended reproducibility target and graph metadata.
