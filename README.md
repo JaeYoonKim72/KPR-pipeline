@@ -15,13 +15,16 @@ Run in the order below; each script consumes the output of the previous one.
 |---|---|---|---|
 | 1 | `genome_assembly_and_statistics.sh` | Long-read and Hi-C read QC, haplotype-resolved *de novo* assembly, polishing, assembly statistics, repeat and gene annotation, structural variant detection | [docs](genome_assembly_and_statistics.md) |
 | 2 | `pangenome_construction_and_statistics.sh` | Pangenome graph construction from the quality-controlled assemblies, graph statistics, graph-derived variants, growth curves, bubbles and non-reference sequence | [docs](pangenome_construction_and_statistics.md) |
+| 2-1 | `pangenome_variant_comparison.sh` | SV and small-variant decomposition of the graph-derived variants and comparison between the KPR and HPRC haplotypes at the locus and allele level | [docs](pangenome_variant_comparison.md) |
 | 3 | `pangenome_short_read_mapping.sh` | Short-read mapping to the pangenome graph and graph-based small variant and structural variant calling | [docs](pangenome_short_read_mapping.md) |
 | 4 | `AMY_locus_analysis.sh` | Haplotype structure of the amylase locus and population differentiation of the gene copies | [docs](AMY_locus_analysis.md) |
 
 Helper scripts called by the pipelines: `decon_split.sh`, `typecount.py`,
 `wline_sample_nodes.py`, `amy_haplotype_tags.py`, `msa_to_vcf.py`,
-`hudson_fst.py` and `plot_haplotypes.R`. They live next to the pipelines and
-can also be run on their own; see the documentation of each pipeline.
+`hudson_fst.py`, `plot_haplotypes.R`, `sv_merge_alleles.py`,
+`dedup_sample.py`, `count_groups.py` and `summarize_variant_comparison.py`.
+They live next to the pipelines and can also be run on their own; see the
+documentation of each pipeline.
 
 ## Quick start
 
@@ -36,6 +39,7 @@ export THREADS=32
 
 bash genome_assembly_and_statistics.sh all
 bash pangenome_construction_and_statistics.sh all
+bash pangenome_variant_comparison.sh all
 bash pangenome_short_read_mapping.sh all
 bash AMY_locus_analysis.sh all
 ```
