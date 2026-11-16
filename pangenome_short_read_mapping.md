@@ -253,9 +253,23 @@ Main tables:
 
 ---
 
-## Software
+## Software and versions
 
-vg 1.63.1 · kmc · DeepVariant 1.6 · bwa-mem2 2.2.1 · Manta 1.6 · Delly 0.9.1 ·
-samtools · bcftools · Docker or Singularity
+The variant-calling and benchmarking methods in the manuscript
+used the versions below.
 
-All executables must be available on `PATH`.
+| Step | Software (manuscript version) |
+|---|---|
+| Graph short-read alignment and surjection | vg 1.63.1 (`giraffe`, `surject`, `pack`, `call`) |
+| Linear reference alignment | bwa-mem2 2.2.1 |
+| Small-variant calling | DeepVariant 1.6 |
+| Linear-reference structural variants | Manta 1.6; Delly 0.9.1 |
+| Supporting read processing | samtools, bcftools, KMC; Docker/Singularity as required |
+
+This is an **executable Shell pipeline**:
+`pangenome_short_read_mapping.sh` is the stage 6 entry point.
+The Markdown file describes its full mapping and variant-calling
+workflow, including the GRCh38 baseline. The manuscript used
+seven GIAB samples for benchmark comparisons and 50
+independent KOR short-read datasets for a
+population-level variant-count comparison.
