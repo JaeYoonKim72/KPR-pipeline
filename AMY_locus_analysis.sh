@@ -32,9 +32,7 @@ GRAPH=${GRAPH:-hprc_kpr}
 BUBBLE_MIN_LEN=${BUBBLE_MIN_LEN:-10000}
 ALLELE_MIN=${ALLELE_MIN:-5}
 
-# Genes of the amylase cluster. AMY1A, AMY1B and AMY1C share about 99% sequence
-# identity and are treated together as AMY1.
-AMY_GENES=${AMY_GENES:-"AMY1 AMY2A AMY2B AMYP1"}
+# Genes defining the AMY cluster (structural / gene-tag analysis only).
 AMY_CLUSTER=${AMY_CLUSTER:-"AMY1A AMY1B AMY1C AMYP1 AMY2B AMY2A"}
 
 # Region of the amylase cluster in the coordinates of the reference embedded in
@@ -42,26 +40,11 @@ AMY_CLUSTER=${AMY_CLUSTER:-"AMY1A AMY1B AMY1C AMYP1 AMY2B AMY2A"}
 AMY_REGION=${AMY_REGION:-chr1:103,570,000-103,760,000}
 REF_SAMPLE=${REF_SAMPLE:-GRCh38}
 
-# Population groups used for the differentiation analysis. EUR and SAS are
-# represented by a single individual each and are excluded.
-POPULATIONS=${POPULATIONS:-"AFR AMR EAS KOR"}
-
-# Filters applied to the SNPs called from the gene-copy alignments.
-MAF=${MAF:-0.01}
-
-# Windowed FST parameters.
-FST_WINDOW=${FST_WINDOW:-2000}
-FST_STEP=${FST_STEP:-1000}
-
 # --- reference files ---------------------------------------------------------
 # BED file of protein-coding genes with the gene name in column 4, derived from
 # the GENCODE annotation
 #   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.annotation.gtf.gz
 GENE_BED=${GENE_BED:-${REF_DIR}/gencode.GRCh38.genes.name.bed}
-
-# FASTA holding the GRCh38 sequence of each amylase gene, one record per gene
-# named after the gene, used as the reference of the gene-copy alignments
-AMY_REF_FA=${AMY_REF_FA:-${REF_DIR}/AMY_genes.GRCh38.fa}
 
 # --- sample tables -----------------------------------------------------------
 # Two columns, sample name and population group
@@ -70,13 +53,10 @@ POP_MAP=${POP_MAP:-${LIST_DIR}/sample_population.tsv}
 BUBBLE_OUT=${OUT_DIR}/bubble_selection
 SUB_OUT=${OUT_DIR}/subgraph
 HAP_OUT=${OUT_DIR}/haplotypes
-COPY_OUT=${OUT_DIR}/gene_copies
-SNP_OUT=${OUT_DIR}/gene_copy_snps
-STAT_OUT=${OUT_DIR}/population_statistics
+STAT_OUT=${OUT_DIR}/haplotype_distribution
 LOG_OUT=${OUT_DIR}/logs
 
-mkdir -p "${BUBBLE_OUT}" "${SUB_OUT}" "${HAP_OUT}" "${COPY_OUT}" "${SNP_OUT}" \
-         "${STAT_OUT}" "${LOG_OUT}" "${TMP_DIR}" "${LIST_DIR}"
+mkdir -p "${BUBBLE_OUT}" "${SUB_OUT}" "${HAP_OUT}" "${STAT_OUT}" "${LOG_OUT}" "${TMP_DIR}" "${LIST_DIR}"
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
@@ -317,262 +297,6 @@ PY
 }
 
 ###############################################################################
-# Step 5. Decomposition of the haplotypes into gene copies
-###############################################################################
-
-gene_copies() {
-  log "step 5: gene copy extraction"
-
-  SUBGFA="${SUB_OUT}/${GRAPH}.AMY.extract.gfa"
-  TAGS="${HAP_OUT}/${GRAPH}.AMY.gene_tags.tsv"
-  [[ -s "${SUBGFA}" && -s "${TAGS}" ]] || { log "  inputs not found"; return 1; }
-
-  # Every haplotype carries a variable number of copies of each amylase gene.
-  # Each copy is written as a separate sequence and is treated as one
-  # independent observation, assigned to the population of its source
-  # individual.
-  python3 - "${SUBGFA}" "${TAGS}" "${COPY_OUT}" "${AMY_GENES}" <<'PY'
-import os
-import sys
-
-gfa, tags, outdir, genes = sys.argv[1:5]
-genes = genes.split()
-
-seq = {}
-with open(gfa) as handle:
-    for line in handle:
-        if line.startswith("S"):
-            f = line.rstrip("\n").split("\t")
-            if len(f) >= 3:
-                seq[f[1]] = f[2]
-
-def revcomp(s):
-    table = str.maketrans("ACGTNacgtn", "TGCANtgcan")
-    return s.translate(table)[::-1]
-
-copies = {g: [] for g in genes}
-counter = {}
-
-with open(tags) as handle:
-    next(handle)
-    for line in handle:
-        f = line.rstrip("\n").split("\t")
-        haplotype, node, strand, gene = f[0], f[2], f[3], f[4]
-
-        # AMY1A, AMY1B and AMY1C share about 99% identity and are one gene here
-        if gene.startswith("AMY1"):
-            gene = "AMY1"
-        if gene not in copies:
-            continue
-
-        key = (haplotype, gene)
-        counter[key] = counter.get(key, 0) + 1
-        name = "{}|{}|copy{}".format(haplotype, gene, counter[key])
-
-        s = seq.get(node, "")
-        copies[gene].append((name, s if strand == "+" else revcomp(s)))
-
-os.makedirs(outdir, exist_ok=True)
-for gene, records in copies.items():
-    path = os.path.join(outdir, "{}.copies.fa".format(gene))
-    with open(path, "w") as handle:
-        for name, s in records:
-            handle.write(">{}\n{}\n".format(name, s))
-    print("{}\t{} copies".format(gene, len(records)))
-PY
-
-  # Number of copies per gene and per population group
-  if [[ -s "${POP_MAP}" ]]; then
-    {
-      echo -e "gene\tpopulation\tcopies"
-      for G in ${AMY_GENES}; do
-        grep "^>" "${COPY_OUT}/${G}.copies.fa" 2>/dev/null \
-          | sed 's/^>//' \
-          | awk -F'|' '{split($1, a, "#"); print a[1]}' \
-          | awk -F'\t' -v g="${G}" 'BEGIN{OFS="\t"}
-              FNR==NR {pop[$1]=$2; next}
-              {p = ($1 in pop) ? pop[$1] : "NA"; count[p]++}
-              END {for (p in count) print g, p, count[p]}' "${POP_MAP}" -
-      done
-    } > "${STAT_OUT}/${GRAPH}.AMY.copies_per_population.tsv"
-  fi
-
-  log "step 5 finished"
-}
-
-###############################################################################
-# Step 6. SNPs of the gene copies
-###############################################################################
-
-copy_snps() {
-  log "step 6: SNP calling on the gene copies"
-
-  [[ -s "${AMY_REF_FA}" ]] || { log "  ${AMY_REF_FA} not found"; return 1; }
-
-  {
-    echo -e "gene\tcopies\tsites\tlength_bp"
-
-    for G in ${AMY_GENES}; do
-      FA="${COPY_OUT}/${G}.copies.fa"
-      [[ -s "${FA}" ]] || { log "  ${FA} not found, skipped"; continue; }
-
-      # 6-1) the copies are aligned together with the GRCh38 sequence of the
-      #      gene, which provides the coordinates of the call set
-      samtools faidx "${AMY_REF_FA}" "${G}" > "${TMP_DIR}/${G}.ref.fa"
-      cat "${TMP_DIR}/${G}.ref.fa" "${FA}" > "${TMP_DIR}/${G}.input.fa"
-
-      mafft --auto --thread "${THREADS}" "${TMP_DIR}/${G}.input.fa" \
-        > "${SNP_OUT}/${G}.aln.fa" 2> "${LOG_OUT}/mafft.${G}.err"
-
-      # 6-2) substitutions relative to the reference sequence, one haploid
-      #      genotype per gene copy
-      python3 "${SCRIPT_DIR}/msa_to_vcf.py" \
-        "${SNP_OUT}/${G}.aln.fa" "${G}" "${G}" "${SNP_OUT}/${G}.raw.vcf"
-
-      bgzip -f "${SNP_OUT}/${G}.raw.vcf"
-      bcftools index -f -t "${SNP_OUT}/${G}.raw.vcf.gz"
-
-      # 6-3) multiallelic records are split, a minor allele frequency filter is
-      #      applied and only biallelic sites are kept
-      bcftools norm -m -any "${SNP_OUT}/${G}.raw.vcf.gz" -Oz \
-        -o "${TMP_DIR}/${G}.split.vcf.gz"
-      bcftools index -f -t "${TMP_DIR}/${G}.split.vcf.gz"
-
-      bcftools view -m2 -M2 -v snps -q "${MAF}:minor" \
-        "${TMP_DIR}/${G}.split.vcf.gz" -Oz -o "${SNP_OUT}/${G}.biallelic.vcf.gz"
-      bcftools index -f -t "${SNP_OUT}/${G}.biallelic.vcf.gz"
-
-      N_COPY=$(bcftools query -l "${SNP_OUT}/${G}.biallelic.vcf.gz" | wc -l)
-      N_SITE=$(bcftools index -n "${SNP_OUT}/${G}.biallelic.vcf.gz")
-      N_BP=$(awk '/^>/{next} {n += length($0)} END {print n}' "${TMP_DIR}/${G}.ref.fa")
-      echo -e "${G}\t${N_COPY}\t${N_SITE}\t${N_BP}"
-    done
-  } > "${STAT_OUT}/${GRAPH}.AMY.snp_summary.tsv"
-
-  # 6-4) the four genes together
-  bcftools concat -a $(for G in ${AMY_GENES}; do echo "${SNP_OUT}/${G}.biallelic.vcf.gz"; done) \
-    -Oz -o "${SNP_OUT}/AMY_all.biallelic.vcf.gz" 2> "${LOG_OUT}/concat.err" || \
-  bcftools concat $(for G in ${AMY_GENES}; do echo "${SNP_OUT}/${G}.biallelic.vcf.gz"; done) \
-    -Oz -o "${SNP_OUT}/AMY_all.biallelic.vcf.gz"
-  bcftools index -f -t "${SNP_OUT}/AMY_all.biallelic.vcf.gz"
-
-  log "step 6 finished"
-}
-
-###############################################################################
-# Step 7. Population differentiation and diversity
-###############################################################################
-
-population_stats() {
-  log "step 7: population statistics"
-
-  [[ -s "${POP_MAP}" ]] || { log "  ${POP_MAP} not found"; return 1; }
-
-  # 7-1) list of the gene copies belonging to each population group; a copy is
-  #      assigned to the population of the individual it comes from
-  for P in ${POPULATIONS}; do
-    bcftools query -l "${SNP_OUT}/AMY_all.biallelic.vcf.gz" \
-      | awk -F'|' -v p="${P}" 'BEGIN{OFS="\t"}
-          FNR==NR {pop[$1] = $2; next}
-          {split($1, a, "#"); if ((a[1] in pop) && pop[a[1]] == p) print $0}' \
-        "${POP_MAP}" - > "${STAT_OUT}/${P}.copies.list"
-    log "  ${P}: $(wc -l < "${STAT_OUT}/${P}.copies.list") gene copies"
-  done
-
-  # 7-2) pairwise weighted FST in sliding windows, VCFtools v0.1.16. The
-  #      weighted estimator combines the per-site numerators and denominators
-  #      as a ratio of sums rather than averaging the per-site ratios.
-  for G in ${AMY_GENES} all; do
-    VCF="${SNP_OUT}/${G}.biallelic.vcf.gz"
-    [[ "${G}" == "all" ]] && VCF="${SNP_OUT}/AMY_all.biallelic.vcf.gz"
-    [[ -s "${VCF}" ]] || continue
-
-    for P1 in ${POPULATIONS}; do
-      for P2 in ${POPULATIONS}; do
-        [[ "${P1}" < "${P2}" ]] || continue
-
-        vcftools --gzvcf "${VCF}" \
-          --weir-fst-pop "${STAT_OUT}/${P1}.copies.list" \
-          --weir-fst-pop "${STAT_OUT}/${P2}.copies.list" \
-          --fst-window-size "${FST_WINDOW}" \
-          --fst-window-step "${FST_STEP}" \
-          --out "${STAT_OUT}/fst.${G}.${P1}_${P2}" \
-          2> "${LOG_OUT}/fst.${G}.${P1}_${P2}.log"
-      done
-    done
-  done
-
-  # 7-3) AMY-wide FST with Hudson's estimator, a ratio of averages that is
-  #      robust to the unequal group sizes
-  {
-    echo -e "pop1\tpop2\tsites\tHudson_FST"
-    for P1 in ${POPULATIONS}; do
-      for P2 in ${POPULATIONS}; do
-        [[ "${P1}" < "${P2}" ]] || continue
-        python3 "${SCRIPT_DIR}/hudson_fst.py" \
-          "${SNP_OUT}/AMY_all.biallelic.vcf.gz" \
-          "${STAT_OUT}/${P1}.copies.list" "${STAT_OUT}/${P2}.copies.list" \
-          "${P1}" "${P2}" | tail -n +2
-      done
-    done
-  } > "${STAT_OUT}/${GRAPH}.AMY.hudson_fst.tsv"
-
-  # 7-4) nucleotide diversity per group, normalised by the length of the
-  #      calling reference of each gene
-  {
-    echo -e "gene\tpopulation\tsites\tpi_sum\tlength_bp\tpi_per_bp"
-    for G in ${AMY_GENES}; do
-      VCF="${SNP_OUT}/${G}.biallelic.vcf.gz"
-      [[ -s "${VCF}" ]] || continue
-      N_BP=$(awk -F'\t' -v g="${G}" '$1==g {print $4}' \
-        "${STAT_OUT}/${GRAPH}.AMY.snp_summary.tsv")
-
-      for P in ${POPULATIONS}; do
-        vcftools --gzvcf "${VCF}" \
-          --keep "${STAT_OUT}/${P}.copies.list" \
-          --site-pi --out "${STAT_OUT}/pi.${G}.${P}" \
-          2> "${LOG_OUT}/pi.${G}.${P}.log"
-
-        awk -F'\t' -v g="${G}" -v p="${P}" -v n="${N_BP}" 'BEGIN{OFS="\t"}
-          NR>1 {sum += $3; sites++}
-          END {print g, p, sites+0, sum+0, n, (n > 0) ? sum / n : "NA"}' \
-          "${STAT_OUT}/pi.${G}.${P}.sites.pi"
-      done
-    done
-  } > "${STAT_OUT}/${GRAPH}.AMY.nucleotide_diversity.tsv"
-
-  # 7-5) linkage disequilibrium as the mean phased r-squared between the SNP
-  #      pairs of each gene, PLINK v2.0
-  {
-    echo -e "gene\tpairs\tmean_r2"
-    for G in ${AMY_GENES}; do
-      VCF="${SNP_OUT}/${G}.biallelic.vcf.gz"
-      [[ -s "${VCF}" ]] || continue
-
-      plink2 --vcf "${VCF}" --double-id --allow-extra-chr \
-             --r2-phased --ld-window-r2 0 \
-             --out "${STAT_OUT}/ld.${G}" \
-             > "${LOG_OUT}/ld.${G}.log" 2>&1 || true
-
-      LD="${STAT_OUT}/ld.${G}.vcor"
-      [[ -s "${LD}" ]] || LD="${STAT_OUT}/ld.${G}.ld"
-      [[ -s "${LD}" ]] || { echo -e "${G}\tNA\tNA"; continue; }
-
-      awk 'NR>1 {sum += $NF; n++} END {print (n ? n : 0)"\t"(n ? sum/n : "NA")}' "${LD}" \
-        | awk -v g="${G}" 'BEGIN{OFS="\t"} {print g, $1, $2}'
-    done
-  } > "${STAT_OUT}/${GRAPH}.AMY.linkage_disequilibrium.tsv"
-
-  # AMY-wide linkage disequilibrium is the mean over the four genes
-  awk -F'\t' 'NR>1 && $3 != "NA" {sum += $3; n++}
-    END {if (n) printf "AMY_wide\t%d\t%.6f\n", n, sum / n}' \
-    "${STAT_OUT}/${GRAPH}.AMY.linkage_disequilibrium.tsv" \
-    >> "${STAT_OUT}/${GRAPH}.AMY.linkage_disequilibrium.tsv"
-
-  log "step 7 finished"
-}
-
-###############################################################################
 # Entry point
 ###############################################################################
 
@@ -584,9 +308,6 @@ Usage: bash $(basename "$0") <step>
   extract_subgraph   subgraph extraction, node-gene annotation and Bandage figure
   tag_haplotypes     gene tags per haplotype and haplotype distribution
   haplotype_tree     MAFFT alignment, IQ-TREE 2 phylogeny and figure
-  gene_copies        decomposition of the haplotypes into single gene copies
-  copy_snps          alignment of the gene copies and SNP calling
-  population_stats   FST, nucleotide diversity and linkage disequilibrium
   all                run every step in order
 EOF
 }
@@ -597,17 +318,11 @@ main() {
     extract_subgraph) extract_subgraph ;;
     tag_haplotypes)   tag_haplotypes ;;
     haplotype_tree)   haplotype_tree ;;
-    gene_copies)      gene_copies ;;
-    copy_snps)        copy_snps ;;
-    population_stats) population_stats ;;
     all)
       select_regions
       extract_subgraph
       tag_haplotypes
       haplotype_tree
-      gene_copies
-      copy_snps
-      population_stats
       ;;
     *) usage; exit 1 ;;
   esac
