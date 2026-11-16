@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-#
-# Constructing a Korean pangenome reveals distinct haplotypes at the amylase
-# locus
-#
-# genome_assembly_and_statistics.sh
-#
-# Usage: bash genome_assembly_and_statistics.sh <step>
-#        (see README.md for the step list and for the required inputs)
-
 set -euo pipefail
-
-###############################################################################
-# Configuration
-###############################################################################
 
 THREADS=${THREADS:-32}
 GENOME_SIZE=${GENOME_SIZE:-3200000000}     # 3.2 Gb, used for raw depth only
@@ -70,10 +57,7 @@ mkdir -p "${QC_OUT}" "${ASM_OUT}" "${POLISH_OUT}" "${STAT_OUT}" \
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
-###############################################################################
 # Step 1. Long-read and Hi-C read quality control
-###############################################################################
-
 calc_fastq_metrics() {
   local FQ=$1
   local READS BASES
@@ -139,10 +123,7 @@ read_qc() {
   log "step 1 finished"
 }
 
-###############################################################################
 # Step 2. De novo genome assembly
-###############################################################################
-
 assembly() {
   log "step 2: de novo assembly"
   mkdir -p "${ASM_OUT}"/{hifiasm,hifiasm_hic,flye,hifiasm_ont,fasta,screen}
@@ -224,10 +205,7 @@ assembly() {
   log "step 2 finished"
 }
 
-###############################################################################
 # Step 3. Long-read polishing
-###############################################################################
-
 polishing() {
   log "step 3: Inspector polishing"
   mkdir -p "${POLISH_OUT}"/{eval_raw,corrected,eval_final,stat}
@@ -271,10 +249,7 @@ polishing() {
   log "step 3 finished"
 }
 
-###############################################################################
 # Step 4. Assembly statistics
-###############################################################################
-
 asm_stats() {
   log "step 4: assembly statistics"
   mkdir -p "${STAT_OUT}"/{quast_grch38,quast_chm13,ngx,inspector,misjoin,flagger}
@@ -392,10 +367,7 @@ asm_stats() {
   log "step 4 finished"
 }
 
-###############################################################################
 # Step 5. Repeat and gene annotation
-###############################################################################
-
 annotation() {
   log "step 5: repeat and gene annotation"
   mkdir -p "${ANNOT_OUT}"/{repeatmasker_human,repeatmasker_satellite,vntr,lowcomplexity,liftoff}
@@ -440,10 +412,7 @@ annotation() {
   log "step 5 finished"
 }
 
-###############################################################################
 # Step 6. Structural variant detection
-###############################################################################
-
 sv_calling() {
   log "step 6: structural variant detection"
   mkdir -p "${SV_OUT}"/{bam,pbsv,sniffles,svim,svimasm,merged}
@@ -506,10 +475,6 @@ sv_calling() {
 
   log "step 6 finished"
 }
-
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<EOF
