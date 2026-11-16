@@ -1,9 +1,29 @@
 # Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus
 
-Analysis workflows and reproducible methods for the Korean Pangenome
-Reference (KPR) study: genome assembly, annotations, pangenome
-construction, graph-variant comparison, variant benchmarking, AMY
-structural haplotypes and flanking-region population genetics.
+This repository contains the analysis workflows, computational scripts, and
+methodological documentation accompanying the study *Constructing a Korean
+pangenome reveals distinct haplotypes at the amylase locus*. The study aims
+to improve the representation of Korean genomic diversity by integrating
+high-quality long-read genome assemblies into graph-based pangenome
+references. Long-read sequencing datasets from 22 Korean individuals
+(19 newly sequenced and three from a previous study) were processed through
+read quality control, de novo assembly, polishing, assembly quality
+assessment, repeat and gene annotation, and structural variant discovery.
+After quality filtering, 28 haploid assemblies from 14 individuals were
+used to construct the Korean Pangenome Reference (KPR) and an augmented
+HPRC v1.0+KPR pangenome graph.
+
+The workflows describe pangenome graph construction and indexing,
+graph-derived variant identification, population-panel comparisons,
+pangenome growth, and the characterization of non-reference sequences.
+They also cover short-read alignment and variant calling using
+pangenome graphs and the linear GRCh38 reference for comparative analyses.
+At the structurally complex amylase (AMY) locus, the study further examines
+gene copy number, gene order, and structural haplotype diversity, followed
+by locus-level population-genetic analyses of the unique distal and
+proximal flanking regions. The accompanying documentation specifies
+inputs, software dependencies, analytical procedures, and outputs to
+support reproducible use and interpretation of the implemented workflows.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
