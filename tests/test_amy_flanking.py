@@ -24,7 +24,7 @@ class AMYTests(unittest.TestCase):
             ["chr1","100",".","A","G",".",".",".","GT","0|0","0|1","1|1"],
             ["chr1","150",".","C","T",".",".",".","GT","0|0","0|1","1|1"])
         self.assertAlmostEqual(r,1.0)
-        self.assertAlmostEqual(float(f.pf(float("nan"))) if False else 0,0)
+        self.assertEqual(f.pf(float("nan")),"NA")
 
     @unittest.skipUnless(shutil.which("bcftools") and shutil.which("bgzip"), "requires bcftools and bgzip")
     def test_all_optional_ci_and_genomic(self):
