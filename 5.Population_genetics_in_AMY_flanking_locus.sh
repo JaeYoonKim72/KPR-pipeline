@@ -96,6 +96,8 @@ while (( $# )); do
  *) echo "[ERROR] unknown argument: $1" >&2; exit 2;;
  esac
 done
+# --vcf is parsed after the environment defaults; inherit it for genomic runs.
+[[ -n "$GENOME_VCF" ]] || GENOME_VCF="$VCF"
 if [[ -n "$POPS" ]]; then
  read -r -a FROMENV <<< "$POPS"
  POPARGS=("${FROMENV[@]}" "${POPARGS[@]}")
