@@ -299,8 +299,23 @@ gene interval or class definition changes.
 3. Yilmaz F, et al. (2024). Reconstruction of the human amylase locus reveals ancient duplications seeding modern-day variation. *Science*. https://doi.org/10.1126/science.adn0609
 4. Usher CL, et al. (2015). Structural forms of the human amylase locus and their relationships to SNPs, haplotypes and obesity. *Nature Genetics*. https://doi.org/10.1038/ng.3340
 
-## Software
+## Software and versions
 
-gfatools 0.5; Minigraph 0.21; gfabase 0.5; odgi 0.9.0;
-Bandage 0.8.1; MAFFT 7; IQ-TREE 2; bedtools; Python 3;
-R with ape, ggplot2, gggenes and dplyr.
+Versions are aligned with the structural haplotype Methods
+in the manuscript.
+
+| Task | Software (manuscript version) |
+|---|---|
+| Structural bubbles and allele calls | gfatools 0.5; Minigraph 0.21 |
+| Locus subgraph extraction | gfabase 0.5; odgi 0.9.0 |
+| Structural graph visualization | Bandage 0.8.1 |
+| Gene-coordinate intersections | bedtools; GENCODE v38 annotation |
+| Haplotype sequence alignment | MAFFT v7 |
+| Haplotype phylogeny | IQ-TREE 2 |
+| Haplotype and tree plotting | R with ape, ggplot2, gggenes and dplyr |
+| Supporting scripts | Python 3 |
+
+Preserve the software release, input graph version and sequence-label
+conventions for each analysis; graph path changes can affect
+structural haplotype classification without any change to the
+visualization program.
