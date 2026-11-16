@@ -8,6 +8,7 @@ OUT_DIR=${OUT_DIR:-$(pwd)/results}
 LIST_DIR=${LIST_DIR:-$(pwd)/lists}
 TMP_DIR=${TMP_DIR:-${OUT_DIR}/tmp}
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+SRC_DIR="${SCRIPT_DIR}/src"
 
 # Graph whose variants are compared. The VCF produced by
 # pangenome_construction_and_statistics.sh (step variants) is used as input:
@@ -64,7 +65,7 @@ GAPS=${GAPS:-${REF_DIR}/hg38.gap.txt.gz}
 
 # PanSVMerger, commit 9d9827f
 #   https://github.com/Asian-Pan-Genome/PanSVMerger
-PANSVMERGER=${PANSVMERGER:-${SCRIPT_DIR}/PanSVMerger/scripts/SV.merge_variants.py}
+PANSVMERGER=${PANSVMERGER:-${SRC_DIR}/PanSVMerger/scripts/SV.merge_variants.py}
 
 CMP_OUT=${OUT_DIR}/variant_comparison
 IN_OUT=${CMP_OUT}/input
@@ -180,7 +181,7 @@ sv_merge_chr() {
   # 3-1) similar alleles of each locus clustered with PanSVMerger (vsearch
   #      identity >= 0.9, alleles differing by more than 50 bp kept apart);
   #      genotypes, AC and AN are recomputed from the clusters
-  python3 "${SCRIPT_DIR}/sv_merge_alleles.py" \
+  python3 "${SRC_DIR}/sv_merge_alleles.py" \
     --in "${OUT}/${CHR}.sv.multi.vcf.gz" \
     --out "${OUT}/${CHR}.sv.merged.vcf.gz" \
     --pansvmerger "${PANSVMERGER}" \
@@ -223,7 +224,7 @@ small_decompose_sample() {
   bcftools view -i "ALT!=\"*\" && abs(strlen(REF)-strlen(ALT))<=${SV_MIN_LEN}" \
     "${T}/${S}.decomp.vcf.gz" -Ou \
     | bcftools sort -m "${SORT_MEM}" -T "${T}/sort" -Ov \
-    | python3 "${SCRIPT_DIR}/dedup_sample.py" --report "${OUT}/${S}.dedup.txt" \
+    | python3 "${SRC_DIR}/dedup_sample.py" --report "${OUT}/${S}.dedup.txt" \
     | bcftools view -Oz -o "${OUT}/${S}.small.vcf.gz"
   bcftools index -f -t "${OUT}/${S}.small.vcf.gz"
 
@@ -281,10 +282,10 @@ count_chr() {
   #        small  locus  : variants with overlapping reference spans
   #               allele : identical CHROM, POS, REF and ALT
   {
-    gt_table "${SV}"                   | python3 "${SCRIPT_DIR}/count_groups.py" --mode locus   --varset sv    "${ARGS[@]}"
-    gt_table "${SM}/${CHR}.snv.vcf.gz"   | python3 "${SCRIPT_DIR}/count_groups.py" --mode exact   --varset small "${ARGS[@]}"
-    gt_table "${SM}/${CHR}.indel.vcf.gz" | python3 "${SCRIPT_DIR}/count_groups.py" --mode exact   --varset small "${ARGS[@]}"
-    gt_table "${SM}/${CHR}.small.vcf.gz" | python3 "${SCRIPT_DIR}/count_groups.py" --mode overlap --varset small "${ARGS[@]}"
+    gt_table "${SV}"                   | python3 "${SRC_DIR}/count_groups.py" --mode locus   --varset sv    "${ARGS[@]}"
+    gt_table "${SM}/${CHR}.snv.vcf.gz"   | python3 "${SRC_DIR}/count_groups.py" --mode exact   --varset small "${ARGS[@]}"
+    gt_table "${SM}/${CHR}.indel.vcf.gz" | python3 "${SRC_DIR}/count_groups.py" --mode exact   --varset small "${ARGS[@]}"
+    gt_table "${SM}/${CHR}.small.vcf.gz" | python3 "${SRC_DIR}/count_groups.py" --mode overlap --varset small "${ARGS[@]}"
   } | awk -v c="${CHR}" 'BEGIN {OFS = "\t"} {print c, $0}' > "${COUNT_OUT}/${CHR}.tsv"
 }
 
@@ -300,7 +301,7 @@ summary() {
 
   # 7-1) counts summed over the chromosomes, novel % = target-specific /
   #      (shared + other-specific)
-  python3 "${SCRIPT_DIR}/summarize_variant_comparison.py" \
+  python3 "${SRC_DIR}/summarize_variant_comparison.py" \
     --counts "${COUNT_OUT}" --out "${CMP_OUT}" \
     --target-label "${TARGET_LABEL}" --other-label "${OTHER_LABEL}" \
     | tee -a "${LOG_OUT}/pipeline.log"

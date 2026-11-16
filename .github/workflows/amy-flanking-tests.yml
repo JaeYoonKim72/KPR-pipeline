@@ -2,9 +2,9 @@ name: AMY flanking pipeline smoke tests
 on:
   pull_request:
     paths:
-      - '5.Population_genetics_in_AMY_flanking_locus.sh'
-      - 'amy_flank_*.py'
-      - 'tests/test_amy_flanking.py'
+      - 'Population_genetics_in_AMY_flanking_locus.sh'
+      - 'src/amy_flank_*.py'
+      - 'src/tests/test_amy_flanking.py'
       - '.github/workflows/amy-flanking-tests.yml'
   push:
     branches: [amy-flanking-popgen-v1]
@@ -19,9 +19,13 @@ jobs:
           sudo apt-get install -y bcftools tabix
       - name: Validate Bash scripts
         run: |
-          bash -n 5.Population_genetics_in_AMY_flanking_locus.sh
+          bash -n Population_genetics_in_AMY_flanking_locus.sh
           bash -n AMY_locus_analysis_in_pagenomegraph.sh
           bash -n Ensemble_gene_annotation.sh
           bash -n Variant_benchmark.sh
+          bash -n pangenome_short_read_mapping.sh
+          bash -n pangenome_construction_and_statistics.sh
+          bash -n pangenome_variant_comparison.sh
+          bash -n genome_assembly_and_statistics.sh
       - name: Run synthetic Python smoke tests
-        run: python3 -m unittest discover -s tests -p 'test_amy_flanking.py' -v
+        run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v

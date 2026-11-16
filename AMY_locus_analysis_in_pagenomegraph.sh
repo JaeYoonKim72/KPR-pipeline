@@ -10,6 +10,7 @@ OUT_DIR=${OUT_DIR:-$(pwd)/results}
 LIST_DIR=${LIST_DIR:-$(pwd)/lists}
 TMP_DIR=${TMP_DIR:-${OUT_DIR}/tmp}
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+SRC_DIR="${SCRIPT_DIR}/src"
 
 # The analysis is carried out on the combined HPRC+KPR graph.
 GRAPH=${GRAPH:-hprc_kpr}
@@ -172,7 +173,7 @@ tag_haplotypes() {
 
   # 3-1) genes carried by each haplotype, in walk order and with the
   #      orientation of the nodes (+ forward, - reverse)
-  python3 "${SCRIPT_DIR}/amy_haplotype_tags.py" \
+  python3 "${SRC_DIR}/amy_haplotype_tags.py" \
     "${SUBGFA}" "${NODEGENE}" "${HAP_OUT}/${GRAPH}.AMY"
 
   # 3-2) haplotypes sharing the same gene structure are one haplotype class
@@ -261,7 +262,7 @@ PY
           --prefix "${HAP_OUT}/${GRAPH}.AMY.haplotypes"
 
   # 4-4) tree and gene structures side by side
-  Rscript "${SCRIPT_DIR}/plot_haplotypes.R" \
+  Rscript "${SRC_DIR}/plot_haplotypes.R" \
     "${TAGS}" \
     "${HAP_OUT}/${GRAPH}.AMY.haplotypes.treefile" \
     "${HAP_OUT}/${GRAPH}.AMY.haplotypes.pdf" \

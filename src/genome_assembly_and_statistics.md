@@ -39,7 +39,7 @@ This stage produces the polished FASTA sequences and validation
 evidence for [pangenome construction](pangenome_construction_and_statistics.md).
 Population-level comparisons are not calculated by this stage.
 
-Part of the [KPR-pipeline](README.md) repository.
+Part of the [KPR-pipeline](../README.md) repository.
 
 ---
 

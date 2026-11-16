@@ -2,7 +2,7 @@
 
 Provide GENCODE/Ensembl reference annotations, liftovers and gene-level summary inputs.
 
-Part of the [KPR-pipeline](README.md).
+Part of the [KPR-pipeline](../README.md).
 
 **Status: placeholder only.** This file is reserved for a future analysis.
 Running `all` or a step currently exits with `NOT IMPLEMENTED`; it does

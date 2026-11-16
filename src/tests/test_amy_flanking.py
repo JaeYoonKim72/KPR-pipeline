@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Synthetic end-to-end smoke tests for AMY flanking step 7.
+"""Synthetic end-to-end smoke tests for AMY flanking step 8.
 
-Run: python3 -m unittest discover -s tests -p 'test_amy_flanking.py' -v
+Run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v
 Full shell integration requires bcftools + bgzip/tabix on PATH.
 """
 import os
@@ -60,7 +60,7 @@ class AMYTests(unittest.TestCase):
             subprocess.run(["bcftools","index","-f",str(gz)],check=True)
             fai=d/"tiny.fai";fai.write_text("chr1\t100000\t0\t0\t0\n")
             out=d/"result"
-            cmd=["bash",str(ROOT/"5.Population_genetics_in_AMY_flanking_locus.sh"),"all",
+            cmd=["bash",str(ROOT.parent/"Population_genetics_in_AMY_flanking_locus.sh"),"all",
                  "--vcf",str(gz),"--pop",f"A={a}","--pop",f"B={b}",
                  "--out",str(out),"--distal","chr1:101-200",
                  "--proximal","chr1:401-500","--projection","4",

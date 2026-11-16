@@ -2,7 +2,7 @@
 
 Benchmark SNVs/indels/SVs against suitable truth sets and confident reference intervals.
 
-Part of the [KPR-pipeline](README.md).
+Part of the [KPR-pipeline](../README.md).
 
 **Status: placeholder only.** This file is reserved for a future analysis.
 Running `all` or a step currently exits with `NOT IMPLEMENTED`; it does

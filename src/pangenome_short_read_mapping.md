@@ -3,7 +3,7 @@
 Short-read mapping to the pangenome graphs and graph-based variant calling,
 with a linear GRCh38 baseline for comparison.
 
-Part of the [KPR-pipeline](README.md) repository.
+Part of the [KPR-pipeline](../README.md) repository.
 
 Reads are mapped with `vg giraffe`, projected onto the coordinates of the
 linear reference embedded in the graph with `vg surject`, and used for small

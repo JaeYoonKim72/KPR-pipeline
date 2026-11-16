@@ -4,7 +4,7 @@ Structural variants and small variants derived from the pangenome graph, and
 their comparison between the Korean (KPR) and the HPRC haplotypes at the locus
 and the allele level.
 
-Part of the [KPR-pipeline](README.md) repository.
+Part of the [KPR-pipeline](../README.md) repository.
 
 The variants of the KPR–HPRC graph, deconstructed against GRCh38, are split
 into structural variants (SVs, more than 50 bp) and small variants (50 bp or

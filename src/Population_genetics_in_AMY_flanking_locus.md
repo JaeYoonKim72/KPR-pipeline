@@ -92,7 +92,7 @@ use the historical term `focal` for the AMY distal or proximal
 flanking interval(s), as opposed to their genomic background windows.
 Throughout the biological interpretation below, the regions are
 identified as the **distal flanking region** and the
-**proximal flanking region**, rather than as a single focal locus.
+**proximal flanking region**, rather than merging them into one observation.
 
 ## 1. Set up
 

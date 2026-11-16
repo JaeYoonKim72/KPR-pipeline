@@ -52,7 +52,7 @@ sampling. For locus-level population statistics
 using unique distal/proximal sequences, see
 [Population genetics of AMY flanks](Population_genetics_in_AMY_flanking_locus.md).
 
-Part of the [KPR-pipeline](README.md).
+Part of the [KPR-pipeline](../README.md).
 
 ---
 

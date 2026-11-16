@@ -11,6 +11,7 @@ ASM_DIR=${ASM_DIR:-}                  # haplotype assemblies, needed by allele_m
 OUT_DIR=${OUT_DIR:-$(pwd)/results}
 TMP_DIR=${TMP_DIR:-${OUT_DIR}/tmp}
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+SRC_DIR="${SCRIPT_DIR}/src"
 
 # Graphs to build and analyse. Each name must have a matching seqfile at
 # ${SEQFILE_DIR}/<name>.seqfile, prepared by the user.
@@ -254,7 +255,7 @@ variants() {
     for V in "${OUT}"/reference/*.vcf.gz "${OUT}"/samples/*.vcf.gz "${OUT}"/haplotypes/*.vcf.gz; do
       case "${V}" in *.SNP.vcf.gz|*.MNP.vcf.gz|*.INDEL.vcf.gz|*var_sizes*) continue ;; esac
 
-      bash "${SCRIPT_DIR}/decon_split.sh" "${V}" "${SV_MIN_LEN}"
+      bash "${SRC_DIR}/decon_split.sh" "${V}" "${SV_MIN_LEN}"
 
       P="${V%.vcf.gz}"
       for F in \
@@ -263,7 +264,7 @@ variants() {
         "var_sizes.Smalls_list.no_mixed.DEL.DEL" \
         "var_sizes.SVs_list.all_50_alts.no_mixed.INS.INS" \
         "var_sizes.SVs_list.all_50_alts.no_mixed.DEL.DEL" ; do
-        python3 "${SCRIPT_DIR}/typecount.py" "${P}.${F}.vcf.gz"
+        python3 "${SRC_DIR}/typecount.py" "${P}.${F}.vcf.gz"
       done
     done
 
@@ -529,7 +530,7 @@ nonref_sequence() {
       > "${OUT}/${G}.node_len.txt"
 
     # 9-2) nodes traversed by each sample, taken from the W lines
-    python3 "${SCRIPT_DIR}/wline_sample_nodes.py" "${GFA}" "${OUT}/nodes/${G}" \
+    python3 "${SRC_DIR}/wline_sample_nodes.py" "${GFA}" "${OUT}/nodes/${G}" \
       > "${OUT}/${G}.sample_node_counts.txt"
 
     # 9-3) length of every node carried by each sample, and the total sequence

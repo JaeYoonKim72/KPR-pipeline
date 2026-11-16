@@ -137,7 +137,7 @@ prepare_focal_vcf() {
 }
 calc() {
  prepare_focal_vcf
- python3 "$SCRIPT_DIR/amy_flank_popgen.py" --vcf "$FOCAL_VCF" --out "$OUT_DIR/stats" \
+ python3 "$SRC_DIR/amy_flank_popgen.py" --vcf "$FOCAL_VCF" --out "$OUT_DIR/stats" \
  --distal "$DISTAL" --proximal "$PROXIMAL" --projection "$PROJECTION_N" \
  --callrate "$CALL_RATE" --ld-maf "$LD_MAF" --distal-ld-max "$LD_DISTAL_MAX" \
  --proximal-ld-max "$LD_PROXIMAL_MAX" --only "$1" "${MASKOPT[@]}" "${PYPOPS[@]}"
@@ -219,7 +219,7 @@ run_xpnsl() {
   pair="${NAMES[0]}_vs_${NAMES[$i]}"
   for reg in distal proximal; do
    work="$OUT_DIR/intermediate/$pair.$reg"
-   python3 "$SCRIPT_DIR/amy_flank_population_stats.py" merge \
+   python3 "$SRC_DIR/amy_flank_population_stats.py" merge \
      --query "$OUT_DIR/intermediate/${NAMES[0]}.$reg.vcf.gz" \
      --reference-vcf "$OUT_DIR/intermediate/${NAMES[$i]}.$reg.vcf.gz" \
      --query-label "${NAMES[0]}" --reference-label "${NAMES[$i]}" \
@@ -241,7 +241,7 @@ run_xpnsl() {
 # selscan-based nSL/XP-nSL CI needs separate reruns + genomewide normalization.
 run_individual_ci() {
  prepare_focal_vcf
- python3 "$SCRIPT_DIR/amy_flank_individual_ci.py" \
+ python3 "$SRC_DIR/amy_flank_individual_ci.py" \
   --vcf "$FOCAL_VCF" --out "$OUT_DIR/individual_ci" \
   --distal "$DISTAL" --proximal "$PROXIMAL" \
   --projection "$PROJECTION_N" --callrate "$CALL_RATE" \
@@ -260,7 +260,7 @@ run_genomic() {
  if (( ${#NAMES[@]} > 1 )) && [[ ! -s "$OUT_DIR/stats/hudson_fst.tsv" ]]; then calc fst; fi
  local additional=()
  [[ -n "$GENOME_CHROM_SIZES" ]] && additional=(--chrom-sizes "$GENOME_CHROM_SIZES")
- python3 "$SCRIPT_DIR/amy_flank_genomic_background.py" \
+ python3 "$SRC_DIR/amy_flank_genomic_background.py" \
   --vcf "$GENOME_VCF" --focal-stats "$OUT_DIR/stats" \
   --out "$OUT_DIR/genomic" --distal "$DISTAL" --proximal "$PROXIMAL" \
   --chromosomes "$GENOMIC_CHROMS" --block-mb "$GENOMIC_BLOCK_MB" \

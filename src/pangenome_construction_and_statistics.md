@@ -47,7 +47,7 @@ These values describe the published cohort and pipeline
 configuration; they are not expected constants of
 every rerun.
 
-Part of the [KPR-pipeline](README.md) repository.
+Part of the [KPR-pipeline](../README.md) repository.
 
 ---
 
