@@ -141,13 +141,13 @@ def r2_corrected(x,y):
     xy=sum((a-mx)*(b-my) for a,b in pairs)
     return ((n-1)*(xy*xy/(xx*yy))-1)/(n-2)
 
-def ld(rows,pop,dmin,dmax,rate):
+def ld(rows,pop,dmin,dmax,rate,maf=.05):
     use=[]
     for pos,d in rows:
         ac,an,g=d[pop]
         if an<2*len(g)*rate-1e-9 or not (0<ac<an):continue
-        maf=min(ac/an,1-ac/an)
-        if maf>=.05:use.append((pos,g))
+        site_maf=min(ac/an,1-ac/an)
+        if site_maf>=maf:use.append((pos,g))
     vals=[]
     for i,(p,x) in enumerate(use):
         for q,y in use[i+1:]:
@@ -158,11 +158,11 @@ def ld(rows,pop,dmin,dmax,rate):
             if v is not None:vals.append(v)
     return len(vals), pf(sum(vals)/len(vals) if vals else float("nan"))
 
-def cross_ld(a,b,pop,rate):
+def cross_ld(a,b,pop,rate,maf=.05):
     left=[(p,d[pop]) for p,d in a]; right=[(p,d[pop]) for p,d in b]
     def good(c):
         ac,an,g=c
-        return an>=2*len(g)*rate-1e-9 and an>0 and 0<ac<an and min(ac/an,1-ac/an)>=.05
+        return an>=2*len(g)*rate-1e-9 and an>0 and 0<ac<an and min(ac/an,1-ac/an)>=maf
     x=[c[2] for p,c in left if good(c)]
     y=[c[2] for p,c in right if good(c)]
     s=0.;n=0
@@ -200,6 +200,9 @@ def main():
     ap.add_argument("--out",required=True)
     ap.add_argument("--projection",type=int,default=168)
     ap.add_argument("--callrate",type=float,default=.9)
+    ap.add_argument("--ld-maf",type=float,default=.05)
+    ap.add_argument("--distal-ld-max",type=int,default=100000)
+    ap.add_argument("--proximal-ld-max",type=int,default=60000)
     ap.add_argument("--only",choices=("all","diversity","ld","across_ld","fst"),default="all")
     args=ap.parse_args()
     regs={"distal":parse_region(args.distal),"proximal":parse_region(args.proximal)}
@@ -231,14 +234,14 @@ def main():
     if args.only in ("all","ld"):
         res=[]
         for region,rows in data.items():
-            cap=100000 if region=="distal" else 60000
+            cap=args.distal_ld_max if region=="distal" else args.proximal_ld_max
             for pop in selected:
-                n,v=ld(rows,pop,None,cap,rate);res.append((region,pop,cap,n,v))
+                n,v=ld(rows,pop,None,cap,rate,args.ld_maf);res.append((region,pop,cap,n,v))
         write(out/"within_ld.tsv",["region","population","distance_lt_bp","n_pairs","mean_corrected_r2"],res)
     if args.only in ("all","across_ld"):
         res=[]
         for pop in selected:
-            n,v=cross_ld(data["distal"],data["proximal"],pop,rate);res.append((pop,n,v))
+            n,v=cross_ld(data["distal"],data["proximal"],pop,rate,args.ld_maf);res.append((pop,n,v))
         write(out/"across_ld.tsv",["population","n_pairs","mean_corrected_r2"],res)
     if args.only in ("all","fst"):
         res=[]
