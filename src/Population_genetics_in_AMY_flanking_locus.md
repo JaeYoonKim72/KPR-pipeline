@@ -1,4 +1,4 @@
-# Population_genetics_in_AMY_flanking_locus.sh
+# 8.Population_genetics_in_AMY_flanking_locus.sh
 
 The human amylase (AMY) locus on chromosome 1 contains the salivary
 AMY1 and pancreatic AMY2 gene families. Tandem and segmental
@@ -272,14 +272,14 @@ export THREADS=4
 ### 2.1 Quick start
 
 ~~~bash
-bash Population_genetics_in_AMY_flanking_locus.sh --help
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh --help
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
 The same inputs can be supplied as command-line arguments:
 
 ~~~bash
-bash Population_genetics_in_AMY_flanking_locus.sh all \
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all \
   --vcf /path/to/joint.phased.biallelic.snps.vcf.gz \
   --pop KOR=/path/KOR.txt --pop CHN=/path/CHN.txt \
   --mask /path/GRCh38.StrictMask.nonN.bed.gz \
@@ -297,7 +297,7 @@ population versus each subsequent population.
 INDIVIDUAL_CI=1 \
 IND_BOOT_REPS=100 \
 IND_JACKKNIFE_FRACTION=0.30 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
 Or append `--individual-ci --bootstrap-reps 100 --jackknife-fraction 0.30`.
@@ -315,7 +315,7 @@ GENOMIC_CHROMS=chr1 \
 GENOMIC_BLOCK_MB=50 \
 GENOMIC_WINDOW_STEP=1000 \
 GENOMIC_BOOT_REPS=100 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
 The paper's **full autosomal chromosome-stratified 5-Mb analysis**
@@ -329,7 +329,7 @@ export GENOMIC_WINDOW_STEP=1000
 export GENOME_VCF=/path/to/all_autosomes_joint.phased.biallelic.snps.vcf.gz
 
 GENOMIC_BOOTSTRAP=1 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
 These genomewide settings correspond to the **published analysis design**;
@@ -910,13 +910,13 @@ These are settings, not distinct definitions of the estimator.
 # Pilot
 GENOMIC_BOOTSTRAP=1 GENOMIC_CHROMS=chr1 GENOMIC_BLOCK_MB=50 \
 GENOMIC_BOOT_REPS=100 GENOMIC_WINDOW_STEP=1000 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 
 # Paper
 GENOMIC_CHROMS="$(printf 'chr%s,' {1..22} | sed 's/,$//')" \
 GENOMIC_BLOCK_MB=5 GENOMIC_BOOT_REPS=10000 \
 GENOMIC_WINDOW_STEP=1000 GENOMIC_BOOTSTRAP=1 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
 ### 9.6 Current implementation coverage

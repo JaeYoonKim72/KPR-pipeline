@@ -16,14 +16,14 @@ placeholders and do not implement analyses.
 
 | Stage | Main script | Purpose | Documentation | Status |
 |:--:|---|---|---|---|
-| 1 | `genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | Implemented |
-| 2 | `Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | Placeholder |
-| 3 | `pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | Implemented |
-| 4 | `pangenome_variant_comparison.sh` | KPR/HPRC graph variant decomposition and allele comparison | [Documentation](src/pangenome_variant_comparison.md) | Implemented |
-| 5 | `Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | Placeholder |
-| 6 | `pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | Implemented |
-| 7 | `AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | Implemented |
-| 8 | `Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | SNP summaries; additional normalization needed |
+| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | Implemented |
+| 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | Placeholder |
+| 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | Implemented |
+| 4 | `4.pangenome_variant_comparison.sh` | KPR/HPRC graph variant decomposition and allele comparison | [Documentation](src/pangenome_variant_comparison.md) | Implemented |
+| 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | Placeholder |
+| 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | Implemented |
+| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | Implemented |
+| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | SNP summaries; additional normalization needed |
 
 **Helper scripts called by the pipelines:** `decon_split.sh`,
 `typecount.py`, `wline_sample_nodes.py`, `amy_haplotype_tags.py`,
@@ -37,7 +37,7 @@ The [pangenome short-read mapping workflow](src/pangenome_short_read_mapping.md)
 is provided as a dedicated executable stage because graph alignment,
 surjection, variant calling and linear-reference comparison can be
 performed separately from de novo graph construction. It is run with
-`pangenome_short_read_mapping.sh` (stage 6), not merely described as
+`6.pangenome_short_read_mapping.sh` (stage 6), not merely described as
 a workflow without executable code.
 
 ## Quick start
@@ -55,11 +55,11 @@ export OUT_DIR=/path/to/results
 export LIST_DIR=/path/to/lists
 export THREADS=32
 
-bash genome_assembly_and_statistics.sh all
-bash pangenome_construction_and_statistics.sh all
-bash pangenome_variant_comparison.sh all
-bash pangenome_short_read_mapping.sh all
-bash AMY_locus_analysis_in_pagenomegraph.sh all
+bash 1.genome_assembly_and_statistics.sh all
+bash 3.pangenome_construction_and_statistics.sh all
+bash 4.pangenome_variant_comparison.sh all
+bash 6.pangenome_short_read_mapping.sh all
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
 ```
 
 The AMY population-genetics stage takes **a joint, phased, biallelic
@@ -74,7 +74,7 @@ export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
 export POPS="KOR=/path/to/KOR.txt CHN=/path/to/CHN.txt"
 export CALLABLE_BED=/path/to/GRCh38.StrictMask.nonN.bed.gz
 export OUT_DIR=/path/to/results/amy_flanking
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ```
 
 With **one** population, only within-population statistics are
@@ -90,7 +90,7 @@ to **OFF**. To enable fast exploratory CIs:
 INDIVIDUAL_CI=1 IND_BOOT_REPS=100 IND_JACKKNIFE_FRACTION=0.30 \
 GENOMIC_BOOTSTRAP=1 GENOMIC_CHROMS=chr1 GENOMIC_BLOCK_MB=50 \
 GENOMIC_BOOT_REPS=100 GENOMIC_WINDOW_STEP=1000 \
-bash Population_genetics_in_AMY_flanking_locus.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ```
 
 Our manuscript instead used **10,000** bootstrap replicates,

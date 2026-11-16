@@ -1,4 +1,4 @@
-# pangenome_variant_comparison.sh
+# 4.pangenome_variant_comparison.sh
 
 Structural variants and small variants derived from the pangenome graph, and
 their comparison between the Korean (KPR) and the HPRC haplotypes at the locus
@@ -39,7 +39,7 @@ PanSVMerger source is not bundled in this repository.
 ### 1.2 Input
 
 The input is produced by
-[`pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md):
+[`3.pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md):
 
 ```
 results/
@@ -89,31 +89,31 @@ export JOBS=4                         # chromosomes or samples in parallel
 Print the available steps:
 
 ```bash
-bash pangenome_variant_comparison.sh
+bash 4.pangenome_variant_comparison.sh
 ```
 
 Run everything in order:
 
 ```bash
-bash pangenome_variant_comparison.sh all
+bash 4.pangenome_variant_comparison.sh all
 ```
 
 Run one step at a time, which is what we recommend:
 
 ```bash
-bash pangenome_variant_comparison.sh prepare_input
-JOBS=23 bash pangenome_variant_comparison.sh sv_decompose
-JOBS=4 MERGE_WORKERS=16 bash pangenome_variant_comparison.sh sv_merge
-JOBS=24 bash pangenome_variant_comparison.sh small_decompose
-JOBS=12 bash pangenome_variant_comparison.sh small_merge
-JOBS=12 bash pangenome_variant_comparison.sh count
-bash pangenome_variant_comparison.sh summary
+bash 4.pangenome_variant_comparison.sh prepare_input
+JOBS=23 bash 4.pangenome_variant_comparison.sh sv_decompose
+JOBS=4 MERGE_WORKERS=16 bash 4.pangenome_variant_comparison.sh sv_merge
+JOBS=24 bash 4.pangenome_variant_comparison.sh small_decompose
+JOBS=12 bash 4.pangenome_variant_comparison.sh small_merge
+JOBS=12 bash 4.pangenome_variant_comparison.sh count
+bash 4.pangenome_variant_comparison.sh summary
 ```
 
 Test on one chromosome first:
 
 ```bash
-CHROMS=chr22 OUT_DIR=test bash pangenome_variant_comparison.sh all
+CHROMS=chr22 OUT_DIR=test bash 4.pangenome_variant_comparison.sh all
 ```
 
 SV steps run per chromosome, `small_decompose` per sample. `sv_decompose` runs

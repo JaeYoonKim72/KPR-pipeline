@@ -1,4 +1,4 @@
-# pangenome_short_read_mapping.sh
+# 6.pangenome_short_read_mapping.sh
 
 Short-read mapping to the pangenome graphs and graph-based variant calling,
 with a linear GRCh38 baseline for comparison.
@@ -26,7 +26,7 @@ needed as well.
 
 `GRAPH_DIR` holds one subdirectory per reference, named after the graph. Each
 subdirectory holds the files produced by
-[`pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md):
+[`3.pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md):
 
 ```
 graphs/
@@ -76,36 +76,36 @@ export THREADS=8
 Print the available steps:
 
 ```bash
-bash pangenome_short_read_mapping.sh
+bash 6.pangenome_short_read_mapping.sh
 ```
 
 Run everything in order:
 
 ```bash
-bash pangenome_short_read_mapping.sh all
+bash 6.pangenome_short_read_mapping.sh all
 ```
 
 Run one step at a time, which is what we recommend:
 
 ```bash
-bash pangenome_short_read_mapping.sh prepare_reference
-bash pangenome_short_read_mapping.sh read_prep
-bash pangenome_short_read_mapping.sh kmer_index
-bash pangenome_short_read_mapping.sh giraffe
+bash 6.pangenome_short_read_mapping.sh prepare_reference
+bash 6.pangenome_short_read_mapping.sh read_prep
+bash 6.pangenome_short_read_mapping.sh kmer_index
+bash 6.pangenome_short_read_mapping.sh giraffe
 ```
 
 Evaluate a single reference by restricting `GRAPHS`:
 
 ```bash
-GRAPHS=kpr bash pangenome_short_read_mapping.sh giraffe
-GRAPHS="kpr hprc" bash pangenome_short_read_mapping.sh sv_variants
+GRAPHS=kpr bash 6.pangenome_short_read_mapping.sh giraffe
+GRAPHS="kpr hprc" bash 6.pangenome_short_read_mapping.sh sv_variants
 ```
 
 Override individual settings on the command line:
 
 ```bash
-THREADS=16 bash pangenome_short_read_mapping.sh giraffe
-MIN_DP=10 MIN_GQ=20 bash pangenome_short_read_mapping.sh classify
+THREADS=16 bash 6.pangenome_short_read_mapping.sh giraffe
+MIN_DP=10 MIN_GQ=20 bash 6.pangenome_short_read_mapping.sh classify
 ```
 
 Mapping and calling are per sample, so on a cluster the natural unit of
@@ -115,7 +115,7 @@ parallelism is a subset of the sample list:
 split -l 1 lists/samples.list lists/part_
 for P in lists/part_*; do
   qsub -N "$(basename "$P")" -pe smp 8 -V -cwd \
-    -b y "SAMPLE_LIST=$P bash pangenome_short_read_mapping.sh giraffe"
+    -b y "SAMPLE_LIST=$P bash 6.pangenome_short_read_mapping.sh giraffe"
 done
 ```
 
@@ -267,7 +267,7 @@ used the versions below.
 | Supporting read processing | samtools, bcftools, KMC; Docker/Singularity as required |
 
 This is an **executable Shell pipeline**:
-`pangenome_short_read_mapping.sh` is the stage 6 entry point.
+`6.pangenome_short_read_mapping.sh` is the stage 6 entry point.
 The Markdown file describes its full mapping and variant-calling
 workflow, including the GRCh38 baseline. The manuscript used
 seven GIAB samples for benchmark comparisons and 50

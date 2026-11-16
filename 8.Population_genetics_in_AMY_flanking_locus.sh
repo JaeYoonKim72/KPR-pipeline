@@ -33,7 +33,7 @@ NSL_MAX_EXTEND="${NSL_MAX_EXTEND:-50}"
 STEP="${1:-help}"; shift || true
 usage() {
 cat <<'EOF'
-Usage: bash Population_genetics_in_AMY_flanking_locus.sh all [options]
+Usage: bash 8.Population_genetics_in_AMY_flanking_locus.sh all [options]
 Steps: all, diversity, ld, across_ld, fst, nsl, xpnsl, individual_ci, genomic
 Distal and proximal flanking regions are the two AMY intervals analyzed.
 Legacy "focal" names in helper options or output files refer to these flanks.

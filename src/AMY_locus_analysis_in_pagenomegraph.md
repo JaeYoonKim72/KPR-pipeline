@@ -1,4 +1,4 @@
-# AMY_locus_analysis_in_pagenomegraph.sh
+# 7.AMY_locus_analysis_in_pagenomegraph.sh
 
 ## Scope and rationale
 
@@ -102,17 +102,17 @@ export THREADS=8
 ## 2. Run
 
 ~~~bash
-bash AMY_locus_analysis_in_pagenomegraph.sh          # show steps
-bash AMY_locus_analysis_in_pagenomegraph.sh all
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh          # show steps
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
 ~~~
 
 Steps can also be run separately:
 
 ~~~bash
-bash AMY_locus_analysis_in_pagenomegraph.sh select_regions
-bash AMY_locus_analysis_in_pagenomegraph.sh extract_subgraph
-bash AMY_locus_analysis_in_pagenomegraph.sh tag_haplotypes
-bash AMY_locus_analysis_in_pagenomegraph.sh haplotype_tree
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh select_regions
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh extract_subgraph
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh tag_haplotypes
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh haplotype_tree
 ~~~
 
 The structural subgraph's default reference interval is

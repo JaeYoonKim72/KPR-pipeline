@@ -60,7 +60,7 @@ class AMYTests(unittest.TestCase):
             subprocess.run(["bcftools","index","-f",str(gz)],check=True)
             fai=d/"tiny.fai";fai.write_text("chr1\t100000\t0\t0\t0\n")
             out=d/"result"
-            cmd=["bash",str(ROOT.parent/"Population_genetics_in_AMY_flanking_locus.sh"),"all",
+            cmd=["bash",str(ROOT.parent/"8.Population_genetics_in_AMY_flanking_locus.sh"),"all",
                  "--vcf",str(gz),"--pop",f"A={a}","--pop",f"B={b}",
                  "--out",str(out),"--distal","chr1:101-200",
                  "--proximal","chr1:401-500","--projection","4",

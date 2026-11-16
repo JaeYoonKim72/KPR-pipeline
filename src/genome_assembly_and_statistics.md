@@ -1,4 +1,4 @@
-# genome_assembly_and_statistics.sh
+# 1.genome_assembly_and_statistics.sh
 
 ## Scope and rationale
 
@@ -117,37 +117,37 @@ export THREADS=32
 Print the available steps:
 
 ```bash
-bash genome_assembly_and_statistics.sh
+bash 1.genome_assembly_and_statistics.sh
 ```
 
 Run everything in order:
 
 ```bash
-bash genome_assembly_and_statistics.sh all
+bash 1.genome_assembly_and_statistics.sh all
 ```
 
 Run one step at a time, which is what we recommend:
 
 ```bash
-bash genome_assembly_and_statistics.sh read_qc
-bash genome_assembly_and_statistics.sh assembly
-bash genome_assembly_and_statistics.sh polishing
-bash genome_assembly_and_statistics.sh asm_stats
-bash genome_assembly_and_statistics.sh annotation
-bash genome_assembly_and_statistics.sh sv_calling
+bash 1.genome_assembly_and_statistics.sh read_qc
+bash 1.genome_assembly_and_statistics.sh assembly
+bash 1.genome_assembly_and_statistics.sh polishing
+bash 1.genome_assembly_and_statistics.sh asm_stats
+bash 1.genome_assembly_and_statistics.sh annotation
+bash 1.genome_assembly_and_statistics.sh sv_calling
 ```
 
 Assembly and polishing are long-running; detach them from the terminal:
 
 ```bash
-nohup bash genome_assembly_and_statistics.sh assembly > assembly.log 2>&1 &
+nohup bash 1.genome_assembly_and_statistics.sh assembly > assembly.log 2>&1 &
 ```
 
 Override individual settings on the command line:
 
 ```bash
-THREADS=64 bash genome_assembly_and_statistics.sh assembly
-MIN_N50=15000000 bash genome_assembly_and_statistics.sh asm_stats
+THREADS=64 bash 1.genome_assembly_and_statistics.sh assembly
+MIN_N50=15000000 bash 1.genome_assembly_and_statistics.sh asm_stats
 ```
 
 On a cluster, the per-sample loops inside each step are the natural unit of
@@ -157,7 +157,7 @@ parallelism: split the sample list and submit one job per subset, for example
 split -l 1 lists/hifi.list lists/part_
 for P in lists/part_*; do
   qsub -N "$(basename "$P")" -pe smp 32 -V -cwd \
-    -b y "HIFI_LIST=$P bash genome_assembly_and_statistics.sh assembly"
+    -b y "HIFI_LIST=$P bash 1.genome_assembly_and_statistics.sh assembly"
 done
 ```
 
@@ -306,7 +306,7 @@ Main tables:
   every sample retained after assembly quality control
 
 The polished assemblies in `polishing/corrected/` are the input for
-`pangenome_construction_and_statistics.sh`.
+`3.pangenome_construction_and_statistics.sh`.
 
 The downstream graph must use **the actual two retained haplotype
 assemblies per selected individual**, not duplicate FASTA records

@@ -1,4 +1,4 @@
-# Ensemble_gene_annotation.sh
+# 2.Ensemble_gene_annotation.sh
 
 Provide GENCODE/Ensembl reference annotations, liftovers and gene-level summary inputs.
 
@@ -33,10 +33,10 @@ export THREADS=8
 ## 2. Run
 
 ~~~bash
-bash Ensemble_gene_annotation.sh --help
+bash 2.Ensemble_gene_annotation.sh --help
 ~~~
 
-`bash Ensemble_gene_annotation.sh all` is **not implemented**.
+`bash 2.Ensemble_gene_annotation.sh all` is **not implemented**.
 
 ---
 

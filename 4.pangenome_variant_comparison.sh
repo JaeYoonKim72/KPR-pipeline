@@ -11,7 +11,7 @@ SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 SRC_DIR="${SCRIPT_DIR}/src"
 
 # Graph whose variants are compared. The VCF produced by
-# pangenome_construction_and_statistics.sh (step variants) is used as input:
+# 3.pangenome_construction_and_statistics.sh (step variants) is used as input:
 # vg deconstruct -P GRCh38 -a, all nesting levels, no vcfbub.
 GRAPH=${GRAPH:-hprc_kpr}
 INPUT_VCF=${INPUT_VCF:-${OUT_DIR}/graph_variants/${GRAPH}/reference/${GRAPH}.GRCh38.vcf.gz}

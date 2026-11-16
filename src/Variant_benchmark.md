@@ -1,4 +1,4 @@
-# Variant_benchmark.sh
+# 5.Variant_benchmark.sh
 
 Benchmark SNVs/indels/SVs against suitable truth sets and confident reference intervals.
 
@@ -33,10 +33,10 @@ export THREADS=8
 ## 2. Run
 
 ~~~bash
-bash Variant_benchmark.sh --help
+bash 5.Variant_benchmark.sh --help
 ~~~
 
-`bash Variant_benchmark.sh all` is **not implemented**.
+`bash 5.Variant_benchmark.sh all` is **not implemented**.
 
 ---
 

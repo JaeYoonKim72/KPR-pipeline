@@ -1,4 +1,4 @@
-# pangenome_construction_and_statistics.sh
+# 3.pangenome_construction_and_statistics.sh
 
 ## Scope and rationale
 
@@ -140,21 +140,21 @@ export THREADS=16
 Print the available steps:
 
 ```bash
-bash pangenome_construction_and_statistics.sh
+bash 3.pangenome_construction_and_statistics.sh
 ```
 
 Run everything in order:
 
 ```bash
-bash pangenome_construction_and_statistics.sh all
+bash 3.pangenome_construction_and_statistics.sh all
 ```
 
 Run one step at a time, which is what we recommend:
 
 ```bash
-bash pangenome_construction_and_statistics.sh construct
-bash pangenome_construction_and_statistics.sh index_graph
-bash pangenome_construction_and_statistics.sh graph_stats
+bash 3.pangenome_construction_and_statistics.sh construct
+bash 3.pangenome_construction_and_statistics.sh index_graph
+bash 3.pangenome_construction_and_statistics.sh graph_stats
 ```
 
 Graph construction is long-running: on a single node with 27 CPU cores and
@@ -162,21 +162,21 @@ Graph construction is long-running: on a single node with 27 CPU cores and
 about 22 days of wall-clock time. Detach it from the terminal:
 
 ```bash
-nohup bash pangenome_construction_and_statistics.sh construct > construct.log 2>&1 &
+nohup bash 3.pangenome_construction_and_statistics.sh construct > construct.log 2>&1 &
 ```
 
 Build and analyse a single graph by restricting `GRAPHS`:
 
 ```bash
-GRAPHS=kpr bash pangenome_construction_and_statistics.sh construct
-GRAPHS=hprc_kpr bash pangenome_construction_and_statistics.sh construct
+GRAPHS=kpr bash 3.pangenome_construction_and_statistics.sh construct
+GRAPHS=hprc_kpr bash 3.pangenome_construction_and_statistics.sh construct
 ```
 
 Override individual settings on the command line:
 
 ```bash
-THREADS=32 CACTUS_MEM=1200Gi bash pangenome_construction_and_statistics.sh construct
-SV_MIN_LEN=50 bash pangenome_construction_and_statistics.sh variants
+THREADS=32 CACTUS_MEM=1200Gi bash 3.pangenome_construction_and_statistics.sh construct
+SV_MIN_LEN=50 bash 3.pangenome_construction_and_statistics.sh variants
 ```
 
 Every step writes to `$OUT_DIR/logs/pipeline.log` and skips a graph whose input
@@ -436,7 +436,7 @@ Main tables:
 - `nonreference_sequence/GRAPH/classes/*.fa` — sequence of each frequency class
 
 The indexed graph in `index/` and the GBZ in `graph/` are the input for
-`pangenome_short_read_mapping.sh`. The HPRC+KPR graph also supplies the
+`6.pangenome_short_read_mapping.sh`. The HPRC+KPR graph also supplies the
 AMY locus analysis described in
 [AMY_locus_analysis_in_pagenomegraph.md](AMY_locus_analysis_in_pagenomegraph.md).
 
