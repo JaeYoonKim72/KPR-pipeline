@@ -1,8 +1,43 @@
 # genome_assembly_and_statistics.sh
 
-Haplotype-resolved *de novo* genome assembly, assembly quality assessment,
-repeat and gene annotation, and structural variant detection from long-read
-sequencing data.
+## Scope and rationale
+
+A high-quality Korean pangenome depends on accurate, haplotype-resolved
+de novo assemblies. Short reads provide reliable genotypes across much of
+the genome, but cannot consistently traverse long repeats, highly
+homologous segmental duplications or complex structural variants.
+PacBio high-fidelity (HiFi) reads, complemented by long Oxford Nanopore
+(ONT) reads and chromatin-conformation data where available, provide
+sequence continuity and haplotype information needed to resolve
+structures that are absent or collapsed in GRCh38. Reference alignment
+is used for evaluation, rather than as the basis of the assembly
+itself [1–3].
+
+This workflow processes PacBio Sequel II/Revio, ONT PromethION and
+Hi-C reads through platform-specific quality control, assembly,
+polishing, reference-based and reference-free validation, repeat/gene
+annotation and structural variant discovery. The distinction between
+`read_qc`, `assembly`, `polishing`, and `asm_stats` is deliberate:
+high raw-read accuracy or high contiguity alone does not establish that
+a genome assembly is complete, correctly phased or free of collapsed
+repeats, contaminant sequence and interchromosomal misjoins.
+
+In the KPR manuscript, long-read datasets were collected for
+22 Korean individuals: 19 newly sequenced individuals (12 Revio,
+seven PromethION) and three previously generated PacBio Sequel II
+datasets. Assemblies were retained for pangenome construction
+only when contig N50 was at least 20 Mb and the number of contigs
+was at most 1,500. The retained panel consisted of **28 haploid
+assemblies from 14 individuals**. All seven PromethION-derived
+assemblies in this particular dataset failed the contig-count
+criterion; this outcome should not be interpreted as a general
+technology comparison. The workflow reports the underlying QC
+metrics so that exclusions and retained haplotype assemblies can
+be traced [1].
+
+This stage produces the polished FASTA sequences and validation
+evidence for [pangenome construction](pangenome_construction_and_statistics.md).
+Population-level comparisons are not calculated by this stage.
 
 Part of the [KPR-pipeline](README.md) repository.
 
@@ -143,6 +178,86 @@ one can be rerun after fixing a problem without repeating the others.
 | `sv_calling` | pbmm2, pbsv, Sniffles, SVIM, SVIM-asm, SURVIVOR merging |
 | `all` | All of the above, in order |
 
+### 3.1 Read quality control and platform-specific assembly
+
+The PacBio HiFi branch removes residual adapter sequence with
+HiFiAdapterFilt and assembles long accurate reads using HiFiasm.
+For samples with Hi-C links, HiFiasm's Hi-C mode distinguishes
+maternal and paternal haplotype paths; the underlying per-sample
+read identifiers must remain consistent across technologies.
+The ONT branch removes adapters with Porechop, trims low-quality
+bases and assembles with Flye; an alternative HiFiasm ONT
+mode is available to assess assembler-dependent contiguity.
+Where a suitable trimmed ONT readset belongs to a Hi-C-enabled
+HiFi sample, the wrapper can pass those reads to HiFiasm
+with `--ul`. This does not imply that every ONT sample has
+Hi-C data or belongs in a haplotype-resolved final panel.
+
+### 3.2 Contaminant screening and polishing
+
+Assemblies of lymphoblastoid cell-line-derived genomes can
+contain viral or other non-human sequence. Kraken2-based
+classification and contaminant removal precede downstream
+annotation. Inspector assesses local assembly errors, applies
+polishing and re-evaluates the polished sequences; retain both
+pre- and post-polishing summaries for audit. Polishing is not
+a substitute for checking long-range structural accuracy.
+
+### 3.3 Contiguity, completeness and structural integrity
+
+Each haplotype assembly is evaluated across complementary
+dimensions:
+
+| Measure | Interpretation | Manuscript relationship |
+|---|---|---|
+| Contig count and N50 | Sequence fragmentation and long-range continuity | PASS requires N50 >=20 Mb and <=1,500 contigs |
+| Total assembled length | Missing or excess sequence | Compare to ungapped GRCh38/CHM13; neither is a complete truth set |
+| Inspector self-alignment and QV | Local consensus quality and coverage | Retain self-depth and small-error summaries |
+| QUAST-LG aligned/unaligned sequence | Reference representation and possible non-reference sequence | Evaluate independently against GRCh38 and CHM13 |
+| Duplication ratio | Potential duplicated or collapsed content | Investigate discordance with read depth |
+| Minigraph misjoins | Candidate interchromosomal connections | Review acrocentric chromosome alignments separately |
+| HMM-Flagger states | Reliable versus collapsed, duplicated or erroneous sequence | Preserve flagged bases as a QC limitation |
+
+The manuscript retained assemblies with a mean contig N50 of
+50.34 Mb and a mean assembled length of 3.02 Gb.
+Mean coverage of GRCh38 and CHM13 was 96.06% and 93.20%,
+respectively, and HMM-Flagger identified 43.89 Mb (1.46%)
+of unreliable assembly sequence on average. These are
+**observed manuscript results**, not universal software
+thresholds. Acrocentric alignments, including apparent
+interchromosomal joins, require particular caution because
+homologous satellite and segmental-duplication sequence
+can produce complex mappings.
+
+### 3.4 Repeats, gene models and copy-number gains
+
+RepeatMasker annotates interspersed elements, satellites and
+other repeat families. Separate etrf and sdust passes add VNTR
+and low-complexity sequence after accounting for previously
+masked intervals. Liftoff projects GENCODE gene/transcript
+models to the assembly. Report the percentage of models
+represented and the additional copies of each protein-coding
+gene relative to the selected reference. An inferred extra
+gene model is a copy-number-gain candidate, not an
+independently validated expression or functional result.
+The manuscript compared these quantities among the
+KPR, HPRC-EAS and HPRC-nEAS assemblies.
+
+### 3.5 Structural-variant discovery and integration
+
+The SV workflow combines read- and assembly-derived
+evidence. PacBio reads are aligned with pbmm2 and
+interrogated by pbsv, Sniffles and SVIM; assembly-based
+candidates are identified by SVIM-asm. The wrapper
+merges near-equivalent calls with a 100-bp breakpoint
+tolerance and reports shared >=51-bp events across
+retained samples. Such shared events should be
+interpreted relative to the selected reference,
+calling algorithms and available samples, not
+as variants fixed in all Koreans. Keep insertion,
+deletion, duplication and inversion types separate
+where the underlying callsets support them.
+
 Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 `assembly`; `asm_stats` needs `polishing` and writes `qc_pass.list`;
 `annotation` and `sv_calling` need `polishing`, and `sv_calling` also needs the
@@ -193,7 +308,23 @@ Main tables:
 The polished assemblies in `polishing/corrected/` are the input for
 `pangenome_construction_and_statistics.sh`.
 
+The downstream graph must use **the actual two retained haplotype
+assemblies per selected individual**, not duplicate FASTA records
+or both raw and polished versions. Check sequence identifiers,
+sample provenance and haplotype FASTA indexing before constructing
+seqfiles. Record versions of the retained FASTA files, the
+`qc_pass.list`, contamination-screen reports and key
+quality summary tables together with graph input manifests.
+
 ---
+
+## References
+
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; sections "Genome assembly and quality assessment" and "Repeat and gene annotation".
+2. Cheng H, et al. (2024). Scalable telomere-to-telomere assembly for diploid and polyploid genomes with double graph. *Nature Methods*. https://doi.org/10.1038/s41592-024-02269-8
+3. Kolmogorov M, et al. (2019). Assembly of long, error-prone reads using repeat graphs. *Nature Biotechnology*. https://doi.org/10.1038/s41587-019-0072-8
+4. Chen Y, et al. (2021). Accurate long-read de novo assembly evaluation with Inspector. *Genome Biology*. https://doi.org/10.1186/s13059-021-02527-4
+5. Gurevich A, et al. (2013). QUAST: quality assessment tool for genome assemblies. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btt086
 
 ## Software
 
