@@ -121,40 +121,46 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
 
 ## Data availability
 
-**Newly generated Korean sequencing data.** The EGA study
+**Newly generated Korean long-read and Hi-C sequencing data.** Long-read
+sequencing (LRS) data were generated for **19 Korean individuals**:
+**12 individuals** were sequenced using PacBio Revio (HiFi), and
+**seven individuals** using Oxford Nanopore PromethION.
+Hi-C sequencing was additionally performed for **two of the
+Revio-sequenced individuals**, one of whom was also sequenced
+using PromethION. These raw sequencing data are deposited in
+the European Genome-phenome Archive (EGA) under study
 [EGAS50000002074](https://ega-archive.org/studies/EGAS50000002074)
 and dataset
-[EGAD50000002977](https://ega-archive.org/datasets/EGAD50000002977)
-contain the newly generated long-read data described in the
-manuscript. The dataset was released by EGA on 19 September 2026;
-the metadata are publicly visible and requests for controlled
-access can be submitted through EGA.
+[EGAD50000002977](https://ega-archive.org/datasets/EGAD50000002977).
 
-**Previously generated Korean long-read data.** The three additional
-Korean individuals are registered under the released EGA study
-[EGAS50000000375](https://ega-archive.org/studies/EGAS50000000375).
-The long-read data used in this study are in dataset
+**Previously generated Korean PacBio Sequel II data.** Long-read
+sequencing data for **three additional Korean individuals**,
+generated using the **PacBio Sequel II** platform in our previous
+study, are available under EGA study
+[EGAS50000000375](https://ega-archive.org/studies/EGAS50000000375)
+and dataset
 [EGAD50000000552](https://ega-archive.org/datasets/EGAD50000000552).
+Together, the newly generated and previously available long-read
+datasets represent **22 Korean individuals**.
 
-**Data access committee.** The KRIBB Genomic Medicine Research
-Center DAC is listed at
+**Korean BioData Station (K-BDS).** The **same newly generated
+sequencing data from 19 Korean individuals** (12 PacBio Revio
+and seven Oxford Nanopore PromethION datasets, with additional
+Hi-C sequencing for two individuals) are also deposited at
+[K-BDS](https://kbds.re.kr/) under accession **KAP241783**.
+The K-BDS deposit also includes short-read sequencing data
+used in this study.
+
+**Data access committee.** Access to controlled EGA data is
+governed by the KRIBB Genomic Medicine Research Center
+Data Access Committee (DAC),
 [EGAC50000001142](https://ega-archive.org/dacs/EGAC50000001142).
-Release of an EGA record does not imply unrestricted download
-of participant-level sequencing data; the applicable access
-procedure still applies.
-
-**Korean BioData Station (K-BDS).** The deposited project has accession
-`KAP241783` at [K-BDS](https://kbds.re.kr/). Reviewers and editors
-were given a separate reviewer-access link; the regular
-project record is expected to become publicly searchable
-upon publication. The reviewer-specific access URL is not
-embedded in this public repository.
 
 **Pangenome references and code.** GFA graph files and associated
-resources are provided through the
+resources are available through the
 [Korean Genome Research project](https://kgr.appex.kr/).
-Executable workflow scripts and supporting analysis
-methods are maintained in this repository.
+Executable workflow scripts and supporting analysis methods
+are maintained in this repository.
 
 ## License
 
@@ -162,5 +168,5 @@ Released under the MIT License. See [LICENSE](LICENSE).
 
 ## Contact
 
-Jaeyoon Kim, Korea Research Institute of Bioscience and Biotechnology (KRIBB) —
+Jae-Yoon Kim, Korea Research Institute of Bioscience and Biotechnology (KRIBB) —
 jaeyoonkim@kribb.re.kr
