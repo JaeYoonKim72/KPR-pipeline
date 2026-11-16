@@ -14,16 +14,16 @@ has an executable Shell entry point in the repository root and its
 method documentation under `src/`. Stages 2 and 5 are explicit
 placeholders and do not implement analyses.
 
-| Stage | Main script | Purpose | Documentation | Status |
+| Stage | Main script | Purpose | Documentation | Version |
 |:--:|---|---|---|---|
-| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | Implemented |
-| 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | Placeholder |
-| 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | Implemented |
-| 4 | `4.pangenome_variant_comparison.sh` | KPR/HPRC graph variant decomposition and allele comparison | [Documentation](src/pangenome_variant_comparison.md) | Implemented |
-| 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | Placeholder |
-| 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | Implemented |
-| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | Implemented |
-| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | SNP summaries; additional normalization needed |
+| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
+| 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
+| 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
+| 4 | `4.pangenome_variant_comparison.sh` | KPR/HPRC graph variant decomposition and allele comparison | [Documentation](src/pangenome_variant_comparison.md) | v1.0 |
+| 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | v1.0 |
+| 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | v1.0 |
+| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | v1.0 |
+| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | v1.0 |
 
 **Helper scripts called by the pipelines:** `decon_split.sh`,
 `typecount.py`, `wline_sample_nodes.py`, `amy_haplotype_tags.py`,
