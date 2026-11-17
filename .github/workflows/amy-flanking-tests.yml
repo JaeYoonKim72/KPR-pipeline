@@ -7,7 +7,7 @@ on:
       - 'src/tests/test_amy_flanking.py'
       - '.github/workflows/amy-flanking-tests.yml'
   push:
-    branches: [amy-flanking-popgen-v1]
+    branches: [amy-flanking-popgen-v1, pangenome-pop-analysis-v1]
 jobs:
   smoke:
     runs-on: ubuntu-latest
