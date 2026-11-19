@@ -74,6 +74,7 @@ export GRAPH_DIR=/path/to/graphs
 export OUT_DIR=/path/to/results
 export LIST_DIR=/path/to/lists
 export THREADS=32
+export BQSR_KNOWN_SITES="/path/to/known_snps.GRCh38.vcf.gz /path/to/known_indels.GRCh38.vcf.gz"
 
 bash 1.genome_assembly_and_statistics.sh all
 bash 3.pangenome_construction_and_statistics.sh all
@@ -130,6 +131,10 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
 - To obtain **nSL and XP-nSL**, activate a mamba/conda environment
   containing **selscan v3.0.1**. Missing selscan skips only those
   statistics, never installs it automatically.
+- Stage 6 uses GATK BQSR on graph-projected and linear-reference BAMs;
+  supply indexed GRCh38 known-sites VCFs via `BQSR_KNOWN_SITES`.
+  DeepVariant, Manta and Delly consume the recalibrated BAMs.
+  Graph-based `vg pack`/`vg call` continues to use the GAF alignments.
 - Stage 8 needs GRCh38 flanking SNP calls and a
   `StrictMask(20160622) ∩ non-N` callable BED for appropriate
   denominator lengths. It does not download private cohort data.

@@ -41,6 +41,9 @@ DV_IMAGE=${DV_IMAGE:-nvcr.io/nvidia/clara/clara-parabricks:4.4.0-1}
 #   https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
 GRCH38=${GRCH38:-${REF_DIR}/GRCh38.fa}
 
+BQSR_KNOWN_SITES=${BQSR_KNOWN_SITES:-}
+BQSR_JAVA_MEM=${BQSR_JAVA_MEM:-16g}
+
 # One sample identifier per line. For every identifier the reads are expected
 # at ${DATA_DIR}/<sample>_1.fastq.gz and ${DATA_DIR}/<sample>_2.fastq.gz
 SAMPLE_LIST=${SAMPLE_LIST:-${LIST_DIR}/samples.list}
@@ -61,6 +64,74 @@ mkdir -p "${READ_OUT}" "${INDEX_OUT}" "${REF_OUT}" "${GAF_OUT}" "${BAM_OUT}" \
          "${TMP_DIR}" "${LIST_DIR}"
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
+
+verify_bqsr_inputs() {
+  command -v gatk >/dev/null 2>&1 || { echo "[ERROR] gatk is required for BQSR" >&2; return 1; }
+  command -v bcftools >/dev/null 2>&1 || { echo "[ERROR] bcftools is required for BQSR" >&2; return 1; }
+  [[ -n "${BQSR_KNOWN_SITES//[[:space:]]/}" ]] || {
+    echo "[ERROR] BQSR_KNOWN_SITES must specify indexed GRCh38 known-sites VCF(s)" >&2
+    return 1
+  }
+  local FILE
+  for FILE in $BQSR_KNOWN_SITES; do
+    [[ -s "$FILE" ]] || { echo "[ERROR] known-sites VCF not found: $FILE" >&2; return 1; }
+    [[ -s "$FILE.tbi" || -s "$FILE.csi" ]] || {
+      echo "[ERROR] known-sites VCF requires an index: $FILE" >&2
+      return 1
+    }
+  done
+}
+
+prepare_bqsr_known_args() {
+  local GRAPH="$1" FILE TARGET TARGET_DIR MAP INV CHROMS INDEX=0
+  BQSR_KNOWN_ARGS=()
+  if [[ -n "$GRAPH" ]]; then
+    MAP="${REF_OUT}/${GRAPH}/${REF_SAMPLE}.rename_chrs.txt"
+    [[ -s "$MAP" ]] || { echo "[ERROR] missing graph contig map: $MAP" >&2; return 1; }
+    TARGET_DIR="${REF_OUT}/${GRAPH}/bqsr_known_sites"
+    mkdir -p "$TARGET_DIR"
+    INV="${TARGET_DIR}/plain_to_graph_chrs.tsv"
+    if [[ ! -s "$INV" || "$MAP" -nt "$INV" ]]; then
+      awk -F '\t' 'BEGIN {OFS="\t"} NF>=2 {print $2,$1}' "$MAP" > "$INV"
+    fi
+    [[ -s "$INV" ]] || { echo "[ERROR] empty contig mapping: $MAP" >&2; return 1; }
+  fi
+
+  for FILE in $BQSR_KNOWN_SITES; do
+    TARGET="$FILE"
+    if [[ -n "$GRAPH" ]]; then
+      TARGET="${TARGET_DIR}/known_sites_${INDEX}.vcf.gz"
+      CHROMS=$(awk 'NR==FNR {ok[$1]=1; next} ($1 in ok) {printf "%s%s",sep,$1;sep=","}' <(bcftools index -s "$FILE") "$INV")
+      [[ -n "$CHROMS" ]] || {
+        echo "[ERROR] known-sites VCF and graph reference have no shared GRCh38 contigs: $FILE" >&2
+        return 1
+      }
+      if [[ ! -s "$TARGET" || "$FILE" -nt "$TARGET" || "$INV" -nt "$TARGET" ]]; then
+        bcftools view -r "$CHROMS" "$FILE" -Ou \
+          | bcftools annotate --rename-chrs "$INV" -Oz -o "$TARGET"
+        bcftools index -f -t "$TARGET"
+      fi
+      [[ -s "$TARGET.tbi" || -s "$TARGET.csi" ]] || bcftools index -f -t "$TARGET"
+    fi
+    BQSR_KNOWN_ARGS+=(--known-sites "$TARGET")
+    INDEX=$((INDEX + 1))
+  done
+}
+
+run_bqsr() {
+  local PREFIX="$1" REF="$2"
+  [[ -s "$REF" && -s "${PREFIX}.rmdup.bam" ]] || {
+    echo "[ERROR] missing BQSR reference or BAM: $REF / ${PREFIX}.rmdup.bam" >&2
+    return 1
+  }
+  gatk --java-options "-Xmx${BQSR_JAVA_MEM}" BaseRecalibrator \
+    -R "$REF" -I "${PREFIX}.rmdup.bam" \
+    "${BQSR_KNOWN_ARGS[@]}" -O "${PREFIX}.BQSR.table"
+  gatk --java-options "-Xmx${BQSR_JAVA_MEM}" ApplyBQSR \
+    -R "$REF" -I "${PREFIX}.rmdup.bam" \
+    --bqsr-recal-file "${PREFIX}.BQSR.table" -O "${PREFIX}.BQSR.bam"
+  samtools index -@ "${THREADS}" "${PREFIX}.BQSR.bam"
+}
 
 # Step 1. Reference preparation
 prepare_reference() {
@@ -203,30 +274,28 @@ surject() {
   log "step 5 finished"
 }
 
-# Step 6. BAM clean-up
+# Step 6. BAM sorting, duplicate removal and base-quality recalibration
 bam_cleanup() {
-  log "step 6: BAM clean-up"
+  log "step 6: BAM cleanup and GATK BQSR"
+  verify_bqsr_inputs
 
-  # The surjected alignments are prepared for variant calling: sample-level
-  # read groups are attached, the records are coordinate sorted and PCR
-  # duplicates are removed. The in-house implementation used in this study is
-  # not included here; the minimal equivalent below produces a sorted,
-  # deduplicated and indexed BAM, and any samtools or Picard workflow with the
-  # same result can be substituted.
-  for G in ${GRAPHS}; do
-    [[ -d "${BAM_OUT}/${G}" ]] || { log "  ${BAM_OUT}/${G} not found, skipped"; continue; }
+  for G in $GRAPHS; do
+    [[ -d "${BAM_OUT}/$G" ]] || { log "  ${BAM_OUT}/$G not found, skipped"; continue; }
+    REF="${REF_OUT}/$G/${REF_SAMPLE}.fa"
+    [[ -s "$REF" ]] || { log "  $REF not found, skipped"; continue; }
+    prepare_bqsr_known_args "$G"
 
     while read -r S; do
-      [[ -z "${S}" ]] && continue
-      B="${BAM_OUT}/${G}/${G}.${S}"
+      [[ -z "$S" ]] && continue
+      B="${BAM_OUT}/$G/$G.$S"
 
-      samtools sort -O BAM --threads "${THREADS}" -T "${TMP_DIR}/${S}.tmp" \
+      samtools sort -O BAM --threads "${THREADS}" -T "${TMP_DIR}/$G.$S.tmp" \
         -o "${B}.sorted.bam" "${B}.raw.bam"
-
       samtools rmdup "${B}.sorted.bam" "${B}.rmdup.bam" \
-        2> "${LOG_OUT}/${G}.${S}.rmdup.err"
+        2> "${LOG_OUT}/$G.$S.rmdup.err"
       samtools index -@ "${THREADS}" "${B}.rmdup.bam"
 
+      run_bqsr "$B" "$REF"
       rm -f "${B}.sorted.bam"
     done < "${SAMPLE_LIST}"
   done
@@ -258,7 +327,7 @@ small_variants() {
         "${DV_IMAGE}" \
         pbrun deepvariant \
         --ref "${REF}" \
-        --in-bam "${BAM_OUT}/${G}/${G}.${S}.rmdup.bam" \
+        --in-bam "${BAM_OUT}/${G}/${G}.${S}.BQSR.bam" \
         --out-variants "${V}.dp.vcf.gz" \
         --logfile "${LOG_OUT}/${G}.${S}.deepvariant.log" \
         --sort-by-haplotypes --parse-sam-aux-fields --mode shortread \
@@ -408,6 +477,9 @@ grch38_baseline() {
   log "step 10: GRCh38 baseline"
 
   mkdir -p "${LINEAR_OUT}"/{bam,small_variants,sv}
+  verify_bqsr_inputs
+  [[ -s "${GRCH38}" ]] || { echo "[ERROR] missing GRCh38 FASTA: ${GRCH38}" >&2; return 1; }
+  prepare_bqsr_known_args ""
 
   while read -r S; do
     [[ -z "${S}" ]] && continue
@@ -425,6 +497,7 @@ grch38_baseline() {
                    "${LINEAR_OUT}/bam/${S}.rmdup.bam" \
       2> "${LOG_OUT}/${S}.grch38.rmdup.err"
     samtools index -@ "${THREADS}" "${LINEAR_OUT}/bam/${S}.rmdup.bam"
+    run_bqsr "${LINEAR_OUT}/bam/${S}" "${GRCH38}"
     rm -f "${LINEAR_OUT}/bam/${S}.sorted.bam"
 
     # 10-2) small variants, DeepVariant v1.6
@@ -435,7 +508,7 @@ grch38_baseline() {
       "${DV_IMAGE}" \
       pbrun deepvariant \
       --ref "${GRCH38}" \
-      --in-bam "${LINEAR_OUT}/bam/${S}.rmdup.bam" \
+      --in-bam "${LINEAR_OUT}/bam/${S}.BQSR.bam" \
       --out-variants "${V}.dp.vcf.gz" \
       --logfile "${LOG_OUT}/${S}.grch38.deepvariant.log" \
       --sort-by-haplotypes --parse-sam-aux-fields --mode shortread \
@@ -446,7 +519,7 @@ grch38_baseline() {
 
     # 10-3) structural variants from the short reads, Manta and Delly, with the
     #       same filters as the assembly pipeline
-    configManta.py --bam "${LINEAR_OUT}/bam/${S}.rmdup.bam" \
+    configManta.py --bam "${LINEAR_OUT}/bam/${S}.BQSR.bam" \
                    --referenceFasta "${GRCH38}" \
                    --runDir "${LINEAR_OUT}/sv/manta_${S}"
     "${LINEAR_OUT}/sv/manta_${S}/runWorkflow.py" -j "${THREADS}"
@@ -456,7 +529,7 @@ grch38_baseline() {
       "${LINEAR_OUT}/sv/manta_${S}/results/variants/diploidSV.vcf.gz"
 
     delly call -g "${GRCH38}" -o "${LINEAR_OUT}/sv/${S}.delly.bcf" \
-               "${LINEAR_OUT}/bam/${S}.rmdup.bam"
+               "${LINEAR_OUT}/bam/${S}.BQSR.bam"
     bcftools view -f PASS -i 'INFO/SVTYPE=="DEL"' \
       -Oz -o "${LINEAR_OUT}/sv/${S}.delly.del.vcf.gz" \
       "${LINEAR_OUT}/sv/${S}.delly.bcf"
@@ -474,12 +547,16 @@ Usage: bash $(basename "$0") <step>
   kmer_index          kmc k-mer index used for haplotype sampling
   giraffe             read mapping to the pangenome graph
   surject             projection of the alignments onto the linear reference
-  bam_cleanup         coordinate sorting, duplicate removal and indexing
+  bam_cleanup         sort, remove duplicates, recalibrate base qualities (GATK BQSR)
   small_variants      DeepVariant calling and PASS filtering
   sv_variants         vg pack and vg call genotyping and PASS filtering
   classify            classification into SNP, indel and SV, and counting
-  grch38_baseline     alignment, DeepVariant, Manta and Delly against GRCh38
+  grch38_baseline     alignment, duplicate removal, BQSR, DeepVariant, Manta and Delly
   all                 run every step in order
+
+  Set BQSR_KNOWN_SITES to indexed GRCh38 known-sites VCF(s).
+  For graph-projected BAMs, the VCF contig names are mapped to graph paths.
+  BQSR_JAVA_MEM controls the GATK Java heap (default: 16g).
 EOF
 }
 

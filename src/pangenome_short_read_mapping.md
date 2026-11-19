@@ -58,6 +58,14 @@ SAMPLE_1.fastq.gz  SAMPLE_2.fastq.gz
 index, is used by the baseline step only. The reference used for calling on
 each pangenome is extracted from the graph itself in step 1.
 
+For base-quality score recalibration (BQSR), supply one or more **indexed GRCh38
+known-sites VCFs** in `BQSR_KNOWN_SITES`, separated by spaces. These files must
+have the same reference build and chromosome coordinates as the input BAMs.
+The pipeline converts their plain GRCh38 chromosome names to graph reference
+path names for each graph-projected BAM; the linear GRCh38 baseline uses the
+original known-sites files. The known-sites VCFs must be prepared in advance:
+BQSR is required for the BAM-based calling steps and is not silently skipped.
+
 ### 1.5 Environment
 
 ```bash
@@ -67,6 +75,8 @@ export GRAPH_DIR=/path/to/graphs      # required
 export OUT_DIR=/path/to/results       # default: ./results
 export LIST_DIR=/path/to/lists        # default: ./lists
 export THREADS=8
+export BQSR_KNOWN_SITES="/path/to/known_snps.GRCh38.vcf.gz /path/to/known_indels.GRCh38.vcf.gz"
+export BQSR_JAVA_MEM=16g
 ```
 
 ---
@@ -134,18 +144,21 @@ repeating the others.
 | `kmer_index` | kmc k-mer index used for haplotype sampling |
 | `giraffe` | Read mapping to the pangenome graph, output in GAF |
 | `surject` | Projection of the alignments onto the linear reference |
-| `bam_cleanup` | Coordinate sorting, duplicate removal and indexing |
+| `bam_cleanup` | Coordinate sorting, duplicate removal, GATK BQSR and indexing |
 | `small_variants` | DeepVariant calling, PASS filtering, contig renaming |
 | `sv_variants` | `vg pack` and `vg call` genotyping, PASS filtering |
 | `classify` | Classification into SNP, bi-allelic SNP, indel and SV, genotype filtering and counting |
-| `grch38_baseline` | Alignment, DeepVariant, Manta and Delly against GRCh38 |
+| `grch38_baseline` | Alignment, duplicate removal, GATK BQSR, DeepVariant, Manta and Delly against GRCh38 |
 | `all` | All of the above, in order |
 
 Dependencies between steps: `giraffe` needs `read_prep` and `kmer_index`;
 `surject` needs `giraffe` and `prepare_reference`; `bam_cleanup` needs
 `surject`; `small_variants` needs `bam_cleanup`; `sv_variants` needs `giraffe`
 and `prepare_reference`; `classify` needs `small_variants` and `sv_variants`.
-`grch38_baseline` only needs `read_prep`.
+`grch38_baseline` needs `read_prep`, an indexed GRCh38 reference, and the BQSR
+known-sites VCFs. `bam_cleanup` requires graph reference preparation and BQSR
+known-sites VCFs. The small-variant and linear-reference SV callers use the
+resulting `.BQSR.bam` files.
 
 ---
 
@@ -168,6 +181,8 @@ and `prepare_reference`; `classify` needs `small_variants` and `sv_variants`.
 | `MIN_GQ` | `10` | minimum genotype quality |
 | `MIN_QUAL` | `30` | minimum site quality |
 | `DV_IMAGE` | Parabricks 4.4.0-1 | container image providing DeepVariant v1.6 |
+| `BQSR_KNOWN_SITES` | required for BAM-based calls | Space-separated indexed GRCh38 known-sites VCF(s), used by GATK BQSR |
+| `BQSR_JAVA_MEM` | `16g` | Java heap for GATK BaseRecalibrator and ApplyBQSR |
 | `GRCH38` | `$REF_DIR/GRCh38.fa` | linear reference for the baseline |
 | `THREADS` | `8` | threads per job |
 
@@ -198,15 +213,18 @@ the structural variant branch genotypes them on the graph directly.
 ### Small variants
 
 `vg surject` converts the graph alignments to BAM in the coordinates of the
-reference paths. After sorting, duplicate removal and indexing, DeepVariant
-v1.6 calls small variants. The calls are restricted to PASS sites, the contigs
+reference paths. After coordinate sorting and duplicate removal, GATK BaseRecalibrator
+and ApplyBQSR recalibrate base qualities against indexed GRCh38 known-sites
+VCFs. DeepVariant v1.6 then calls small variants from the BQSR-treated BAM. The calls are restricted to PASS sites, the contigs
 are renamed, and a second file without homozygous reference genotypes is
 written.
 
-The BAM post-processing performed in the study is not reproduced here; the step
-provides a minimal equivalent that yields a sorted, deduplicated and indexed
-BAM, and any samtools or Picard workflow with the same result can be
-substituted.
+The BAM preprocessing uses `samtools sort`, `samtools rmdup`, GATK
+`BaseRecalibrator`, and `ApplyBQSR`. The raw, duplicate-removed, recalibration
+report, and BQSR BAM files are retained. This is an explicitly specified
+implementation and is not claimed to be equivalent to other BAM processing
+workflows. Base-quality recalibration is applied to the projected BAMs; the
+graph-based `vg pack`/`vg call` branch uses the original GAF alignments.
 
 ### Structural variants
 
@@ -235,11 +253,11 @@ results/
 ├── kmer_index/           per-sample KFF files
 ├── reference/            per-graph reference FASTA, index, dictionary, paths
 ├── gaf/                  graph alignments
-├── bam/                  surjected, sorted and deduplicated alignments
+├── bam/                  surjected, duplicate-removed and BQSR-recalibrated BAMs
 ├── small_variants/       DeepVariant calls, PASS and NoZero sets
 ├── structural_variants/  vg pack and vg call output, PASS and NoZero sets
 ├── variant_classes/      classified and filtered call sets, count tables
-├── grch38/               linear reference baseline
+├── grch38/               linear reference baseline (including BQSR BAM/table)
 └── logs/
 ```
 
@@ -264,6 +282,7 @@ used the versions below.
 | Linear reference alignment | bwa-mem2 2.2.1 |
 | Small-variant calling | DeepVariant 1.6 |
 | Linear-reference structural variants | Manta 1.6; Delly 0.9.1 |
+| Base-quality score recalibration | GATK 4.3.0.0 (`BaseRecalibrator`, `ApplyBQSR`) |
 | Supporting read processing | samtools, bcftools, KMC; Docker/Singularity as required |
 
 This is an **executable Shell pipeline**:

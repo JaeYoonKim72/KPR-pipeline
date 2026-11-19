@@ -117,7 +117,7 @@ bash 7.AMY_locus_analysis_in_pagenomegraph.sh haplotype_tree
 
 The structural subgraph's default reference interval is
 `AMY_REGION=chr1:103,570,000-103,760,000`, which is **independent** of
-the Bolognini distal/proximal regions used by step 7.
+the Bolognini distal/proximal regions analyzed in stage 8.
 
 ---
 

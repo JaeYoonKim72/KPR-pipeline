@@ -468,8 +468,14 @@ Watterson's estimator [4] is:
 `θW = E[S_n₀] / (a_(n₀−1) × L_callable)`
 
 where `a_(n₀−1) = Σ_(j=1)^(n₀−1) (1/j)`.
-The manuscript's choice `n₀=168` corresponds to 90% genotype
-call rate among the smallest population CDX (n=93).
+For the nine-population comparison, `n₀=168` was used as a common
+projection size, corresponding to the 90% genotype-call-rate threshold
+in the smallest cohort, CDX (n=93). The separate **KOR302-only folded
+SFS** analysis used `n₀=544` allele copies instead (with the
+monomorphic `k=0` class excluded). The public wrapper defaults
+to 168; specify `PROJECTION_N=544` only when using the KOR302-only
+projection workflow and its appropriate input/filters. These two
+projection settings must not be conflated.
 
 ### 6.3 Tajima's D
 
@@ -964,4 +970,4 @@ for unphased nSL and phased XP-nSL. For final normalization,
 `selscan norm` must be run on the appropriate autosomal
 empirical score distribution, with an activated mamba/conda
 environment supplying the exact executable version.
-All helper scripts are in the repository root.
+All supporting helper scripts are located in the repository's `src/` directory.

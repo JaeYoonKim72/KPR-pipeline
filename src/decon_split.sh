@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INPUT=${1:?usage: bash decon_split.sh <input.vcf.gz> [min_sv_length]}
+INPUT=${1:?usage: bash decon_split.sh <input.vcf.gz> [sv_length_threshold]}
 MINSV=${2:-50}
 
 NAME=$(basename "${INPUT}")
@@ -19,13 +19,13 @@ bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
                                              : length($3) - length(alts[i])
     }' > "${OUT}.var_sizes.txt"
 
-# 2. Sites holding at least one structural allele, and sites holding only
-#    small alleles
-awk -v m="${MINSV}" '$5 >= m {print $1, $2}' "${OUT}.var_sizes.txt" \
+# 2. SV alleles have absolute REF/ALT length difference > MINSV;
+#    small alleles have length difference <= MINSV.
+awk -v m="${MINSV}" '$5 > m {print $1, $2}' "${OUT}.var_sizes.txt" \
   | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.SVs_list.txt"
 
 awk -v m="${MINSV}" 'NR==FNR {exclude[$1,$2]; next}
-     $5 < m && !(($1,$2) in exclude) {print $1, $2}' \
+     $5 <= m && !(($1,$2) in exclude) {print $1, $2}' \
   "${OUT}.var_sizes.SVs_list.txt" "${OUT}.var_sizes.txt" \
   | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.Smalls_list.txt"
 
@@ -35,13 +35,13 @@ bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.SVs_list.txt") "${INPUT}" \
 bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.Smalls_list.txt") "${INPUT}" \
   -Oz -o "${OUT}.var_sizes.Smalls_list.vcf.gz"
 
-# 3. Structural variants: keep only the sites where every alternative allele
-#    is structural
+# 3. Structural variants: keep only sites where every alternative allele
+#    differs from REF by more than MINSV bases.
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${OUT}.var_sizes.SVs_list.vcf.gz" \
   | awk -v m="${MINSV}" '{
       split($4, alts, ","); all_large = 1
       for (i in alts)
-        if ((length(alts[i]) - length($3)) < m && (length($3) - length(alts[i])) < m) {
+        if ((length(alts[i]) - length($3)) <= m && (length($3) - length(alts[i])) <= m) {
           all_large = 0; break
         }
       if (all_large) print $1 "\t" $2

@@ -43,9 +43,8 @@ assemblies contributed approximately 1.6 million SNPs
 and 0.2 million indels beyond HPRC alone, while the
 non-reference sequence component grew from about
 130 Mb in HPRC to about 152 Mb in the augmented graph.
-These values describe the published cohort and pipeline
-configuration; they are not expected constants of
-every rerun.
+These values describe our cohort and analysis configuration;
+they are not expected constants of every rerun.
 
 Part of the [KPR-pipeline](../README.md) repository.
 
@@ -222,7 +221,7 @@ whole of `bubble_annotation` need `allele_mapping`.
 | `REFERENCE` | `GRCh38` | backbone reference; several names may be given |
 | `REF_PATHS` | `GRCh38 CHM13` | reference path names in the graph |
 | `FILTER` | `9` | haplotype frequency filter passed to `cactus-pangenome` |
-| `SV_MIN_LEN` | `50` | small variants versus structural variants |
+| `SV_MIN_LEN` | `50` | SV if absolute REF/ALT length difference >50 bp; small variant if ≤50 bp |
 | `BUBBLE_LARGE` | `10000` | large bubbles retained for annotation |
 | `ALLELE_MIN` | `5` | minimum assemblies carrying an allele, medical targets |
 | `ALLELE_MAX` | `29` | bubbles carried by nearly every assembly |
@@ -302,10 +301,13 @@ Reference-based call sets are also split with `bcftools` into SNPs, MNPs and
 indels with duplicate records removed, and the number of sites carrying one,
 two or more alternative alleles is counted.
 
-`decon_split.sh` then splits every call set by size and type. A site is
-structural when all of its alternative alleles differ from the reference by at
-least 50 bp, and small when none of them does. Sites mixing substitutions with
-length-changing alleles are set aside in `only_mixed` files. The final files
+`decon_split.sh` splits call sets by allele size and type. An SV allele
+has an absolute REF/ALT length difference **>50 bp**; alleles with a
+difference **≤50 bp** are small variants. A site enters the all-SV class
+only when every alternative allele meets the SV threshold. Sites mixing
+substitutions with length-changing alleles are placed in `only_mixed` files.
+The `all_50_alts` output suffix is retained for compatibility and does not
+mean that 50-bp differences are included as SVs. The final files
 are:
 
 ```
@@ -319,14 +321,15 @@ are:
 `typecount.py` classifies every record of these files by the number of
 alternative alleles carried across all samples: singleton (one), doubleton
 (two), common (more than two, frequency below 95%), core (more than two,
-frequency of 95% or above). Polymorphic variants are all non-singleton
-variants.
+frequency of 95% or above). The output column `polymorphism` is defined
+in this helper as the sum of doubleton, common and core **records**;
+it excludes singletons and is not a count of all variable sites.
 
 Either script can also be run on a single file:
 
 ```bash
-bash decon_split.sh results/graph_variants/kpr/reference/kpr.CHM13.vcf.gz 50
-python3 typecount.py results/graph_variants/kpr/reference/kpr.CHM13.var_sizes.Smalls_list.no_mixed.SNP.SNP.vcf.gz
+bash src/decon_split.sh results/graph_variants/kpr/reference/kpr.CHM13.vcf.gz 50
+python3 src/typecount.py results/graph_variants/kpr/reference/kpr.CHM13.var_sizes.Smalls_list.no_mixed.SNP.SNP.vcf.gz
 ```
 
 ### Bubbles and non-reference nodes
@@ -398,7 +401,7 @@ format.
 The helper can also be run on its own:
 
 ```bash
-python3 wline_sample_nodes.py results/graph/kpr/kpr.gfa nodes/kpr
+python3 src/wline_sample_nodes.py results/graph/kpr/kpr.gfa nodes/kpr
 ```
 
 ---

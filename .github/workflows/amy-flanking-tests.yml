@@ -4,6 +4,9 @@ on:
     paths:
       - '8.Population_genetics_in_AMY_flanking_locus.sh'
       - '4.compare_pangenome_variant_counts.sh'
+      - '3.pangenome_construction_and_statistics.sh'
+      - '6.pangenome_short_read_mapping.sh'
+      - 'src/decon_split.sh'
       - '4.pangenome_variant_comparison.sh'
       - 'src/compare_pangenome_variant_counts.md'
       - 'src/amy_flank_*.py'
@@ -30,5 +33,22 @@ jobs:
           bash -n 3.pangenome_construction_and_statistics.sh
           bash -n 4.compare_pangenome_variant_counts.sh
           bash -n 1.genome_assembly_and_statistics.sh
+          bash -n src/decon_split.sh
+      - name: Check exact 50 bp vs 51 bp SV cutoff
+        run: |
+          mkdir -p /tmp/sv_cutoff
+          python3 - <<'PY' > /tmp/sv_cutoff/size.vcf
+          print("##fileformat=VCFv4.2")
+          print("##contig=<ID=chr1,length=100000>")
+          print("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO")
+          for pos, delta in [(100, 50), (200, 51)]:
+              print(f"chr1\t{pos}\t.\tA\t{'A' * (delta + 1)}\t60\tPASS\t.")
+          PY
+          bcftools view -Oz -o /tmp/sv_cutoff/size.vcf.gz /tmp/sv_cutoff/size.vcf
+          bash src/decon_split.sh /tmp/sv_cutoff/size.vcf.gz 50
+          awk '$2 == 100 { found = 1 } END {exit !found}' /tmp/sv_cutoff/size.var_sizes.Smalls_list.txt
+          awk '$2 == 200 { found = 1 } END {exit !found}' /tmp/sv_cutoff/size.var_sizes.SVs_list.txt
+          ! awk '$2 == 100 { found = 1 } END {exit !found}' /tmp/sv_cutoff/size.var_sizes.SVs_list.txt
+          ! awk '$2 == 200 { found = 1 } END {exit !found}' /tmp/sv_cutoff/size.var_sizes.Smalls_list.txt
       - name: Run synthetic Python smoke tests
         run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v
