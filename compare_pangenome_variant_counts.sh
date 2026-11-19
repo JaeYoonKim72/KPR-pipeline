@@ -16,7 +16,7 @@ set -euo pipefail
 
 JOBS=${JOBS:-4}                       # chromosomes or samples processed in parallel
 
-REF_DIR=${REF_DIR:?set REF_DIR to the directory containing the reference files}
+REF_DIR=${REF_DIR:-}                  # required by prepare_input
 OUT_DIR=${OUT_DIR:-$(pwd)/results}
 LIST_DIR=${LIST_DIR:-$(pwd)/lists}
 TMP_DIR=${TMP_DIR:-${OUT_DIR}/tmp}
@@ -87,8 +87,10 @@ COUNT_OUT=${CMP_OUT}/counts
 LOG_OUT=${OUT_DIR}/logs
 JOB_LOG=${LOG_OUT}/variant_comparison
 
-mkdir -p "${IN_OUT}" "${SV_OUT}" "${SMALL_OUT}" "${COUNT_OUT}" "${LOG_OUT}" \
-         "${JOB_LOG}" "${TMP_DIR}" "${LIST_DIR}"
+setup_dirs() {
+  mkdir -p "${IN_OUT}" "${SV_OUT}" "${SMALL_OUT}" "${COUNT_OUT}" "${LOG_OUT}" \
+           "${JOB_LOG}" "${TMP_DIR}" "${LIST_DIR}"
+}
 
 log() { echo -e "[$(date '+%F %T')] $*" | tee -a "${LOG_OUT}/pipeline.log"; }
 
@@ -111,6 +113,7 @@ run_jobs() {
 ###############################################################################
 
 prepare_input() {
+  : "${REF_DIR:?set REF_DIR to the directory containing the reference files}"
   log "step 1: input preparation"
 
   # 1-1) centromeres and telomeres, excluded from the analysis
@@ -363,6 +366,10 @@ EOF
 }
 
 main() {
+  case "${1:-}" in
+    prepare_input|sv_decompose|sv_merge|small_decompose|small_merge|count|summary|all)
+      setup_dirs ;;
+  esac
   case "${1:-}" in
     prepare_input)   prepare_input ;;
     sv_decompose)    sv_decompose ;;
