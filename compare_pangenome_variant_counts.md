@@ -37,7 +37,6 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
-Use the Minigraph-Cactus-generated `.vcf.gz` as input. The `prepare_input` step applies `vcfbub -l 0 -r 10000000` as part of the documented analysis preprocessing; a raw `vg deconstruct` VCF is not required by this documentation. To reproduce the reported results, use the same input VCF and preprocessing settings as in the original analysis.
 
 ### 1.3 Reference files
 
