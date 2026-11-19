@@ -1,19 +1,43 @@
-# 4.pangenome_variant_comparison.sh
+# 4.compare_pangenome_variant_counts.sh
 
-Structural variants and small variants derived from the pangenome graph, and
-their comparison between the Korean (KPR) and the HPRC haplotypes at the locus
-and the allele level.
+## Scope and rationale
+
+Graph-based pangenomes represent alternative sequences and structurally
+complex haplotypes that cannot be fully described using a single linear
+reference. This workflow compares structural variants (SVs) and small
+variants identified in the joint Korean Pangenome Reference (KPR) and
+Human Pangenome Reference Consortium (HPRC) graph. Variants are
+deconstructed against GRCh38 and classified as **KPR-specific**,
+**shared**, or **HPRC-specific**, using the sample-to-population table
+to assign graph haplotypes to the two comparison groups [1–4].
+
+Two complementary counting units are reported. A **locus** represents
+a variant position or overlapping reference interval, even when
+multiple alternative alleles are present. An **allele** represents
+a distinct alternative sequence; SV alleles are clustered using
+PanSVMerger whereas small variant alleles are identified by
+chromosome, position, REF, and ALT. This distinction is important:
+a locus present in both panels can still contain alleles observed
+only in KPR. The pipeline therefore reports both the number of
+panel-specific loci and the number of panel-specific alleles [1].
+
+The analysis follows the graph-based decomposition approach described
+for the Asian Pangenome Project phase 1 (APGp1) [1]. Seven steps
+prepare the deconstructed VCF, decompose SVs, merge similar SV
+alleles, decompose per-sample small variants, merge small variants
+across samples, count group-specific and shared calls, and
+summarize genome-wide counts. The script is intended to use the
+graph products of [stage 3](pangenome_construction_and_statistics.md)
+and produces the variant-count tables used in the KPR–HPRC comparison.
+
+The manuscript reports 7,778 KPR-specific SV loci and 18,118
+KPR-specific SV alleles, alongside 2,059,844 KPR-specific small
+variant loci and 2,359,766 small variant alleles. These are
+**published study counts**, not outputs recalculated by this
+repository update. All panel comparisons here refer to graph-derived
+variant presence, not copy-specific population-genetic SNP statistics.
 
 Part of the [KPR-pipeline](../README.md) repository.
-
-The variants of the KPR–HPRC graph, deconstructed against GRCh38, are split
-into structural variants (SVs, more than 50 bp) and small variants (50 bp or
-less), following the graph-based procedure of the Asian Pangenome Project
-phase 1 (APGp1; Wu et al., 2026). SVs are decomposed with `vcfwave`, grouped
-into loci with `vcfcreatemulti`, and similar alleles within each locus are
-merged with PanSVMerger. Small variants are decomposed per sample with
-`vcfwave` and `rtg vcfdecompose` and merged across samples. Every variant is
-then counted as KPR-specific, shared or HPRC-specific.
 
 ---
 
@@ -21,10 +45,19 @@ then counted as KPR-specific, shared or HPRC-specific.
 
 ### 1.1 Software
 
-Install the tools listed under [Software](#software) and make sure they are on
-`PATH`. Python needs `pysam`.
+Install the programs under [Software and versions](#software-and-versions) and make sure they are on
+`PATH`. The versions used in the study can be installed into one
+mamba/conda environment (confirm the solver supports your platform):
 
-PanSVMerger is used from its repository, at the commit used in the study:
+```bash
+mamba create -n kpr_variant_counts -c conda-forge -c bioconda \
+  python=3.8 bcftools=1.24 htslib=1.24 samtools=1.24 vcflib=1.0.15 \
+  vcfbub=0.1.2 vsearch=2.32.0 pysam=0.22.1 rtg-tools=3.13 vg=1.63.1
+conda activate kpr_variant_counts
+```
+
+PanSVMerger [1] is not packaged and is used from its repository, at the
+commit used in the study:
 
 ```bash
 git clone https://github.com/Asian-Pan-Genome/PanSVMerger.git src/PanSVMerger
@@ -32,9 +65,14 @@ git -C src/PanSVMerger checkout 9d9827f
 ```
 
 `sv_merge_alleles.py` imports the clustering functions of
-`src/PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` to an
-absolute path if the repository is installed elsewhere. The external
-PanSVMerger source is not bundled in this repository.
+`src/PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` if the
+repository is installed elsewhere. PanSVMerger is an external dependency
+and is not bundled with this repository.
+
+RTG Tools asks about usage logging the first time it runs, which can halt a
+background job. Answer it once interactively, or set `RTG_TALKBACK=false` and
+`RTG_USAGE=false` in the `rtg.cfg` of the installation, before running the
+pipeline.
 
 ### 1.2 Input
 
@@ -47,8 +85,8 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
-The VCF must be the raw `vg deconstruct` output, with all nesting levels and
-without `vcfbub`, because bubble selection is part of this pipeline.
+The VCF is the raw `vg deconstruct` output, without `vcfbub`; bubble selection
+is done in `prepare_input`.
 
 ### 1.3 Reference files
 
@@ -64,13 +102,14 @@ Centromeres and the telomere entries of the gap table are excluded.
 ### 1.4 Population table
 
 `LIST_DIR/population.tsv` holds one sample per line, sample ID and population
-separated by a tab. The sample IDs are the sample columns of the input VCF.
+separated by a tab. The following identifiers are illustrative placeholders,
+not sample names from the study. The sample IDs are the sample columns of the input VCF.
 Samples of `TARGET_POP` (`KOR`) are compared with all other samples:
 
 ```
-IBD-409   KOR
-HG00438   CHN
-HG02055   AFR
+KOR_SAMPLE_01	KOR
+HPRC_SAMPLE_01	CHN
+HPRC_SAMPLE_02	AFR
 ```
 
 ### 1.5 Environment
@@ -89,38 +128,44 @@ export JOBS=4                         # chromosomes or samples in parallel
 Print the available steps:
 
 ```bash
-bash 4.pangenome_variant_comparison.sh
+bash 4.compare_pangenome_variant_counts.sh
 ```
 
 Run everything in order:
 
 ```bash
-bash 4.pangenome_variant_comparison.sh all
+bash 4.compare_pangenome_variant_counts.sh all
 ```
 
 Run one step at a time, which is what we recommend:
 
 ```bash
-bash 4.pangenome_variant_comparison.sh prepare_input
-JOBS=23 bash 4.pangenome_variant_comparison.sh sv_decompose
-JOBS=4 MERGE_WORKERS=16 bash 4.pangenome_variant_comparison.sh sv_merge
-JOBS=24 bash 4.pangenome_variant_comparison.sh small_decompose
-JOBS=12 bash 4.pangenome_variant_comparison.sh small_merge
-JOBS=12 bash 4.pangenome_variant_comparison.sh count
-bash 4.pangenome_variant_comparison.sh summary
+bash 4.compare_pangenome_variant_counts.sh prepare_input
+JOBS=23 bash 4.compare_pangenome_variant_counts.sh sv_decompose
+JOBS=4 MERGE_WORKERS=16 bash 4.compare_pangenome_variant_counts.sh sv_merge
+JOBS=24 bash 4.compare_pangenome_variant_counts.sh small_decompose
+JOBS=12 bash 4.compare_pangenome_variant_counts.sh small_merge
+JOBS=12 bash 4.compare_pangenome_variant_counts.sh count
+bash 4.compare_pangenome_variant_counts.sh summary
 ```
 
-Test on one chromosome first:
+Test on one chromosome first. With a separate `OUT_DIR`, point `INPUT_VCF`
+and `GRAPH_XG` to the existing input, since their defaults are under `OUT_DIR`:
 
 ```bash
-CHROMS=chr22 OUT_DIR=test bash 4.pangenome_variant_comparison.sh all
+CHROMS=chr22 OUT_DIR=test \
+INPUT_VCF=results/graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz \
+GRAPH_XG=results/index/hprc_kpr/hprc_kpr.xg \
+bash 4.compare_pangenome_variant_counts.sh all
 ```
 
 SV steps run per chromosome, `small_decompose` per sample. `sv_decompose` runs
 one single-threaded `vcfwave` per chromosome and needs up to 35 GB each;
 `sv_merge` uses `MERGE_WORKERS` cores per chromosome. Each job writes its own
 log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
-`$OUT_DIR/logs/pipeline.log`. A step stops when any of its jobs fails.
+`$OUT_DIR/logs/pipeline.log`. If any job of a step fails, the step exits with
+an error once its remaining jobs have finished, and the following steps are not
+run.
 
 ---
 
@@ -128,7 +173,7 @@ log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
 
 | Step | Description |
 |---|---|
-| `prepare_input` | `vcfbub`, contig renaming, removal of the CHM13 haplotype, centromeres and telomeres, SV input, reference FASTA |
+| `prepare_input` | Select top-level bubbles with `vcfbub`, standardize contig names, remove the CHM13 sample and variants located in centromeres and telomeres, and prepare the SV input and the reference sequence |
 | `sv_decompose` | `vcfwave` decomposition, SV alleles of more than 50 bp, SV loci with `vcfcreatemulti` |
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
@@ -169,45 +214,15 @@ run at the same time.
 | `MERGE_IDENTITY` | `0.9` | vsearch identity used by PanSVMerger |
 | `MERGE_WORKERS` | `16` | parallel vsearch processes per chromosome |
 | `MULTI_MEM_GB` | `32` | memory cap of `vcfcreatemulti` |
-| `RTG_MAXLEN` | `5000` | records with a longer allele are not passed to rtg |
+| `RTG_MAXLEN` | `5000` | records with a longer allele, and inversions, are not passed to rtg |
 | `RTG_MEM` | `8g` | rtg heap size |
 | `SORT_MEM` | `8G` | `bcftools sort` buffer |
-| `PANSVMERGER` | `./src/PanSVMerger/scripts/SV.merge_variants.py` | External PanSVMerger clustering script |
+| `PANSVMERGER` | `./src/PanSVMerger/scripts/SV.merge_variants.py` | PanSVMerger script |
 | `JOBS` | `4` | chromosomes or samples processed in parallel |
 
 ---
 
-## 5. Output
-
-```
-results/variant_comparison/
-├── input/            preprocessed VCF, SV input, sample list, reference FASTA
-├── sv/CHR/           bi-allelic, SV, SV locus and merged SV VCFs per chromosome
-├── small_variants/
-│   ├── samples/      per-sample small variant VCFs
-│   └── merged/CHR/   merged small variants, SNVs and indels per chromosome
-├── counts/           per-chromosome counts
-├── variant_comparison_summary.tsv
-├── variant_comparison_by_class.tsv
-└── variant_comparison_shared_loci.tsv
-```
-
-Main tables:
-
-- `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
-  SVs and small variants at the locus and allele level, with the novel
-  percentage
-- `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
-  insertion, deletion, complex). A complex locus holds alleles of more than one
-  class, or multi-base substitutions
-- `variant_comparison_shared_loci.tsv` — shared SV loci carrying a
-  KPR-specific allele, and the number of such alleles
-- `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
-- `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
-
----
-
-## 6. What the steps do
+## 5. Analysis procedures
 
 The pipeline has two branches that share the same preprocessed input and meet
 again at the counting step:
@@ -238,8 +253,8 @@ count          KPR-specific / shared / HPRC-specific, locus and allele
 summary        tables, novel % = KPR-specific / (shared + HPRC-specific)
 ```
 
-The numbered comments in the script (`1-1)`, `2-1)`, …) correspond to the
-items below.
+The subsections below document the exact transformations performed by each
+of the seven processing steps.
 
 ### Step 1. `prepare_input`
 
@@ -413,8 +428,8 @@ novel % = KPR-specific / (shared + HPRC-specific) × 100
 
 ```bash
 bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' chr22.sv.merged.vcf.gz \
-  | python3 count_groups.py --mode locus --varset sv --pop lists/population.tsv --target KOR
-python3 summarize_variant_comparison.py --counts results/variant_comparison/counts \
+  | python3 src/count_groups.py --mode locus --varset sv --pop lists/population.tsv --target KOR
+python3 src/summarize_variant_comparison.py --counts results/variant_comparison/counts \
   --out results/variant_comparison
 ```
 
@@ -434,10 +449,62 @@ with HPRC (`variant_comparison_shared_loci.tsv`).
 
 ---
 
-## Software
+## 6. Output
 
-vcfbub 0.1.0 · vcflib 1.0.15 (vcfwave, vcfcreatemulti) · PanSVMerger (commit
-9d9827f) · vsearch 2.32.0 · RTG Tools 3.13 · bcftools 1.24 · samtools ·
-vg 1.63.1 · Python 3 with pysam 0.22.1
+```
+results/variant_comparison/
+├── input/            preprocessed VCF, SV input, sample list, reference FASTA
+├── sv/CHR/           bi-allelic, SV, SV locus and merged SV VCFs per chromosome
+├── small_variants/
+│   ├── samples/      per-sample small variant VCFs
+│   └── merged/CHR/   merged small variants, SNVs and indels per chromosome
+├── counts/           per-chromosome counts
+├── variant_comparison_summary.tsv
+├── variant_comparison_by_class.tsv
+└── variant_comparison_shared_loci.tsv
+```
 
-All executables must be available on `PATH`.
+Main tables:
+
+- `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
+  SVs and small variants at the locus and allele level, with the novel
+  percentage (KPR-specific / (shared + HPRC-specific) × 100)
+- `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
+  insertion, deletion, complex). A complex locus holds alleles of more than one
+  class, or multi-base substitutions
+- `variant_comparison_shared_loci.tsv` — shared SV loci carrying a
+  KPR-specific allele, and the number of such alleles
+- `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
+- `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
+
+---
+
+## References
+
+1. Wu D, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
+2. Hickey G, et al. (2024). Pangenome graph construction from genome alignments with Minigraph-Cactus. *Nature Biotechnology* 42:663–673. https://doi.org/10.1038/s41587-023-01793-w
+3. Liao WW, et al. (2023). A draft human pangenome reference. *Nature* 617:312–324. https://doi.org/10.1038/s41586-023-05896-x
+4. Garrison E, et al. (2018). Variation graph toolkit improves read mapping by representing genetic variation in the reference. *Nature Biotechnology* 36:875–879. https://doi.org/10.1038/nbt.4227
+5. Garrison E, et al. (2022). A spectrum of free software tools for processing the VCF variant call format: vcflib, bio-vcf, cyvcf2, hts-nim and slivar. *PLOS Computational Biology* 18:e1009123. https://doi.org/10.1371/journal.pcbi.1009123
+6. Danecek P, et al. (2021). Twelve years of SAMtools and BCFtools. *GigaScience* 10:giab008. https://doi.org/10.1093/gigascience/giab008
+7. Rognes T, et al. (2016). VSEARCH: a versatile open source tool for metagenomics. *PeerJ* 4:e2584. https://doi.org/10.7717/peerj.2584
+8. Cleary JG, et al. (2015). Comparing variant call files for performance benchmarking of next-generation sequencing variant calling pipelines. *bioRxiv* 023754. https://doi.org/10.1101/023754
+
+---
+
+## Software and versions
+
+| Software | Version | Used for |
+|---|---|---|
+| vcfbub | 0.1.2 | bubble selection (https://github.com/pangenome/vcfbub) |
+| vcflib | 1.0.15 | `vcfwave`, `vcfcreatemulti` |
+| PanSVMerger | commit 9d9827f | SV allele clustering (https://github.com/Asian-Pan-Genome/PanSVMerger) |
+| VSEARCH | 2.32.0 | sequence clustering called by PanSVMerger |
+| RTG Tools | 3.13 | `rtg vcfdecompose` |
+| bcftools / htslib | 1.24 | VCF filtering, normalization, merging, `bgzip` |
+| samtools | 1.24 | `samtools faidx` |
+| vg | 1.63.1 | `vg paths`, reference sequence from the graph |
+| Python | 3.8 | helper scripts |
+| pysam | 0.22.1 | `sv_merge_alleles.py` |
+
+Bash is required. All executables must be available on `PATH`, and the supporting Python scripts are under `src/`.

@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - '8.Population_genetics_in_AMY_flanking_locus.sh'
+      - '4.compare_pangenome_variant_counts.sh'
+      - '4.pangenome_variant_comparison.sh'
+      - 'src/compare_pangenome_variant_counts.md'
       - 'src/amy_flank_*.py'
       - 'src/tests/test_amy_flanking.py'
       - '.github/workflows/amy-flanking-tests.yml'
@@ -25,7 +28,7 @@ jobs:
           bash -n 5.Variant_benchmark.sh
           bash -n 6.pangenome_short_read_mapping.sh
           bash -n 3.pangenome_construction_and_statistics.sh
-          bash -n 4.pangenome_variant_comparison.sh
+          bash -n 4.compare_pangenome_variant_counts.sh
           bash -n 1.genome_assembly_and_statistics.sh
       - name: Run synthetic Python smoke tests
         run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v

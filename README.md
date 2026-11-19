@@ -39,7 +39,7 @@ placeholders and do not implement analyses.
 | 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
 | 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
 | 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
-| 4 | `4.pangenome_variant_comparison.sh` | KPR/HPRC graph variant decomposition and allele comparison | [Documentation](src/pangenome_variant_comparison.md) | v1.0 |
+| 4 | `4.compare_pangenome_variant_counts.sh` | Compare KPR- and HPRC-specific/shared SV and small-variant counts at locus and allele levels | [Documentation](src/compare_pangenome_variant_counts.md) | v1.0 |
 | 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | v1.0 |
 | 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | v1.0 |
 | 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | v1.0 |
@@ -77,7 +77,7 @@ export THREADS=32
 
 bash 1.genome_assembly_and_statistics.sh all
 bash 3.pangenome_construction_and_statistics.sh all
-bash 4.pangenome_variant_comparison.sh all
+bash 4.compare_pangenome_variant_counts.sh all
 bash 6.pangenome_short_read_mapping.sh all
 bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
 ```
