@@ -25,7 +25,7 @@ jobs:
       - name: Install bcftools and tabix
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y bcftools tabix
+          sudo apt-get install -y --no-install-recommends bcftools tabix
       - name: Validate Bash scripts
         run: |
           bash -n 8.Population_genetics_in_AMY_flanking_locus.sh
