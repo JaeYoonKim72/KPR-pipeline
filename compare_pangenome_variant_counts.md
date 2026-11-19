@@ -26,6 +26,11 @@ git -C PanSVMerger checkout 9d9827f
 `PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` if the
 repository is not cloned next to the pipeline.
 
+RTG Tools asks about usage logging the first time it runs, which can halt a
+background job. Answer it once interactively, or set `RTG_TALKBACK=false` and
+`RTG_USAGE=false` in the `rtg.cfg` of the installation, before running the
+pipeline.
+
 ### 1.2 Input
 
 The input is produced by
@@ -33,11 +38,16 @@ The input is produced by
 
 ```
 results/
-├── graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz   Minigraph-Cactus VCF
+├── graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz   vg deconstruct -P GRCh38 -a
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
-Use the Minigraph-Cactus-generated `.vcf.gz` as input. The `prepare_input` step applies `vcfbub -l 0 -r 10000000` as part of the documented analysis preprocessing; a raw `vg deconstruct` VCF is not required by this documentation. To reproduce the reported results, use the same input VCF and preprocessing settings as in the original analysis.
+The input VCF must be the raw `vg deconstruct -P GRCh38 -a` output of the
+Minigraph-Cactus graph, with all nesting levels and without `vcfbub`, because
+bubble selection (`vcfbub -l 0 -r 10000000`) is part of the `prepare_input`
+step. Do not use the VCF written by Minigraph-Cactus itself (`--vcf`): it has
+already been filtered with `vcfbub`, and filtering it again gives different
+counts from those reported.
 
 ### 1.3 Reference files
 
@@ -99,17 +109,23 @@ JOBS=12 bash compare_pangenome_variant_counts.sh count
 bash compare_pangenome_variant_counts.sh summary
 ```
 
-Test on one chromosome first:
+Test on one chromosome first. With a separate `OUT_DIR`, point `INPUT_VCF`
+and `GRAPH_XG` to the existing input, since their defaults are under `OUT_DIR`:
 
 ```bash
-CHROMS=chr22 OUT_DIR=test bash compare_pangenome_variant_counts.sh all
+CHROMS=chr22 OUT_DIR=test \
+INPUT_VCF=results/graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz \
+GRAPH_XG=results/index/hprc_kpr/hprc_kpr.xg \
+bash compare_pangenome_variant_counts.sh all
 ```
 
 SV steps run per chromosome, `small_decompose` per sample. `sv_decompose` runs
 one single-threaded `vcfwave` per chromosome and needs up to 35 GB each;
 `sv_merge` uses `MERGE_WORKERS` cores per chromosome. Each job writes its own
 log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
-`$OUT_DIR/logs/pipeline.log`. A step stops when any of its jobs fails.
+`$OUT_DIR/logs/pipeline.log`. If any job of a step fails, the step exits with
+an error once its remaining jobs have finished, and the following steps are not
+run.
 
 ---
 
@@ -117,7 +133,7 @@ log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
 
 | Step | Description |
 |---|---|
-| `prepare_input` | Filter large and complex variant sites using `vcfbub`, standardize contig names, remove the CHM13 sample and centromeric/telomeric regions, and prepare SV inputs and reference sequences |
+| `prepare_input` | Select top-level bubbles with `vcfbub`, standardize contig names, remove the CHM13 sample and variants located in centromeres and telomeres, and prepare the SV input and the reference sequence |
 | `sv_decompose` | `vcfwave` decomposition, SV alleles of more than 50 bp, SV loci with `vcfcreatemulti` |
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
@@ -158,7 +174,7 @@ run at the same time.
 | `MERGE_IDENTITY` | `0.9` | vsearch identity used by PanSVMerger |
 | `MERGE_WORKERS` | `16` | parallel vsearch processes per chromosome |
 | `MULTI_MEM_GB` | `32` | memory cap of `vcfcreatemulti` |
-| `RTG_MAXLEN` | `5000` | records with a longer allele are not passed to rtg |
+| `RTG_MAXLEN` | `5000` | records with a longer allele, and inversions, are not passed to rtg |
 | `RTG_MEM` | `8g` | rtg heap size |
 | `SORT_MEM` | `8G` | `bcftools sort` buffer |
 | `PANSVMERGER` | `./PanSVMerger/scripts/SV.merge_variants.py` | PanSVMerger script |
@@ -168,10 +184,10 @@ run at the same time.
 
 ## 5. What the steps do
 
-The pipeline preprocesses the Minigraph-Cactus VCF, processes SVs and small variants separately, and combines their results for locus- and allele-level comparisons between KPR and HPRC.
+The pipeline preprocesses the `vg deconstruct` VCF of the graph, processes SVs and small variants separately, and combines their results for locus- and allele-level comparisons between KPR and HPRC.
 
 ```text
-Minigraph-Cactus VCF
+vg deconstruct VCF
          |
          v
     prepare_input
@@ -195,11 +211,11 @@ Minigraph-Cactus VCF
 
 ### Prepare input
 
-The Minigraph-Cactus VCF is filtered with `vcfbub` to handle nested and large variant sites. Contig names are standardized, the CHM13 reference haplotype and variants overlapping centromeric or telomeric regions are excluded, and the inputs for SV analysis and the GRCh38 reference sequence are prepared.
+Bubbles of the `vg deconstruct` VCF are selected with `vcfbub -l 0 -r 10000000`: top-level bubbles are kept, and a bubble whose reference allele is longer than 10 Mb is replaced by its child bubbles. Contig names are standardized, and the CHM13 reference haplotype is removed. Variants whose start position (POS) lies in a centromere or telomere are excluded. Sites with no carrier are removed, and the SV input and the GRCh38 reference sequence are prepared.
 
 ### SV decomposition (per chromosome)
 
-Graph-derived variants are decomposed with `vcfwave` and `bcftools norm`, and variants with a REF–ALT length difference greater than 50 bp are retained as SVs. Records with overlapping reference spans are consolidated with `vcfcreatemulti` to define SV loci.
+Graph-derived variants are decomposed with `vcfwave` and split into bi-allelic records with `bcftools norm -m-`, and variants with a REF–ALT length difference greater than 50 bp are retained as SVs. Records with overlapping reference spans are consolidated with `vcfcreatemulti` to define SV loci.
 
 ### SV allele merging (per chromosome)
 
@@ -207,7 +223,7 @@ Within each SV locus, PanSVMerger and VSEARCH group similar alternative alleles 
 
 ### Small variant decomposition (per sample)
 
-Each sample is processed separately using `vcfwave`, `bcftools norm`, and `rtg vcfdecompose` to obtain consistently represented SNVs and indels. Variants with a REF–ALT length difference of 50 bp or less are retained, and duplicate records from the two haplotypes of the same sample are combined.
+Each sample is processed separately using `vcfwave`, `bcftools norm`, and `rtg vcfdecompose` to obtain consistently represented SNVs and indels. Inversions and records with an allele longer than 5 kb (`RTG_MAXLEN`) are not passed to `rtg vcfdecompose`, so small variants within such records are not counted. Variants with a REF–ALT length difference of 50 bp or less are retained, and duplicate records from the two haplotypes of the same sample are combined.
 
 ### Small variant merging (per chromosome)
 
@@ -223,7 +239,11 @@ The `count_groups.py` script compares KPR and HPRC genotypes and counts SVs and 
 
 ### Summary
 
-The `summarize_variant_comparison.py` script aggregates chromosome-level counts into summary tables for KPR-specific, shared, and HPRC-specific variants. It also calculates the relative increase in variants contributed by KPR.
+The `summarize_variant_comparison.py` script aggregates chromosome-level counts into summary tables for KPR-specific, shared, and HPRC-specific variants. It also calculates the novel percentage, the number of KPR-specific variants relative to the variants already present in HPRC:
+
+```
+novel % = KPR-specific / (shared + HPRC-specific) × 100
+```
 
 ### Running the helper scripts independently
 
@@ -250,7 +270,7 @@ Main tables:
 
 - `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
   SVs and small variants at the locus and allele level, with the novel
-  percentage
+  percentage (KPR-specific / (shared + HPRC-specific) × 100)
 - `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
   insertion, deletion, complex). A complex locus holds alleles of more than one
   class, or multi-base substitutions
