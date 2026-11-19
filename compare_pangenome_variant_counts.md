@@ -192,26 +192,29 @@ run at the same time.
 The pipeline preprocesses the `vg deconstruct` VCF of the graph, processes SVs and small variants separately, and combines their results for locus- and allele-level comparisons between KPR and HPRC.
 
 ```text
-vg deconstruct VCF
-         |
-         v
-    prepare_input
-         |
-         +-----------------------------+
-         |                             |
-         v                             v
-   sv_decompose                 small_decompose
-         |                             |
-         v                             v
-     sv_merge                    small_merge
-         |                             |
-         +--------------+--------------+
-                        |
-                        v
-                      count
-                        |
-                        v
-                     summary
+vg deconstruct -P GRCh38 -a  (graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz)
+        │
+        ▼
+prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telomeres removed
+        │
+        ├──────────────────────────────────┐
+        ▼                                  ▼
+  SV (> 50 bp)                       Small variants (≤ 50 bp)
+  all samples together, per chr      each sample separately
+        │                                  │
+sv_decompose   vcfwave                small_decompose   vcfwave
+               norm -m-                                 norm -c s -f GRCh38 -m -any
+               keep > 50 bp                             rtg vcfdecompose
+               vcfcreatemulti (loci)                    keep ≤ 50 bp, merge haplotypes
+        │                                  │
+sv_merge       PanSVMerger             small_merge      bcftools merge (all samples)
+               (vsearch id ≥ 0.9)                       SNV and indel files
+        │                                  │
+        └──────────────┬───────────────────┘
+                       ▼
+count          KPR-specific / shared / HPRC-specific, locus and allele
+                       ▼
+summary        tables, novel % = KPR-specific / (shared + HPRC-specific)
 ```
 
 ### Prepare input
