@@ -290,9 +290,7 @@ Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/inp
 - **1-4) SV input.** Sites whose reference or an alternative allele is longer
   than 50 bp are copied to `sv_input.vcf.gz`. A site whose alleles are all
   50 bp or shorter cannot contain an allele differing from the reference by
-  more than 50 bp, so it cannot yield an SV after decomposition. The filter only
-  shortens the `vcfwave` run of the SV branch and does not change its result.
-  It is not part of APGp1.
+  more than 50 bp, so it cannot yield an SV after decomposition.
 - **1-5) Reference FASTA.** The GRCh38 sequence is extracted from the graph
   with `vg paths -S GRCh38 -F`, renamed to `chr1` … and indexed. It is used by
   `bcftools norm -f` in the small variant branch.
@@ -371,8 +369,7 @@ processing of loss-of-function variants in APGp1.
   Before rtg, the graph path annotation `INFO/AT` (up to megabytes per record)
   is removed, and inversions and records with an allele longer than 5 kb are
   set aside. These records are SVs; rtg splits an inversion into thousands of
-  artificial SNVs, and its memory grows steeply with the allele length. This
-  filter is not part of APGp1.
+  artificial SNVs, and its memory grows steeply with the allele length.
 - **4-3) Small variants.** Records with |len(ALT) − len(REF)| ≤ 50 bp are
   kept. After decomposition, an allele carried on both haplotypes of a sample
   can be written as two records (`1|0` and `0|1`). `dedup_sample.py` merges
