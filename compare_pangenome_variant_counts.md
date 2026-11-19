@@ -37,8 +37,6 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
-Use the Minigraph-Cactus-produced `.vcf.gz` output as input. This pipeline does not perform additional bubble filtering.
-
 ### 1.3 Reference files
 
 In `REF_DIR`, downloaded from UCSC:
