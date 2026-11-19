@@ -203,7 +203,7 @@ prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telom
   all samples together, per chr      each sample separately
         │                                  │
 sv_decompose   vcfwave                small_decompose   vcfwave
-               norm -m-                                 norm -c s -f GRCh38 -m -any
+               bcftools norm -m-                        bcftools norm -c s -f GRCh38 -m -any
                keep > 50 bp                             rtg vcfdecompose
                vcfcreatemulti (loci)                    keep ≤ 50 bp, merge haplotypes
         │                                  │
