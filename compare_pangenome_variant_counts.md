@@ -42,12 +42,8 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
-The input VCF must be the raw `vg deconstruct -P GRCh38 -a` output of the
-Minigraph-Cactus graph, with all nesting levels and without `vcfbub`, because
-bubble selection (`vcfbub -l 0 -r 10000000`) is part of the `prepare_input`
-step. Do not use the VCF written by Minigraph-Cactus itself (`--vcf`): it has
-already been filtered with `vcfbub`, and filtering it again gives different
-counts from those reported.
+The VCF is the raw `vg deconstruct` output, without `vcfbub`; bubble selection
+is done in `prepare_input`.
 
 ### 1.3 Reference files
 
