@@ -30,13 +30,6 @@ summarize genome-wide counts. The script is intended to use the
 graph products of [stage 3](pangenome_construction_and_statistics.md)
 and produces the variant-count tables used in the KPR–HPRC comparison.
 
-The manuscript reports 7,778 KPR-specific SV loci and 18,118
-KPR-specific SV alleles, alongside 2,059,844 KPR-specific small
-variant loci and 2,359,766 small variant alleles. These are
-**published study counts**, not outputs recalculated by this
-repository update. All panel comparisons here refer to graph-derived
-variant presence, not copy-specific population-genetic SNP statistics.
-
 Part of the [KPR-pipeline](../README.md) repository.
 
 ---
@@ -76,17 +69,27 @@ pipeline.
 
 ### 1.2 Input
 
-The input is produced by
-[`3.pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md):
+Minigraph–Cactus can generate a graph-derived VCF during pangenome
+construction using the `--vcf` option. This option is enabled in the
+`construct` step of
+[`3.pangenome_construction_and_statistics.sh`](pangenome_construction_and_statistics.md).
+A GRCh38-referenced VCF can also be extracted from the completed graph
+using `vg deconstruct -P GRCh38 -a`, as implemented in stage 3's
+`variants` step. The latter step writes the default input files for
+this workflow:
 
-```
+```text
 results/
-├── graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz   vg deconstruct -P GRCh38 -a
-└── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
+├── graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz   raw GRCh38-referenced VCF
+└── index/hprc_kpr/hprc_kpr.xg                                 indexed pangenome graph
 ```
 
-The VCF is the raw `vg deconstruct` output, without `vcfbub`; bubble selection
-is done in `prepare_input`.
+The input must be an unfiltered GRCh38-referenced graph VCF, with the
+reference paths and nested variants required by this analysis. To use
+the VCF generated directly by Minigraph–Cactus with `--vcf`, set
+`INPUT_VCF` to its path and check that its reference and sample paths
+and variant representation match the expected input. Do not apply
+`vcfbub` beforehand; bubble selection is performed by `prepare_input`.
 
 ### 1.3 Reference files
 
@@ -228,7 +231,11 @@ The pipeline has two branches that share the same preprocessed input and meet
 again at the counting step:
 
 ```
-vg deconstruct -P GRCh38 -a  (graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz)
+Minigraph–Cactus --vcf (during graph construction)
+or vg deconstruct -P GRCh38 -a (stage 3 variants)
+        │
+        ▼
+Raw GRCh38-referenced graph VCF (INPUT_VCF)
         │
         ▼
 prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telomeres removed
@@ -432,20 +439,6 @@ bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' chr22.sv.merged.vcf.gz 
 python3 src/summarize_variant_comparison.py --counts results/variant_comparison/counts \
   --out results/variant_comparison
 ```
-
-### Counts obtained in the study
-
-KPR (n = 14) versus HPRC (n = 47), GRCh38, `variant_comparison_summary.tsv`:
-
-| Variant | Unit | KPR-specific | Shared | HPRC-specific | Novel (%) |
-|---|---|---:|---:|---:|---:|
-| SV (> 50 bp) | locus | 7,778 | 45,463 | 50,660 | 8.09 |
-| SV (> 50 bp) | allele | 18,118 | 59,350 | 110,424 | 10.67 |
-| Small variant (≤ 50 bp) | locus | 2,059,844 | 8,956,135 | 14,635,890 | 8.73 |
-| Small variant (≤ 50 bp) | allele | 2,359,766 | 10,222,061 | 17,180,351 | 8.61 |
-
-In addition, 10,211 KPR-specific SV alleles were found in 4,783 SV loci shared
-with HPRC (`variant_comparison_shared_loci.tsv`).
 
 ---
 
