@@ -26,21 +26,6 @@ sequence relationships; it does not itself prove
 the timing, selection history or functional impact
 of a duplication event.
 
-The KPR manuscript evaluated **124 assembly/reference
-paths**: 28 Korean haplotype assemblies, 94 HPRC
-v1.0 haplotype assemblies, and the GRCh38 and
-CHM13 reference sequences. This analysis identified
-31 structural architectures, 17 of which were
-represented among the 28 Korean assemblies.
-Six haplotype architectures were observed only
-in the sampled Korean assembly panel, not in
-the HPRC comparisons. Their absence from those
-relatively small comparison panels should not
-be interpreted as population-wide exclusivity.
-The structural panel also remains distinct
-from the separate 302-person diploid SNP
-cohort used for flanking population genetics [1].
-
 **Analysis boundary.** This script does not
 treat individual AMY gene copies as independent
 diploid SNP loci. Copy-level FST, nucleotide
@@ -60,7 +45,7 @@ Part of the [KPR-pipeline](../README.md).
 
 ### 1.1 Software
 
-Make all tools under [Software](#software) available on `PATH`. The tree and
+Make all tools under [Software and versions](#software-and-versions) available on `PATH`. The tree and
 gene-structure figure requires R and `ape`, `ggplot2`, `gggenes`, `dplyr`.
 
 ### 1.2 Pangenome graph
@@ -289,6 +274,25 @@ multiple haplotype paths from the same donor are
 not described as independent people. Structural
 counts may differ if the graph, assembly panel,
 gene interval or class definition changes.
+
+---
+
+## Study structural haplotype results
+
+The KPR manuscript evaluated **124 assembly/reference
+paths**: 28 Korean haplotype assemblies, 94 HPRC
+v1.0 haplotype assemblies, and the GRCh38 and
+CHM13 reference sequences. This analysis identified
+31 structural architectures, 17 of which were
+represented among the 28 Korean assemblies.
+Six haplotype architectures were observed only
+in the sampled Korean assembly panel, not in
+the HPRC comparisons. Their absence from those
+relatively small comparison panels should not
+be interpreted as population-wide exclusivity.
+The structural panel also remains distinct
+from the separate 302-person diploid SNP
+cohort used for flanking population genetics [1].
 
 ---
 

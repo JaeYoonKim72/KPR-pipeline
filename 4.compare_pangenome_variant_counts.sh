@@ -299,7 +299,7 @@ Usage: bash $(basename "$0") <step>
   sv_merge          PanSVMerger allele clustering within each locus
   small_decompose   per sample: vcfwave, bcftools norm, rtg vcfdecompose
   small_merge       per chromosome: sample merge, SNV and indel files
-  count             ${TARGET_LABEL}-specific, shared and ${OTHER_LABEL}-specific variants
+  count             ${TARGET_LABEL}-private, shared and ${OTHER_LABEL}-private variants
   summary           summary tables at the locus and allele level
   all               run every step in order
 

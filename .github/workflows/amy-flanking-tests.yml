@@ -9,6 +9,9 @@ on:
       - 'src/decon_split.sh'
       - '4.pangenome_variant_comparison.sh'
       - 'src/compare_pangenome_variant_counts.md'
+      - 'src/summarize_variant_comparison.py'
+      - 'src/typecount.py'
+      - 'src/tests/test_variant_comparison.py'
       - 'src/amy_flank_*.py'
       - 'src/tests/test_amy_flanking.py'
       - '.github/workflows/amy-flanking-tests.yml'
@@ -52,3 +55,5 @@ jobs:
           ! awk '$2 == 200 { found = 1 } END {exit !found}' /tmp/sv_cutoff/size.var_sizes.Smalls_list.txt
       - name: Run synthetic Python smoke tests
         run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v
+      - name: Check variant count formula
+        run: python3 -m unittest discover -s src/tests -p 'test_variant_comparison.py' -v

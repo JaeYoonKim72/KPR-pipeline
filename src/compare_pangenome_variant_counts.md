@@ -7,9 +7,10 @@ complex haplotypes that cannot be fully described using a single linear
 reference. This workflow compares structural variants (SVs) and small
 variants identified in the joint Korean Pangenome Reference (KPR) and
 Human Pangenome Reference Consortium (HPRC) graph. Variants are
-deconstructed against GRCh38 and classified as **KPR-specific**,
-**shared**, or **HPRC-specific**, using the sample-to-population table
-to assign graph haplotypes to the two comparison groups [1–4].
+deconstructed against GRCh38 and classified as **KPR-private**,
+**shared**, or **HPRC-private**, using the sample-to-population table
+to assign graph haplotypes to the two comparison groups (Figures 3c–d;
+Table S32) [1–4].
 
 Two complementary counting units are reported. A **locus** represents
 a variant position or overlapping reference interval, even when
@@ -18,14 +19,14 @@ a distinct alternative sequence; SV alleles are clustered using
 PanSVMerger whereas small variant alleles are identified by
 chromosome, position, REF, and ALT. This distinction is important:
 a locus present in both panels can still contain alleles observed
-only in KPR. The pipeline therefore reports both the number of
-panel-specific loci and the number of panel-specific alleles [1].
+only in KPR. The pipeline reports the numbers of private loci and private alleles
+separately [1].
 
 The analysis follows the graph-based decomposition approach described
-for the Asian Pangenome Project phase 1 (APGp1) [1]. Seven steps
+for the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026) [1]. Seven steps
 prepare the deconstructed VCF, decompose SVs, merge similar SV
 alleles, decompose per-sample small variants, merge small variants
-across samples, count group-specific and shared calls, and
+across samples, count group-private and shared calls, and
 summarize genome-wide counts. The script is intended to use the
 graph products of [stage 3](pangenome_construction_and_statistics.md)
 and produces the variant-count tables used in the KPR–HPRC comparison.
@@ -181,7 +182,7 @@ run.
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
 | `small_merge` | Per chromosome: sample merge, SNV and indel files |
-| `count` | KPR-specific, shared and HPRC-specific variants per chromosome |
+| `count` | KPR-private, shared and HPRC-private variants per chromosome |
 | `summary` | Summary tables at the locus and allele level |
 | `all` | All of the above, in order |
 
@@ -255,9 +256,9 @@ sv_merge       PanSVMerger             small_merge      bcftools merge (all samp
         │                                  │
         └──────────────┬───────────────────┘
                        ▼
-count          KPR-specific / shared / HPRC-specific, locus and allele
+count          KPR-private / shared / HPRC-private, locus and allele
                        ▼
-summary        tables, novel % = KPR-specific / (shared + HPRC-specific)
+summary        proportion of KPR-private = KPR-private / (KPR-private + shared + HPRC-private)
 ```
 
 The subsections below document the exact transformations performed by each
@@ -408,8 +409,8 @@ only. Two units are counted for each variant type:
 A locus is shared when both groups carry any alternative allele at it, even if
 they carry different alleles. For example, an SV locus with one allele carried
 only by KPR samples and another carried only by HPRC samples counts as one
-shared locus, one KPR-specific allele and one HPRC-specific allele. Such shared
-loci with a KPR-specific allele are also counted separately, as new alleles at
+shared locus, one KPR-private allele and one HPRC-private allele. Such shared
+loci with a KPR-private allele are also counted separately, as new alleles at
 known SV sites.
 
 Every count is also split by class: SNV, insertion or deletion by the lengths
@@ -421,12 +422,17 @@ class or are multi-base substitutions.
 Input: `counts/`. Output: the three tables in `variant_comparison/`.
 
 **7-1)** `summarize_variant_comparison.py` sums the chromosome counts and
-computes the novel percentage, the number of KPR-specific variants relative
-to all variants found in HPRC:
+calculates the proportion of KPR-private variants among all KPR-private,
+shared and HPRC-private variants, independently for each variant type
+and counting unit:
 
 ```
-novel % = KPR-specific / (shared + HPRC-specific) × 100
+Proportion of KPR-private (%) =
+  KPR-private / (KPR-private + Shared + HPRC-private) × 100
 ```
+
+The denominator is the sum of all three mutually exclusive classes.
+If a given unit has no variants, its proportion is reported as `NA`.
 
 ### Running the helper scripts on their own
 
@@ -456,14 +462,14 @@ results/variant_comparison/
 
 Main tables:
 
-- `variant_comparison_summary.tsv` — KPR-specific, shared and HPRC-specific
-  SVs and small variants at the locus and allele level, with the novel
-  percentage (KPR-specific / (shared + HPRC-specific) × 100)
+- `variant_comparison_summary.tsv` — KPR-private, shared and HPRC-private
+  SVs and small variants at the locus and allele levels, with the
+  proportion of KPR-private variants among all three classes (%)
 - `variant_comparison_by_class.tsv` — the same counts by variant class (SNV,
   insertion, deletion, complex). A complex locus holds alleles of more than one
   class, or multi-base substitutions
 - `variant_comparison_shared_loci.tsv` — shared SV loci carrying a
-  KPR-specific allele, and the number of such alleles
+  KPR-private allele, and the number of such alleles
 - `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
 - `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
 

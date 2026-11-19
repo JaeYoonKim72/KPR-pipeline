@@ -9,8 +9,9 @@ Each record is assigned to exactly one of the following classes:
     common      more than two alternative alleles, frequency below 95%
     core        more than two alternative alleles, frequency of 95% or above
 
-Polymorphic variants are all non-singleton variants, that is the sum of the
-doubleton, common and core classes.
+The output column 'polymorphism' is a legacy operational count of
+non-singleton variant records (doubleton + common + core). It excludes
+singletons and should not be interpreted as the number of all variable sites.
 
 Usage:
     python3 typecount.py <input.vcf.gz>

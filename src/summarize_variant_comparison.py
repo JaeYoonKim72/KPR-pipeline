@@ -2,16 +2,16 @@
 """Sum per-chromosome counts (count_groups.py output) into the summary tables.
 
   variant_comparison_summary.tsv : SV / small variant x locus / allele,
-                                   target-specific, shared, other-specific, novel %
+                                   target-private, shared, other-private, proportion of target-private (%)
   variant_comparison_by_class.tsv: the same units split by variant class (SNV / INS / DEL / COMPLEX)
   SV new alleles at shared loci  : printed and written to variant_comparison_shared_loci.tsv
 
-Units used (see pangenome_variant_comparison.sh, step count):
+Units used (see 4.compare_pangenome_variant_counts.sh, step count):
   SV    locus  -> unit 'locus'            (vcfcreatemulti locus, mode locus)
   SV    allele -> unit 'allele_in_record' (PanSVMerger allele cluster)
   small locus  -> unit 'locus'            (overlapping REF spans, mode overlap)
   small allele -> unit 'allele_exact'     (exact CHROM/POS/REF/ALT, mode exact)
-Novel % = target-specific / (shared + other-specific) x 100.
+Proportion of target-private (%) = 100 * target-private / (target-private + shared + other-private).
 Locus class OTHER (equal-length multi-base substitution) is reported under COMPLEX.
 """
 import argparse
@@ -49,15 +49,15 @@ def main():
                 tab[(varset, unit, 'ALL')][cat] += int(n)
 
     t, o = a.target_label, a.other_label
-    head = ['variant', 'unit', 'class', f'{t}_specific', 'shared', f'{o}_specific', 'novel_pct']
+    head = ['variant', 'unit', 'class', f'{t}_private', 'shared', f'{o}_private', f'proportion_{t}_private_pct']
 
     def row(label, varset, unit_label, unit, cls):
         c = tab.get((varset, unit, cls))
         if not c:
             return None
         n = [c.get(x, 0) for x in CATS]
-        pct = 100 * n[0] / (n[1] + n[2]) if n[1] + n[2] else 0
-        return [label, unit_label, cls] + n + [f'{pct:.2f}']
+        pct = f'{100 * n[0] / sum(n):.2f}' if sum(n) else 'NA'
+        return [label, unit_label, cls] + n + [pct]
 
     summary, by_class = [], []
     for label, varset, unit_label, unit in UNITS:
@@ -77,18 +77,18 @@ def main():
     write('variant_comparison_summary.tsv', summary, head)
     write('variant_comparison_by_class.tsv', by_class, head)
 
-    # SV loci shared by both groups that carry a target-specific allele (new alleles at known SV sites)
+    # SV loci shared by both groups that carry a target-private allele (new alleles at known SV sites)
     n_loci = tab.get(('sv', 'shared_locus_with_target_private_allele', 'ALL'), {}).get('shared', 0)
     n_alleles = tab.get(('sv', 'allele_in_shared_locus', 'ALL'), {}).get('target_only', 0)
     write('variant_comparison_shared_loci.tsv',
-          [[f'shared SV loci with a {t}-specific allele', n_loci],
-           [f'{t}-specific SV alleles in shared loci', n_alleles]], ['item', 'count'])
+          [[f'shared SV loci with a {t}-private allele', n_loci],
+           [f'{t}-private SV alleles in shared loci', n_alleles]], ['item', 'count'])
 
     print('\t'.join(head))
     for r in summary:
         if r:
             print('\t'.join(map(str, r)))
-    print(f'{n_alleles} {t}-specific SV alleles in {n_loci} shared SV loci')
+    print(f'{n_alleles} {t}-private SV alleles in {n_loci} shared SV loci')
 
 
 if __name__ == '__main__':

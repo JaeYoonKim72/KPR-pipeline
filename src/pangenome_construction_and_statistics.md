@@ -36,16 +36,6 @@ a representation of observed assemblies, not a direct
 estimate of population allele frequency unless sampling
 and denominators are explicitly accounted for.
 
-In the manuscript, the combined HPRC+KPR graph contained
-approximately 87.3 million nodes and 120.9 million edges,
-with an estimated graph size near 3.2 Gb. Adding KOR
-assemblies contributed approximately 1.6 million SNPs
-and 0.2 million indels beyond HPRC alone, while the
-non-reference sequence component grew from about
-130 Mb in HPRC to about 152 Mb in the augmented graph.
-These values describe our cohort and analysis configuration;
-they are not expected constants of every rerun.
-
 Part of the [KPR-pipeline](../README.md) repository.
 
 ---
@@ -54,7 +44,7 @@ Part of the [KPR-pipeline](../README.md) repository.
 
 ### 1.1 Software
 
-Install the tools listed under [Software](#software) and make sure they are on
+Install the tools listed under [Software and versions](#software-and-versions) and make sure they are on
 `PATH`. Cactus is distributed as a virtual environment and must be activated
 before the `construct` step:
 
@@ -460,6 +450,19 @@ Multiple nodes in one bubble are not necessarily
 independent SV events. Graph representation and
 variant discovery are dependent on alignment,
 deconstruction, filtering and backbone choice.
+
+---
+
+## Study results
+
+In our cohort, the combined HPRC+KPR graph contained
+approximately 87.3 million nodes and 120.9 million edges,
+with an estimated graph size near 3.2 Gb. Adding KOR
+assemblies contributed approximately 1.6 million SNPs
+and 0.2 million indels beyond HPRC alone, while the
+non-reference sequence component grew from about
+130 Mb in HPRC to about 152 Mb in the augmented graph.
+These values describe the assembly panel and graph configuration used in our study.
 
 ---
 

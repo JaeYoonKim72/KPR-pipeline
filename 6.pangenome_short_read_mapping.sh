@@ -291,9 +291,10 @@ bam_cleanup() {
 
       samtools sort -O BAM --threads "${THREADS}" -T "${TMP_DIR}/$G.$S.tmp" \
         -o "${B}.sorted.bam" "${B}.raw.bam"
-      samtools rmdup "${B}.sorted.bam" "${B}.rmdup.bam" \
-        2> "${LOG_OUT}/$G.$S.rmdup.err"
-      samtools index -@ "${THREADS}" "${B}.rmdup.bam"
+      gatk --java-options "-Xmx${BQSR_JAVA_MEM}" MarkDuplicates \
+        -I "${B}.sorted.bam" -O "${B}.rmdup.bam" \
+        -M "${B}.duplicate_metrics.txt" \
+        --REMOVE_DUPLICATES true --CREATE_INDEX true
 
       run_bqsr "$B" "$REF"
       rm -f "${B}.sorted.bam"
@@ -479,6 +480,8 @@ grch38_baseline() {
   mkdir -p "${LINEAR_OUT}"/{bam,small_variants,sv}
   verify_bqsr_inputs
   [[ -s "${GRCH38}" ]] || { echo "[ERROR] missing GRCh38 FASTA: ${GRCH38}" >&2; return 1; }
+  [[ -s "${GRCH38}.fai" ]] || samtools faidx "${GRCH38}"
+  [[ -s "${GRCH38%.*}.dict" ]] || samtools dict "${GRCH38}" -o "${GRCH38%.*}.dict"
   prepare_bqsr_known_args ""
 
   while read -r S; do
@@ -493,10 +496,11 @@ grch38_baseline() {
       | samtools sort -O BAM --threads "${THREADS}" -T "${TMP_DIR}/${S}.grch38.tmp" \
         -o "${LINEAR_OUT}/bam/${S}.sorted.bam"
 
-    samtools rmdup "${LINEAR_OUT}/bam/${S}.sorted.bam" \
-                   "${LINEAR_OUT}/bam/${S}.rmdup.bam" \
-      2> "${LOG_OUT}/${S}.grch38.rmdup.err"
-    samtools index -@ "${THREADS}" "${LINEAR_OUT}/bam/${S}.rmdup.bam"
+    gatk --java-options "-Xmx${BQSR_JAVA_MEM}" MarkDuplicates \
+      -I "${LINEAR_OUT}/bam/${S}.sorted.bam" \
+      -O "${LINEAR_OUT}/bam/${S}.rmdup.bam" \
+      -M "${LINEAR_OUT}/bam/${S}.duplicate_metrics.txt" \
+      --REMOVE_DUPLICATES true --CREATE_INDEX true
     run_bqsr "${LINEAR_OUT}/bam/${S}" "${GRCH38}"
     rm -f "${LINEAR_OUT}/bam/${S}.sorted.bam"
 

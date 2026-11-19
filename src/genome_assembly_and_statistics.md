@@ -22,19 +22,6 @@ high raw-read accuracy or high contiguity alone does not establish that
 a genome assembly is complete, correctly phased or free of collapsed
 repeats, contaminant sequence and interchromosomal misjoins.
 
-In the KPR manuscript, long-read datasets were collected for
-22 Korean individuals: 19 newly sequenced individuals (12 Revio,
-seven PromethION) and three previously generated PacBio Sequel II
-datasets. Assemblies were retained for pangenome construction
-only when contig N50 was at least 20 Mb and the number of contigs
-was at most 1,500. The retained panel consisted of **28 haploid
-assemblies from 14 individuals**. All seven PromethION-derived
-assemblies in this particular dataset failed the contig-count
-criterion; this outcome should not be interpreted as a general
-technology comparison. The workflow reports the underlying QC
-metrics so that exclusions and retained haplotype assemblies can
-be traced [1].
-
 This stage produces the polished FASTA sequences and validation
 evidence for [pangenome construction](pangenome_construction_and_statistics.md).
 Population-level comparisons are not calculated by this stage.
@@ -47,7 +34,7 @@ Part of the [KPR-pipeline](../README.md) repository.
 
 ### 1.1 Software
 
-Install the tools listed under [Software](#software) and make sure they are on
+Install the tools listed under [Software and versions](#software-and-versions) and make sure they are on
 `PATH`.
 
 ### 1.2 Reference files
@@ -315,6 +302,23 @@ sample provenance and haplotype FASTA indexing before constructing
 seqfiles. Record versions of the retained FASTA files, the
 `qc_pass.list`, contamination-screen reports and key
 quality summary tables together with graph input manifests.
+
+---
+
+## Study cohort and assembly results
+
+In the KPR manuscript, long-read datasets were collected for
+22 Korean individuals: 19 newly sequenced individuals (12 Revio,
+seven PromethION) and three previously generated PacBio Sequel II
+datasets. Assemblies were retained for pangenome construction
+only when contig N50 was at least 20 Mb and the number of contigs
+was at most 1,500. The retained panel consisted of **28 haploid
+assemblies from 14 individuals**. All seven PromethION-derived
+assemblies in this particular dataset failed the contig-count
+criterion; this outcome should not be interpreted as a general
+technology comparison. The workflow reports the underlying QC
+metrics so that exclusions and retained haplotype assemblies can
+be traced [1].
 
 ---
 
