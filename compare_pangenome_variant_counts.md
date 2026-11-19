@@ -37,6 +37,8 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
+Use the Minigraph-Cactus-generated `.vcf.gz` as input. The `prepare_input` step applies `vcfbub -l 0 -r 10000000` as part of the documented analysis preprocessing; a raw `vg deconstruct` VCF is not required by this documentation. To reproduce the reported results, use the same input VCF and preprocessing settings as in the original analysis.
+
 ### 1.3 Reference files
 
 In `REF_DIR`, downloaded from UCSC:
@@ -115,7 +117,7 @@ log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
 
 | Step | Description |
 |---|---|
-| `prepare_input` | Contig renaming, removal of the CHM13 haplotype, centromeres and telomeres, SV input, reference FASTA |
+| `prepare_input` | Filter large and complex variant sites using `vcfbub`, standardize contig names, remove the CHM13 sample and centromeric/telomeric regions, and prepare SV inputs and reference sequences |
 | `sv_decompose` | `vcfwave` decomposition, SV alleles of more than 50 bp, SV loci with `vcfcreatemulti` |
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
@@ -149,6 +151,8 @@ run at the same time.
 | `EXCLUDE_SAMPLES` | `CHM13v2` | reference haplotype stored as a sample column |
 | `REF_SAMPLE` | `GRCh38` | reference path of the deconstructed VCF |
 | `CHROMS` | `chr1`–`chr22`, `chrX` | chromosomes analysed |
+| `VCFBUB_LEVEL` | `0` | `vcfbub -l` |
+| `VCFBUB_MAX_REF` | `10000000` | `vcfbub -r` |
 | `WAVE_MAXLEN` | `100000` | `vcfwave -L` |
 | `SV_MIN_LEN` | `50` | SVs are longer, small variants not |
 | `MERGE_IDENTITY` | `0.9` | vsearch identity used by PanSVMerger |
@@ -168,10 +172,10 @@ The pipeline has two branches that share the same preprocessed input and meet
 again at the counting step:
 
 ```
-Minigraph-Cactus VCF  (graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz)
+vg deconstruct -P GRCh38 -a  (graph_variants/hprc_kpr/reference/hprc_kpr.GRCh38.vcf.gz)
         │
         ▼
-prepare_input     CHM13 haplotype and centromeres/telomeres removed
+prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telomeres removed
         │
         ├──────────────────────────────────┐
         ▼                                  ▼
@@ -206,7 +210,9 @@ Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/inp
 - **1-2) Contig names.** The contigs of the deconstructed VCF are named after
   the reference path (`GRCh38#0#chr1`). A rename table maps them to `chr1`,
   so that the VCF agrees with the BED files and the reference FASTA.
-- **1-3) Common preprocessing.** The input VCF is used without additional bubble filtering.
+- **1-3) Common preprocessing.** This is the only filtering shared by both
+  branches.
+  - `vcfbub -l 0 -r 10000000` is applied to filter nested bubbles and resolve large or complex variant sites before decomposition and counting. The `-l 0` setting selects top-level bubbles, while `-r 10000000` permits bubbles with reference alleles longer than 10 Mb to be unfolded into nested bubbles rather than treated as a single large site.
   - The CHM13 haplotype, stored as a sample column, is removed. It is a
     reference, not a sample of either group.
   - Only `chr1`–`chr22` and `chrX` are kept, and sites overlapping a
@@ -412,7 +418,7 @@ Main tables:
 
 ## Software
 
-vcflib 1.0.15 (vcfwave, vcfcreatemulti) · PanSVMerger (commit
+vcfbub 0.1.0 · vcflib 1.0.15 (vcfwave, vcfcreatemulti) · PanSVMerger (commit
 9d9827f) · vsearch 2.32.0 · RTG Tools 3.13 · bcftools 1.24 · samtools ·
 vg 1.63.1 · Python 3 with pysam 0.22.1
 
