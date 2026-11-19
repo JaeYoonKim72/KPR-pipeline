@@ -17,12 +17,15 @@ Run in the order below; each script consumes the output of the previous one.
 | 2 | `pangenome_construction_and_statistics.sh` | Pangenome graph construction from the quality-controlled assemblies, graph statistics, graph-derived variants, growth curves, bubbles and non-reference sequence | [docs](pangenome_construction_and_statistics.md) |
 | 2-1 | `compare_pangenome_variant_counts.sh` | SV and small-variant decomposition of the graph-derived variants and comparison between the KPR and HPRC haplotypes at the locus and allele level | [docs](compare_pangenome_variant_counts.md) |
 | 3 | `pangenome_short_read_mapping.sh` | Short-read mapping to the pangenome graph and graph-based small variant and structural variant calling | [docs](pangenome_short_read_mapping.md) |
+| 3-1 | `pangenome_variant_benchmarking.sh` | Long-read truth sets of Korean individuals and benchmarking of the graph-based and GRCh38 small variant and structural variant calls with hap.py and Truvari | [docs](pangenome_variant_benchmarking.md) |
 | 4 | `AMY_locus_analysis.sh` | Haplotype structure of the amylase locus and population differentiation of the gene copies | [docs](AMY_locus_analysis.md) |
 
 Helper scripts called by the pipelines: `decon_split.sh`, `typecount.py`,
 `wline_sample_nodes.py`, `amy_haplotype_tags.py`, `msa_to_vcf.py`,
 `hudson_fst.py`, `plot_haplotypes.R`, `sv_merge_alleles.py`,
-`dedup_sample.py`, `count_groups.py` and `summarize_variant_comparison.py`.
+`dedup_sample.py`, `count_groups.py`, `summarize_variant_comparison.py`,
+`sv_truth_helper.py`, `sv_truth_readsupport.py`, `prepare_sv_autosome.py` and
+`summarize_benchmark.py`.
 They live next to the pipelines and can also be run on their own; see the
 documentation of each pipeline.
 
@@ -41,6 +44,8 @@ bash genome_assembly_and_statistics.sh all
 bash pangenome_construction_and_statistics.sh all
 bash compare_pangenome_variant_counts.sh all
 bash pangenome_short_read_mapping.sh all
+TRUTH_DIR=/path/to/truth_input QUERY_DIR=/path/to/query_input \
+  bash pangenome_variant_benchmarking.sh all
 bash AMY_locus_analysis.sh all
 ```
 
