@@ -13,10 +13,11 @@ OUT="${DIR}/${NAME%.vcf.gz}"
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
   | awk '{
       split($4, alts, ",")
-      for (i in alts)
-        print $1, $2, $3, alts[i],
-              (length(alts[i]) > length($3)) ? length(alts[i]) - length($3)
-                                             : length($3) - length(alts[i])
+      for (i in alts) {
+        diff = length(alts[i]) - length($3)
+        if (diff < 0) diff = -diff
+        print $1, $2, $3, alts[i], diff
+      }
     }' > "${OUT}.var_sizes.txt"
 
 # 2. SV alleles have absolute REF/ALT length difference > MINSV;
