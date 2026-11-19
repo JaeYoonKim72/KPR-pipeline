@@ -1,71 +1,10 @@
 # compare_pangenome_variant_counts.sh
 
-Counts the structural variants (SVs) and small variants of the pangenome graph
-that are specific to the Korean (KPR) haplotypes, shared with the HPRC
-haplotypes, or specific to HPRC.
+Compares structural variants (SVs) and small variants from the KPR–HPRC pangenome graph at both the locus and allele levels, classifying variants as KPR-specific, shared, or HPRC-specific.
 
 Part of the [KPR-pipeline](README.md) repository.
 
-## Counting variants between pangenomes
-
-There are two main ways to count the variants of one pangenome against
-another. The **locus count** counts each variable site once, however many
-different alleles it holds. The **allele count** counts each distinct allele
-at a site separately. This pipeline presents both in detail.
-
-Among previous pangenome studies, we referred to the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026; https://doi.org/10.64898/2026.07.27.740875), which provides a detailed description of variant counting at both the locus and allele levels. We applied both counting approaches to compare structural variants (SVs) and small variants between KPR and HPRC. At the locus level, we identified 7.8K KPR-specific SVs and 2.06M KPR-specific small variants, whereas at the allele level, 18.1K KPR-specific SV alleles and 2.36M KPR-specific small variant alleles were identified.
-
-### Locus count
-
-Variant records whose reference spans overlap form one locus. A locus is
-
-- **KPR-specific** when only KPR haplotypes carry an alternative allele at it;
-- **shared** when both groups carry an alternative allele at it, even if the
-  alleles differ;
-- **HPRC-specific** when only HPRC haplotypes carry an alternative allele at it.
-
-The loci are built as follows.
-
-- **SVs (> 50 bp).** The graph variants are decomposed with
-  `vcfwave`, and the alleles differing from the reference by more than 50 bp
-  are kept. Records with overlapping reference spans are then merged into one
-  multi-allelic record with `vcfcreatemulti`. Each record is one SV locus.
-- **Small variants (≤ 50 bp).** Each sample is decomposed with `vcfwave`
-  and `rtg vcfdecompose`, and the samples are merged. Records with overlapping
-  reference spans are then counted as one locus.
-
-The locus count answers whether a variable site is new.
-
-### Allele count
-
-Each distinct alternative allele is classified as KPR-specific, shared or
-HPRC-specific by the haplotypes that carry it.
-
-- **SVs.** The alleles of each SV locus are clustered with PanSVMerger.
-  Alleles with at least 90% sequence identity whose lengths differ by 50 bp or
-  less form one cluster. Each cluster is one SV allele. This prevents alleles
-  that differ only by a few bases, such as insertions of 300, 305 and 298 bp
-  in one tandem repeat, from being counted as different variants.
-- **Small variants.** Each distinct CHROM/POS/REF/ALT among the SNVs and
-  indels is one allele.
-
-The allele count also captures new alleles at known sites. For example, KPR
-may carry an insertion at a site where HPRC carries an insertion of a
-different sequence. The locus count calls this site shared. The allele count
-records one KPR-specific allele and one HPRC-specific allele.
-
-### Results
-
-The pipeline produces the following tables:
-
-- for SVs and for small variants, the numbers of KPR-specific, shared and
-  HPRC-specific variants, counted by locus and by allele and split by variant
-  class (SNV, insertion, deletion, complex);
-- the novel percentage, KPR-specific / (shared + HPRC-specific) × 100;
-- the number of KPR-specific SV alleles found in SV loci shared with HPRC.
-
-The counts obtained in the study are listed at the end of
-[section 5](#counts-obtained-in-the-study).
+Two counting approaches are used: locus-based counting treats each variable site as one locus regardless of the number of alternative alleles, whereas allele-based counting counts distinct alternative alleles separately. We referred to the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026; https://doi.org/10.64898/2026.07.27.740875), which describes both approaches in detail. At the locus level, we identified 7.8K KPR-specific SVs and 2.06M KPR-specific small variants; at the allele level, we identified 18.1K KPR-specific SV alleles and 2.36M KPR-specific small variant alleles.
 
 ---
 
@@ -391,6 +330,15 @@ Input: the per-sample VCFs. Output: `small_variants/merged/CHR/`.
 - **5-2) SNVs and indels.** `bcftools view -v snps` and `-v indels` write
   `CHR.snv.vcf.gz` and `CHR.indel.vcf.gz`.
 
+### Variant counting criteria
+
+Variants are counted at two levels:
+
+- **Locus count:** Records with overlapping reference spans are treated as one variable site. For SVs (>50 bp), `vcfwave` decomposes graph-derived variants, variants with |len(ALT) − len(REF)| >50 bp are retained, and `vcfcreatemulti` consolidates overlapping records into multiallelic SV loci. For small variants (≤50 bp), variants are decomposed per sample using `vcfwave`, `bcftools norm`, and `rtg vcfdecompose`; after merging samples, overlapping reference spans are grouped into one locus.
+- **Allele count:** Each distinct alternative allele is counted separately. Within an SV locus, PanSVMerger clusters alleles using ≥90% sequence identity and a maximum length difference of 50 bp. For small variants, each distinct `CHROM/POS/REF/ALT` combination represents one allele.
+
+A locus is **KPR-specific** when only KPR haplotypes carry an alternative allele, **shared** when both KPR and HPRC carry alternative alleles at that site (even if those alleles differ), and **HPRC-specific** when only HPRC haplotypes carry an alternative allele. The same group labels are applied to individual alleles in the allele count.
+
 ### Step 6. `count` (per chromosome)
 
 Input: the merged SV and small variant files and `POP_TABLE`. Output:
@@ -439,19 +387,6 @@ python3 summarize_variant_comparison.py --counts results/variant_comparison/coun
   --out results/variant_comparison
 ```
 
-### Counts obtained in the study
-
-KPR (n = 14) versus HPRC (n = 47), GRCh38, `variant_comparison_summary.tsv`:
-
-| Variant | Unit | KPR-specific | Shared | HPRC-specific | Novel (%) |
-|---|---|---:|---:|---:|---:|
-| SV (> 50 bp) | locus | 7,778 | 45,463 | 50,660 | 8.09 |
-| SV (> 50 bp) | allele | 18,118 | 59,350 | 110,424 | 10.67 |
-| Small variant (≤ 50 bp) | locus | 2,059,844 | 8,956,135 | 14,635,890 | 8.73 |
-| Small variant (≤ 50 bp) | allele | 2,359,766 | 10,222,061 | 17,180,351 | 8.61 |
-
-In addition, 10,211 KPR-specific SV alleles were found in 4,783 SV loci shared
-with HPRC (`variant_comparison_shared_loci.tsv`).
 
 ---
 
