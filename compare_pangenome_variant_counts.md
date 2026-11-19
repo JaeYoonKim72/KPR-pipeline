@@ -13,14 +13,7 @@ another. The **locus count** counts each variable site once, however many
 different alleles it holds. The **allele count** counts each distinct allele
 at a site separately. This pipeline presents both in detail.
 
-Among pangenome studies, the Asian Pangenome Project phase 1 (APGp1;
-Wu et al., 2026, https://doi.org/10.64898/2026.07.27.740875) describes its
-counting in the most detail, and it reports both units. Its comparison of SV
-sites across pangenome panels is a locus count (18,284 SV sites unique to
-APGp1; Fig. 6c). It then reports an allele count (134,290 new SV alleles
-across 13,836 SV sites already known from HPRC and HGSVC). This pipeline
-follows the APGp1 procedure and applies both counts to SVs and to small
-variants.
+Among previous pangenome studies, we referred to the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026; https://doi.org/10.64898/2026.07.27.740875), which provides a detailed description of variant counting at both the locus and allele levels. We applied both counting approaches to compare structural variants (SVs) and small variants between KPR and HPRC. At the locus level, we identified 7,778 KPR-specific SVs and 2,059,844 KPR-specific small variants, whereas at the allele level, 18,118 KPR-specific SV alleles and 2,359,766 KPR-specific small variant alleles were identified.
 
 ### Locus count
 
