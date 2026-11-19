@@ -26,11 +26,11 @@ Variant records whose reference spans overlap form one locus. A locus is
 
 The loci are built as follows.
 
-- **SVs (more than 50 bp).** The graph variants are decomposed with
+- **SVs (> 50 bp).** The graph variants are decomposed with
   `vcfwave`, and the alleles differing from the reference by more than 50 bp
   are kept. Records with overlapping reference spans are then merged into one
   multi-allelic record with `vcfcreatemulti`. Each record is one SV locus.
-- **Small variants (50 bp or less).** Each sample is decomposed with `vcfwave`
+- **Small variants (≤ 50 bp).** Each sample is decomposed with `vcfwave`
   and `rtg vcfdecompose`, and the samples are merged. Records with overlapping
   reference spans are then counted as one locus.
 
