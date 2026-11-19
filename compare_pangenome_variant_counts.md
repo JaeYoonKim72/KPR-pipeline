@@ -37,6 +37,7 @@ results/
 └── index/hprc_kpr/hprc_kpr.xg                                 GRCh38 sequence of the graph
 ```
 
+Use the Minigraph-Cactus-generated `.vcf.gz` as input. The `prepare_input` step applies `vcfbub -l 0 -r 10000000` as part of the documented analysis preprocessing; a raw `vg deconstruct` VCF is not required by this documentation. To reproduce the reported results, use the same input VCF and preprocessing settings as in the original analysis.
 
 ### 1.3 Reference files
 
@@ -182,7 +183,7 @@ prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telom
   all samples together, per chr      each sample separately
         │                                  │
 sv_decompose   vcfwave                small_decompose   vcfwave
-               bcftools norm -m -any                    bcftools norm -c s -f GRCh38 -m -any
+               bcftools norm -m-                                 bcftools norm -c s -f GRCh38 -m -any
                keep > 50 bp                             rtg vcfdecompose
                vcfcreatemulti (loci)                    keep ≤ 50 bp, merge haplotypes
         │                                  │
@@ -196,10 +197,10 @@ count          KPR-specific / shared / HPRC-specific, locus and allele
 summary        tables, novel % = KPR-specific / (shared + HPRC-specific)
 ```
 
-The numbered comments in the script (`1-1)`, `2-1)`, …) correspond to the
-items below.
+The following sections describe each processing stage in detail. The numbered
+substeps correspond to the comments in the pipeline script.
 
-### Step 1. `prepare_input`
+### Prepare input
 
 Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/input/`.
 
@@ -230,7 +231,7 @@ Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/inp
   with `vg paths -S GRCh38 -F`, renamed to `chr1` … and indexed. It is used by
   `bcftools norm -f` in the small variant branch.
 
-### Step 2. `sv_decompose` (per chromosome)
+### SV decomposition (per chromosome)
 
 Input: `input/sv_input.vcf.gz`. Output: `sv/CHR/`.
 
@@ -253,7 +254,7 @@ Input: `input/sv_input.vcf.gz`. Output: `sv/CHR/`.
   spans into one multi-allelic record. Each such record is one **SV locus**. Output:
   `CHR.sv.multi.vcf.gz`.
 
-### Step 3. `sv_merge` (per chromosome)
+### SV allele merging (per chromosome)
 
 Input: `sv/CHR/CHR.sv.multi.vcf.gz`. Output: `sv/CHR/CHR.sv.merged.vcf.gz`.
 
@@ -283,7 +284,7 @@ Input: `sv/CHR/CHR.sv.multi.vcf.gz`. Output: `sv/CHR/CHR.sv.merged.vcf.gz`.
   are and clusters the loci of a chromosome in parallel
   (`MERGE_WORKERS`); the result is the same as serial processing.
 
-### Step 4. `small_decompose` (per sample)
+### Small variant decomposition (per sample)
 
 Input: `input/all.vcf.gz`, `input/GRCh38.fa`. Output:
 `small_variants/samples/SAMPLE/SAMPLE.small.vcf.gz`.
@@ -313,7 +314,7 @@ processing of loss-of-function variants in APGp1.
   two heterozygous ones. The number of merged records is written to
   `SAMPLE.dedup.txt`.
 
-### Step 5. `small_merge` (per chromosome)
+### Small variant merging (per chromosome)
 
 Input: the per-sample VCFs. Output: `small_variants/merged/CHR/`.
 
@@ -334,7 +335,7 @@ Variants are counted at two levels:
 
 A locus is **KPR-specific** when only KPR haplotypes carry an alternative allele, **shared** when both KPR and HPRC carry alternative alleles at that site (even if those alleles differ), and **HPRC-specific** when only HPRC haplotypes carry an alternative allele. The same group labels are applied to individual alleles in the allele count.
 
-### Step 6. `count` (per chromosome)
+### Variant counting (per chromosome)
 
 Input: the merged SV and small variant files and `POP_TABLE`. Output:
 `counts/CHR.tsv`.
@@ -361,7 +362,7 @@ Every count is also split by class: SNV, insertion or deletion by the lengths
 of REF and ALT, and complex for a locus whose alleles are of more than one
 class or are multi-base substitutions.
 
-### Step 7. `summary`
+### Summary
 
 Input: `counts/`. Output: the three tables in `variant_comparison/`.
 
@@ -373,7 +374,7 @@ to all variants found in HPRC:
 novel % = KPR-specific / (shared + HPRC-specific) × 100
 ```
 
-### Running the helper scripts on their own
+### Running the helper scripts independently
 
 ```bash
 bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' chr22.sv.merged.vcf.gz \
