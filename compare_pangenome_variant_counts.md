@@ -4,7 +4,7 @@ Compares structural variants (SVs) and small variants from the KPR–HPRC pangen
 
 Part of the [KPR-pipeline](README.md) repository.
 
-Two counting approaches are used: locus-based counting treats each variable site as one locus regardless of the number of alternative alleles, whereas allele-based counting counts distinct alternative alleles separately. We referred to the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026; https://doi.org/10.64898/2026.07.27.740875), which describes both approaches in detail. At the locus level, we identified 7.8K KPR-specific SVs and 2.06M KPR-specific small variants; at the allele level, we identified 18.1K KPR-specific SV alleles and 2.36M KPR-specific small variant alleles.
+The input is the Minigraph-Cactus [2] graph built from the KPR and HPRC [3] assemblies, with variants deconstructed against GRCh38 using vg [4]. Two counting approaches are used: locus-based counting treats each variable site as one locus regardless of the number of alternative alleles, whereas allele-based counting counts distinct alternative alleles separately. We referred to the Asian Pangenome Project phase 1 (APGp1) [1], which describes both approaches in detail. At the locus level, we identified 7.8K KPR-specific SVs and 2.06M KPR-specific small variants; at the allele level, we identified 18.1K KPR-specific SV alleles and 2.36M KPR-specific small variant alleles.
 
 ---
 
@@ -12,10 +12,19 @@ Two counting approaches are used: locus-based counting treats each variable site
 
 ### 1.1 Software
 
-Install the tools listed under [Software](#software) and make sure they are on
-`PATH`. Python needs `pysam`.
+Install the programs under [Software](#software) and make sure they are on
+`PATH`. The versions used in the study can be installed into one
+mamba/conda environment:
 
-PanSVMerger is used from its repository, at the commit used in the study:
+```bash
+mamba create -n kpr_variant_counts -c conda-forge -c bioconda \
+  python=3.8 bcftools=1.24 htslib=1.24 samtools=1.24 vcflib=1.0.15 \
+  vcfbub=0.1.2 vsearch=2.32.0 pysam=0.22.1 rtg-tools=3.13 vg=1.63.1
+conda activate kpr_variant_counts
+```
+
+PanSVMerger [1] is not packaged and is used from its repository, at the
+commit used in the study:
 
 ```bash
 git clone https://github.com/Asian-Pan-Genome/PanSVMerger.git
@@ -207,19 +216,19 @@ vg deconstruct VCF
 
 ### Prepare input
 
-Bubbles of the `vg deconstruct` VCF are selected with `vcfbub -l 0 -r 10000000`: top-level bubbles are kept, and a bubble whose reference allele is longer than 10 Mb is replaced by its child bubbles. Contig names are standardized, and the CHM13 reference haplotype is removed. Variants whose start position (POS) lies in a centromere or telomere are excluded. Sites with no carrier are removed, and the SV input and the GRCh38 reference sequence are prepared.
+Bubbles of the `vg deconstruct` VCF are selected with `vcfbub -l 0 -r 10000000`, as in APGp1 [1]: top-level bubbles are kept, and a bubble whose reference allele is longer than 10 Mb is replaced by its child bubbles. Contig names are standardized, and the CHM13 reference haplotype is removed. Variants whose start position (POS) lies in a centromere or telomere are excluded. Sites with no carrier are removed, and the SV input and the GRCh38 reference sequence are prepared.
 
 ### SV decomposition (per chromosome)
 
-Graph-derived variants are decomposed with `vcfwave` and split into bi-allelic records with `bcftools norm -m-`, and variants with a REF–ALT length difference greater than 50 bp are retained as SVs. Records with overlapping reference spans are consolidated with `vcfcreatemulti` to define SV loci.
+Graph-derived variants are decomposed with `vcfwave` [5] and split into bi-allelic records with `bcftools norm -m-` [6], and variants with a REF–ALT length difference greater than 50 bp are retained as SVs. Records with overlapping reference spans are consolidated with `vcfcreatemulti` [5] to define SV loci.
 
 ### SV allele merging (per chromosome)
 
-Within each SV locus, PanSVMerger and VSEARCH group similar alternative alleles based on sequence identity and length similarity. The resulting allele clusters are used for allele-level comparison, with genotypes and allele counts updated accordingly.
+Within each SV locus, PanSVMerger [1] and VSEARCH [7] group similar alternative alleles based on sequence identity and length similarity. The resulting allele clusters are used for allele-level comparison, with genotypes and allele counts updated accordingly.
 
 ### Small variant decomposition (per sample)
 
-Each sample is processed separately using `vcfwave`, `bcftools norm`, and `rtg vcfdecompose` to obtain consistently represented SNVs and indels. Inversions and records with an allele longer than 5 kb (`RTG_MAXLEN`) are not passed to `rtg vcfdecompose`, so small variants within such records are not counted. Variants with a REF–ALT length difference of 50 bp or less are retained, and duplicate records from the two haplotypes of the same sample are combined.
+Following the graph-based small variant processing of APGp1 [1], each sample is processed separately using `vcfwave` [5], `bcftools norm` [6], and `rtg vcfdecompose` [8] to obtain consistently represented SNVs and indels. Inversions and records with an allele longer than 5 kb (`RTG_MAXLEN`) are not passed to `rtg vcfdecompose`, so small variants within such records are not counted. Variants with a REF–ALT length difference of 50 bp or less are retained, and duplicate records from the two haplotypes of the same sample are combined.
 
 ### Small variant merging (per chromosome)
 
@@ -277,10 +286,33 @@ Main tables:
 
 ---
 
+## 7. References
+
+1. Wu D, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
+2. Hickey G, et al. (2024). Pangenome graph construction from genome alignments with Minigraph-Cactus. *Nature Biotechnology* 42:663–673. https://doi.org/10.1038/s41587-023-01793-w
+3. Liao WW, et al. (2023). A draft human pangenome reference. *Nature* 617:312–324. https://doi.org/10.1038/s41586-023-05896-x
+4. Garrison E, et al. (2018). Variation graph toolkit improves read mapping by representing genetic variation in the reference. *Nature Biotechnology* 36:875–879. https://doi.org/10.1038/nbt.4227
+5. Garrison E, et al. (2022). A spectrum of free software tools for processing the VCF variant call format: vcflib, bio-vcf, cyvcf2, hts-nim and slivar. *PLOS Computational Biology* 18:e1009123. https://doi.org/10.1371/journal.pcbi.1009123
+6. Danecek P, et al. (2021). Twelve years of SAMtools and BCFtools. *GigaScience* 10:giab008. https://doi.org/10.1093/gigascience/giab008
+7. Rognes T, et al. (2016). VSEARCH: a versatile open source tool for metagenomics. *PeerJ* 4:e2584. https://doi.org/10.7717/peerj.2584
+8. Cleary JG, et al. (2015). Comparing variant call files for performance benchmarking of next-generation sequencing variant calling pipelines. *bioRxiv* 023754. https://doi.org/10.1101/023754
+
+---
+
 ## Software
 
-vcfbub 0.1.0 · vcflib 1.0.15 (vcfwave, vcfcreatemulti) · PanSVMerger (commit
-9d9827f) · vsearch 2.32.0 · RTG Tools 3.13 · bcftools 1.24 · samtools ·
-vg 1.63.1 · Python 3 with pysam 0.22.1
+| Software | Version | Used for |
+|---|---|---|
+| vcfbub | 0.1.2 | bubble selection (https://github.com/pangenome/vcfbub) |
+| vcflib | 1.0.15 | `vcfwave`, `vcfcreatemulti` |
+| PanSVMerger | commit 9d9827f | SV allele clustering (https://github.com/Asian-Pan-Genome/PanSVMerger) |
+| VSEARCH | 2.32.0 | sequence clustering called by PanSVMerger |
+| RTG Tools | 3.13 | `rtg vcfdecompose` |
+| bcftools / htslib | 1.24 | VCF filtering, normalization, merging, `bgzip` |
+| samtools | 1.24 | `samtools faidx` |
+| vg | 1.63.1 | `vg paths`, reference sequence from the graph |
+| Python | 3.8 | helper scripts |
+| pysam | 0.22.1 | `sv_merge_alleles.py` |
 
-All executables must be available on `PATH`.
+Bash is required. All executables must be available on `PATH`, and all helper
+scripts are in the repository root.
