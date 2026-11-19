@@ -177,7 +177,7 @@ run.
 
 | Step | Description |
 |---|---|
-| `prepare_input` | Select top-level bubbles with `vcfbub`, standardize contig names, remove the CHM13 sample and variants located in centromeres and telomeres, and prepare the SV input and the reference sequence |
+| `prepare_input` | Run `vcfbub`, rename/reference-filter contigs and samples, then exclude centromere/telomere-overlapping variants; recalculate AC/AN and prepare the SV input and reference sequence |
 | `sv_decompose` | `vcfwave` decomposition, SV alleles of more than 50 bp, SV loci with `vcfcreatemulti` |
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
@@ -239,7 +239,16 @@ or vg deconstruct -P GRCh38 -a (stage 3 variants)
 Raw GRCh38-referenced graph VCF (INPUT_VCF)
         │
         ▼
-prepare_input     vcfbub -l 0 -r 10000000, CHM13 haplotype and centromeres/telomeres removed
+vcfbub -l 0 -r 10000000
+        │
+        ▼
+Contig renaming; remove CHM13 sample; retain chr1–22 and chrX
+        │
+        ▼
+Exclude centromere/telomere regions (UCSC hg38 BED)
+        │
+        ▼
+Recalculate AC/AN; retain variants with observed ALT
         │
         ├──────────────────────────────────┐
         ▼                                  ▼
@@ -268,26 +277,23 @@ of the seven processing steps.
 
 Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/input/`.
 
-- **1-1) Excluded regions.** Centromeres from the UCSC centromere table and the
-  `telomere` entries of the UCSC gap table are written to
-  `exclude.cen_telo.bed`.
-- **1-2) Contig names.** The contigs of the deconstructed VCF are named after
-  the reference path (`GRCh38#0#chr1`). A rename table maps them to `chr1`,
-  so that the VCF agrees with the BED files and the reference FASTA.
-- **1-3) Common preprocessing.** This is the only filtering shared by both
-  branches.
-  - `vcfbub -l 0 -r 10000000` keeps the top-level bubbles. A top-level bubble
-    whose reference allele is longer than 10 Mb is replaced by its child
-    bubbles, so that a few very large bubbles do not hide the variants nested
-    inside them. This is the APGp1 setting.
-  - The CHM13 haplotype, stored as a sample column, is removed. It is a
-    reference, not a sample of either group.
-  - Only `chr1`–`chr22` and `chrX` are kept, and sites overlapping a
-    centromere or telomere are removed.
-  - AC and AN are recomputed and sites no longer carried by any sample are
-    removed (`bcftools view -c 1`).
-
-  Output: `all.vcf.gz` and the sample list `samples.txt`.
+- **1-1) Bubble decomposition with `vcfbub`.** The raw VCF is processed
+  first with `vcfbub -l 0 -r 10000000`. Top-level bubbles are retained;
+  if a bubble's reference allele exceeds 10 Mb, its nested child bubbles
+  are extracted instead. This is the APGp1 setting.
+- **1-2) Centromere and telomere exclusion.** Following `vcfbub`, the
+  reference-path contig names (for example, `GRCh38#0#chr1`) are renamed
+  to `chr1`–`chr22` and `chrX`, the CHM13 reference sample is removed,
+  and only those chromosomes are retained. Variants overlapping the
+  hg38 centromere intervals or the `telomere` entries of the UCSC gap
+  table are then excluded with `bcftools view -T ^...`.
+  The combined `exclude.cen_telo.bed` file is prepared from the UCSC
+  tables before the streaming command begins; creating this BED file
+  does **not** exclude any variants. The variant-filtering order remains
+  **`vcfbub` → centromere/telomere exclusion**.
+- **1-3) Finalize the VCF.** AC and AN are recalculated and variants with
+  no ALT carried by any retained sample are removed
+  (`bcftools view -c 1`). Output: `all.vcf.gz` and `samples.txt`.
 - **1-4) SV input.** Sites whose reference or an alternative allele is longer
   than 50 bp are copied to `sv_input.vcf.gz`. A site whose alleles are all
   50 bp or shorter cannot contain an allele differing from the reference by

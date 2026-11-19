@@ -98,10 +98,6 @@ prepare_input() {
   log "  raw graph VCF: ${INPUT_VCF}"
   log "  graph XG index: ${GRAPH_XG}"
 
-  { zcat "${CENTROMERES}" | awk -v OFS='\t' '{print $2, $3, $4}'
-    zcat "${GAPS}" | awk -v OFS='\t' '$8 == "telomere" {print $2, $3, $4}'
-  } | sort -k1,1 -k2,2n > "${IN_OUT}/exclude.cen_telo.bed"
-
   bcftools view -h "${INPUT_VCF}" | grep '^##contig=<ID=' \
     | sed 's/^##contig=<ID=\([^,>]*\).*/\1/' \
     | awk -v p="${CHROM_PREFIX}" '{n = $1; if (index(n, p) == 1) n = substr(n, length(p) + 1); print $1 "\t" n}' \
@@ -124,6 +120,13 @@ prepare_input() {
     printf 'Check the Minigraph-Cactus --vcf reference paths, or set CHROM_PREFIX appropriately.\n' >&2
     return 1
   fi
+
+  # Prepare interval coordinates before streaming; exclude variants only after vcfbub.
+  { zcat "${CENTROMERES}" | awk -v OFS='\t' '{print $2, $3, $4}'
+    zcat "${GAPS}" | awk -v OFS='\t' '$8 == "telomere" {print $2, $3, $4}'
+  } | sort -k1,1 -k2,2n > "${IN_OUT}/exclude.cen_telo.bed"
+
+  log "  processing order: vcfbub -> contig/sample selection -> centromere/telomere exclusion -> AC/AN"
 
   vcfbub -l "${VCFBUB_LEVEL}" -r "${VCFBUB_MAX_REF}" -i "${INPUT_VCF}" \
     | bcftools annotate --rename-chrs "${IN_OUT}/rename_chrs.txt" -Ou \
@@ -293,8 +296,8 @@ usage() {
   cat <<EOF
 Usage: bash $(basename "$0") <step>
 
-  prepare_input     vcfbub, contig renaming, reference haplotype, centromere
-                    and telomere removal, reference FASTA
+  prepare_input     vcfbub -> contig/sample selection -> centromere/telomere
+                    exclusion -> AC/AN, reference FASTA
   sv_decompose      vcfwave, SV alleles (> ${SV_MIN_LEN} bp), loci with vcfcreatemulti
   sv_merge          PanSVMerger allele clustering within each locus
   small_decompose   per sample: vcfwave, bcftools norm, rtg vcfdecompose
