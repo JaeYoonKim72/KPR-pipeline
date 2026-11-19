@@ -8,6 +8,20 @@ NAME=$(basename "${INPUT}")
 DIR=$(dirname "${INPUT}")
 OUT="${DIR}/${NAME%.vcf.gz}"
 
+# Include all target records, or emit a header-only VCF if the selection is empty.
+select_targets() {
+  local SOURCE=$1 DEST=$2 TARGETS
+  TARGETS=$(mktemp "${OUT}.targets.XXXXXX")
+  cat > "${TARGETS}"
+  if [[ -s "${TARGETS}" ]]; then
+    bcftools view -T <(awk 'BEGIN{OFS="\t"} NF>=2 {print $1,$2}' "${TARGETS}") \
+      "${SOURCE}" -Oz -o "${DEST}"
+  else
+    bcftools view -h "${SOURCE}" | bgzip -c > "${DEST}"
+  fi
+  rm -f "${TARGETS}"
+}
+
 # 1. Length difference between the reference allele and every alternative
 #    allele of each site
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
@@ -30,11 +44,11 @@ awk -v m="${MINSV}" 'NR==FNR {exclude[$1,$2]; next}
   "${OUT}.var_sizes.SVs_list.txt" "${OUT}.var_sizes.txt" \
   | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.Smalls_list.txt"
 
-bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.SVs_list.txt") "${INPUT}" \
-  -Oz -o "${OUT}.var_sizes.SVs_list.vcf.gz"
+select_targets "${INPUT}" "${OUT}.var_sizes.SVs_list.vcf.gz" \
+  < "${OUT}.var_sizes.SVs_list.txt"
 
-bcftools view -T <(tr ' ' '\t' < "${OUT}.var_sizes.Smalls_list.txt") "${INPUT}" \
-  -Oz -o "${OUT}.var_sizes.Smalls_list.vcf.gz"
+select_targets "${INPUT}" "${OUT}.var_sizes.Smalls_list.vcf.gz" \
+  < "${OUT}.var_sizes.Smalls_list.txt"
 
 # 3. Structural variants: keep only sites where every alternative allele
 #    differs from REF by more than MINSV bases.
@@ -48,9 +62,9 @@ bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${OUT}.var_sizes.SVs_list.vcf.gz
       if (all_large) print $1 "\t" $2
     }' | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.SVs_list.all_50_alts.txt"
 
-bcftools view -T "${OUT}.var_sizes.SVs_list.all_50_alts.txt" \
-  "${OUT}.var_sizes.SVs_list.vcf.gz" \
-  -Oz -o "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz"
+select_targets "${OUT}.var_sizes.SVs_list.vcf.gz" \
+  "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
+  < "${OUT}.var_sizes.SVs_list.all_50_alts.txt"
 
 # sites that do not mix substitutions with length-changing alleles
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
@@ -62,8 +76,7 @@ bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
       }
       if (!(has_snp && has_indel)) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz"
+  | select_targets "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz"
 
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
   | awk -F'\t' '{
@@ -74,8 +87,7 @@ bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
       }
       if (has_snp && has_indel) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.SVs_list.all_50_alts.only_mixed.vcf.gz"
+  | select_targets "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" "${OUT}.var_sizes.SVs_list.all_50_alts.only_mixed.vcf.gz"
 
 # structural deletions
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
@@ -84,8 +96,7 @@ bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
       for (i in alts) if (length(alts[i]) >= length($4)) { all_deletion = 0; break }
       if (all_deletion) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.DEL.vcf.gz"
+  | select_targets "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.DEL.vcf.gz"
 
 bcftools filter -i 'strlen(REF) > strlen(ALT)' \
   "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.DEL.vcf.gz" -Oz \
@@ -99,8 +110,7 @@ bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
       for (i in alts) if (length(alts[i]) <= length($4)) { all_insertion = 0; break }
       if (all_insertion) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.INS.vcf.gz"
+  | select_targets "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.INS.vcf.gz"
 
 bcftools filter -i 'strlen(ALT) > strlen(REF)' \
   "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.INS.vcf.gz" -Oz \
@@ -117,8 +127,7 @@ bcftools view -H "${OUT}.var_sizes.Smalls_list.vcf.gz" \
       }
       if (!(has_snp && has_indel)) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.Smalls_list.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz"
+  | select_targets "${OUT}.var_sizes.Smalls_list.vcf.gz" "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz"
 
 bcftools view -H "${OUT}.var_sizes.Smalls_list.vcf.gz" \
   | awk -F'\t' '{
@@ -129,8 +138,7 @@ bcftools view -H "${OUT}.var_sizes.Smalls_list.vcf.gz" \
       }
       if (has_snp && has_indel) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.Smalls_list.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.Smalls_list.only_mixed.vcf.gz"
+  | select_targets "${OUT}.var_sizes.Smalls_list.vcf.gz" "${OUT}.var_sizes.Smalls_list.only_mixed.vcf.gz"
 
 bcftools view -H "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" \
   | awk -F'\t' '{
@@ -138,8 +146,7 @@ bcftools view -H "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" \
       for (i in alts) if (length(alts[i]) >= length($4)) { all_deletion = 0; break }
       if (all_deletion) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.Smalls_list.no_mixed.DEL.vcf.gz"
+  | select_targets "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" "${OUT}.var_sizes.Smalls_list.no_mixed.DEL.vcf.gz"
 
 bcftools filter -i 'strlen(REF) > strlen(ALT)' \
   "${OUT}.var_sizes.Smalls_list.no_mixed.DEL.vcf.gz" -Oz \
@@ -152,8 +159,7 @@ bcftools view -H "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" \
       for (i in alts) if (length(alts[i]) <= length($4)) { all_insertion = 0; break }
       if (all_insertion) print
     }' \
-  | bcftools view -T - "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" \
-    -Oz -o "${OUT}.var_sizes.Smalls_list.no_mixed.INS.vcf.gz"
+  | select_targets "${OUT}.var_sizes.Smalls_list.no_mixed.vcf.gz" "${OUT}.var_sizes.Smalls_list.no_mixed.INS.vcf.gz"
 
 bcftools filter -i 'strlen(ALT) > strlen(REF)' \
   "${OUT}.var_sizes.Smalls_list.no_mixed.INS.vcf.gz" -Oz \
