@@ -36,7 +36,7 @@ placeholders and do not implement analyses.
 
 | Stage | Main script | Purpose | Documentation | Version |
 |:--:|---|---|---|---|
-| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
+| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assembly, quality assessment, annotation and caller-supported structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
 | 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
 | 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
 | 4 | `4.compare_pangenome_variant_counts.sh` | Compare KPR-private, shared and HPRC-private SV and small-variant counts at locus and allele levels | [Documentation](src/compare_pangenome_variant_counts.md) | v1.0 |
@@ -48,8 +48,8 @@ placeholders and do not implement analyses.
 **Helper scripts called by the pipelines:** `decon_split.sh`,
 `typecount.py`, `wline_sample_nodes.py`, `amy_haplotype_tags.py`,
 `msa_to_vcf.py`, `hudson_fst.py`, `plot_haplotypes.R`,
-`sv_merge_alleles.py`, `dedup_sample.py`, `count_groups.py`,
-and `summarize_variant_comparison.py`. These tools are in `src/`;
+`sv_merge_alleles.py`, `filter_svim_asm_support.py`, `dedup_sample.py`,
+`count_groups.py`, and `summarize_variant_comparison.py`. These tools are in `src/`;
 they are invoked by the main pipelines where applicable and can
 also be run independently using the documented arguments.
 
@@ -128,6 +128,10 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
 - To obtain **nSL and XP-nSL**, activate a mamba/conda environment
   containing **selscan v3.0.1**. Missing selscan skips only those
   statistics, never installs it automatically.
+- Stage 1 retains per-sample SVs detected by SVIM-asm and at least two of
+  pbsv, Sniffles and SVIM, with SURVIVOR merging at 100 bp breakpoint
+  distance and minimum 51 bp SV length. The per-sample consensus VCFs
+  are used for the QC-passed cohort-level intersection.
 - Stage 6 uses GATK BQSR on graph-projected and linear-reference BAMs;
   supply indexed GRCh38 known-sites VCFs via `BQSR_KNOWN_SITES`.
   DeepVariant, Manta and Delly consume the recalibrated BAMs.

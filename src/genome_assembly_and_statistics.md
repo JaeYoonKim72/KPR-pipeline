@@ -162,7 +162,7 @@ one can be rerun after fixing a problem without repeating the others.
 | `polishing` | Inspector evaluation, correction and re-evaluation |
 | `asm_stats` | Inspector summary, QUAST-LG, NGx curves, contiguity filtering, Minigraph misjoins, HMM-Flagger |
 | `annotation` | RepeatMasker (two rounds), etrf, sdust, Liftoff |
-| `sv_calling` | pbmm2, pbsv, Sniffles, SVIM, SVIM-asm, SURVIVOR merging |
+| `sv_calling` | pbmm2, pbsv, Sniffles, SVIM, SVIM-asm; SVIM-asm plus at least two of the three read-based callers, followed by SURVIVOR cohort merging |
 | `all` | All of the above, in order |
 
 ### 3.1 Read quality control and platform-specific assembly
@@ -232,18 +232,34 @@ KPR, HPRC-EAS and HPRC-nEAS assemblies.
 
 ### 3.5 Structural-variant discovery and integration
 
-The SV workflow combines read- and assembly-derived
-evidence. PacBio reads are aligned with pbmm2 and
-interrogated by pbsv, Sniffles and SVIM; assembly-based
-candidates are identified by SVIM-asm. The wrapper
-merges near-equivalent calls with a 100-bp breakpoint
-tolerance and reports shared >=51-bp events across
-retained samples. Such shared events should be
-interpreted relative to the selected reference,
-calling algorithms and available samples, not
-as variants fixed in all Koreans. Keep insertion,
-deletion, duplication and inversion types separate
-where the underlying callsets support them.
+The SV workflow combines read- and assembly-derived evidence. PacBio HiFi
+reads are aligned to GRCh38 with pbmm2 and analyzed using three read-based
+SV callers: pbsv (v2.9.0), Sniffles (v2.2), and SVIM (v2.0.0). Both polished
+haplotype assemblies are separately aligned to GRCh38 and analyzed using
+SVIM-asm (v1.0.3) in diploid mode.
+
+**Per-sample consensus rule.** SURVIVOR merges calls with a maximum
+breakpoint distance of 100 bp, agreement on SV type, and a minimum
+SV length of 51 bp (`SURVIVOR merge ... 100 3 1 0 0 51`).
+A candidate SV is retained only if it is supported by **SVIM-asm AND
+at least two of the three read-based callers (pbsv, Sniffles, SVIM)**.
+Thus, three-caller support is necessary but not sufficient: a call
+supported by all three read-based callers without SVIM-asm is excluded.
+
+SURVIVOR stores the caller-level support in `INFO/SUPP_VEC`. The order of
+the four input caller VCFs is fixed in `SAMPLE.filelist` (pbsv, Sniffles,
+SVIM, SVIM-asm), and `src/filter_svim_asm_support.py` enforces the
+required combination before downstream merging. The prefiltered
+`SAMPLE.survivor.min3.vcf`, final `SAMPLE.merged.vcf`, and
+`SAMPLE.caller_support.tsv` are retained for auditing.
+
+**Across-sample consensus.** Only these filtered per-sample VCFs from
+the QC-passed sample list are merged again with SURVIVOR, retaining
+SVs detected in every included sample in `shared_SV.vcf`. This
+sample intersection is distinct from the per-sample caller-consensus
+rule and should not be interpreted as population-wide fixation.
+Insertions, deletions, duplications and inversions remain distinct
+where the underlying call sets support their classification.
 
 Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 `assembly`; `asm_stats` needs `polishing` and writes `qc_pass.list`;
@@ -289,8 +305,14 @@ Main tables:
   rate, self-mapping depth and small-scale error counts per haplotype
 - `statistics/assembly_qc_summary.tsv` — contig number, N50 and PASS/FAIL
   status against the contiguity criteria
-- `sv/merged/shared_SV.vcf` — structural variants of at least 51 bp detected in
-  every sample retained after assembly quality control
+- `sv/merged/SAMPLE.survivor.min3.vcf` — per-sample candidate SVs
+  supported by at least three of four callers, before enforcing SVIM-asm
+- `sv/merged/SAMPLE.merged.vcf` — final per-sample SV set requiring
+  SVIM-asm plus at least two of pbsv, Sniffles and SVIM
+- `sv/merged/SAMPLE.caller_support.tsv` — per-sample caller-support filter
+  counts, including retained and excluded SVs
+- `sv/merged/shared_SV.vcf` — filtered consensus SVs of at least 51 bp
+  detected in every QC-passed sample
 
 The polished assemblies in `polishing/corrected/` are the input for
 `3.pangenome_construction_and_statistics.sh`.
@@ -345,7 +367,7 @@ the execution log rather than assumed.
 | Repeats and annotation | RepeatMasker 4.1.6; Liftoff 1.6.3; etrf; sdust |
 | Read-based structural variants | pbmm2 1.17; pbsv 2.9.0; Sniffles 2.2; SVIM 2.0.0 |
 | Assembly-based structural variants | SVIM-asm 1.0.3 |
-| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; jq |
+| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; Python 3; jq |
 
 The manuscript's GATK-based short-read sample-selection workflow is
 separate from this long-read assembly stage; it used bwa-mem2 2.2.1,

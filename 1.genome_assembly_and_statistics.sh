@@ -8,6 +8,8 @@ DATA_DIR=${DATA_DIR:?set DATA_DIR to the directory containing the input FASTQ fi
 OUT_DIR=${OUT_DIR:-$(pwd)/results}
 REF_DIR=${REF_DIR:?set REF_DIR to the directory containing the reference files}
 LIST_DIR=${LIST_DIR:-$(pwd)/lists}
+SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+SRC_DIR=${SRC_DIR:-${SCRIPT_DIR}/src}
 
 # --- reference files ---------------------------------------------------------
 # GRCh38 primary assembly (soft-masked)
@@ -456,19 +458,42 @@ sv_calling() {
              "${GRCH38}"
     cp "${SV_OUT}/svimasm/${S}/variants.vcf" "${SV_OUT}/svimasm/${S}.svimasm.vcf"
 
-    # 6-6) per-sample merge, 100 bp breakpoint distance, SVs >= 51 bp
-    ls "${SV_OUT}/pbsv/${S}.pbsv.vcf" \
-       "${SV_OUT}/sniffles/${S}.sniffles.vcf" \
-       "${SV_OUT}/svim/${S}.svim.vcf" \
-       "${SV_OUT}/svimasm/${S}.svimasm.vcf" > "${SV_OUT}/merged/${S}.filelist"
+    # 6-6) per-sample consensus: SVIM-asm is required, plus >=2 of pbsv,
+    #      Sniffles and SVIM (>=3 of the 4 callers; SV length >50 bp).
+    #      The order here defines the positions in SURVIVOR INFO/SUPP_VEC.
+    printf '%s\n' \
+      "${SV_OUT}/pbsv/${S}.pbsv.vcf" \
+      "${SV_OUT}/sniffles/${S}.sniffles.vcf" \
+      "${SV_OUT}/svim/${S}.svim.vcf" \
+      "${SV_OUT}/svimasm/${S}.svimasm.vcf" \
+      > "${SV_OUT}/merged/${S}.filelist"
 
-    SURVIVOR merge "${SV_OUT}/merged/${S}.filelist" 100 1 1 0 0 51 \
-      "${SV_OUT}/merged/${S}.merged.vcf"
+    SURVIVOR merge "${SV_OUT}/merged/${S}.filelist" 100 3 1 0 0 51 \
+      "${SV_OUT}/merged/${S}.survivor.min3.vcf"
+
+    python3 "${SRC_DIR}/filter_svim_asm_support.py" \
+      --input "${SV_OUT}/merged/${S}.survivor.min3.vcf" \
+      --output "${SV_OUT}/merged/${S}.merged.vcf" \
+      --filelist "${SV_OUT}/merged/${S}.filelist" \
+      --required-vcf "${SV_OUT}/svimasm/${S}.svimasm.vcf" \
+      --min-other-callers 2 \
+      --audit "${SV_OUT}/merged/${S}.caller_support.tsv"
   done < "${QC_PASS_LIST}"
 
-  # 6-7) cohort merge, SVs shared by every sample
-  N_SAMPLE=$(wc -l < "${QC_PASS_LIST}")
-  ls "${SV_OUT}"/merged/*.merged.vcf > "${SV_OUT}/merged/cohort.filelist"
+  # 6-7) cohort merge: use only consensus VCFs from QC-passed samples.
+  N_SAMPLE=0
+  : > "${SV_OUT}/merged/cohort.filelist"
+  while IFS= read -r S || [[ -n "${S}" ]]; do
+    [[ -z "${S}" ]] && continue
+    [[ -s "${SV_OUT}/merged/${S}.merged.vcf" ]] || {
+      log "  missing consensus SV VCF for ${S}"
+      return 1
+    }
+    printf '%s\n' "${SV_OUT}/merged/${S}.merged.vcf" \
+      >> "${SV_OUT}/merged/cohort.filelist"
+    N_SAMPLE=$((N_SAMPLE + 1))
+  done < "${QC_PASS_LIST}"
+  (( N_SAMPLE > 0 )) || { log "  no QC-passed samples for SV cohort merge"; return 1; }
 
   SURVIVOR merge "${SV_OUT}/merged/cohort.filelist" 100 "${N_SAMPLE}" 1 0 0 51 \
     "${SV_OUT}/merged/shared_SV.vcf"
@@ -485,7 +510,8 @@ Usage: bash $(basename "$0") <step>
   polishing     Inspector evaluation and correction
   asm_stats     Inspector, QUAST-LG, NGx, misjoin and HMM-Flagger statistics
   annotation    RepeatMasker, etrf, sdust and Liftoff
-  sv_calling    pbsv, Sniffles, SVIM, SVIM-asm and SURVIVOR merging
+  sv_calling    pbsv, Sniffles, SVIM, SVIM-asm; retain SVIM-asm and >=2
+                other-caller-supported SVs, then SURVIVOR cohort merge
   all           run every step in order
 EOF
 }
