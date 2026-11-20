@@ -5,8 +5,10 @@ on:
       - '8.Population_genetics_in_AMY_flanking_locus.sh'
       - '1.genome_assembly_and_statistics.sh'
       - 'src/genome_assembly_and_statistics.md'
-      - 'src/filter_svim_asm_support.py'
-      - 'src/tests/test_sv_caller_consensus.py'
+      - 'src/filter_sv_caller_quality.py'
+      - 'src/select_svim_asm_truvari.py'
+      - 'src/tests/test_sv_truvari.py'
+      - 'src/Variant_benchmark.md'
       - 'README.md'
       - '4.compare_pangenome_variant_counts.sh'
       - '3.pangenome_construction_and_statistics.sh'
@@ -62,5 +64,7 @@ jobs:
         run: python3 -m unittest discover -s src/tests -p 'test_amy_flanking.py' -v
       - name: Check variant count formula
         run: python3 -m unittest discover -s src/tests -p 'test_variant_comparison.py' -v
-      - name: Check SVIM-asm required caller consensus
-        run: python3 -m unittest discover -s src/tests -p 'test_sv_caller_consensus.py' -v
+      - name: Check SV caller quality thresholds and Truvari-match consensus
+        run: python3 -m unittest discover -s src/tests -p 'test_sv_truvari.py' -v
+      - name: Validate added Python helpers
+        run: python3 -m py_compile src/filter_sv_caller_quality.py src/select_svim_asm_truvari.py

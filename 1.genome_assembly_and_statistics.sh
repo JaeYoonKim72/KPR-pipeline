@@ -46,6 +46,16 @@ QC_PASS_LIST=${QC_PASS_LIST:-${LIST_DIR}/qc_pass.list}  # written by asm_stats
 MIN_N50=${MIN_N50:-20000000}      # contig N50 >= 20 Mb
 MAX_CONTIG=${MAX_CONTIG:-1500}    # number of contigs <= 1,500
 
+SV_MIN_SIZE=${SV_MIN_SIZE:-51}
+SV_MIN_DP=${SV_MIN_DP:-7}
+SV_MIN_ALT_SUPPORT=${SV_MIN_ALT_SUPPORT:-3}
+SNIFFLES_MIN_GQ=${SNIFFLES_MIN_GQ:-20}
+SVIM_MIN_QUAL=${SVIM_MIN_QUAL:-10}
+TRUVARI_REFDIST=${TRUVARI_REFDIST:-500}
+TRUVARI_PCTSEQ=${TRUVARI_PCTSEQ:-0.70}
+TRUVARI_PCTSIZE=${TRUVARI_PCTSIZE:-0.70}
+EXPECTED_SV_SAMPLES=${EXPECTED_SV_SAMPLES:-14}
+
 QC_OUT=${OUT_DIR}/read_qc
 ASM_OUT=${OUT_DIR}/assembly
 POLISH_OUT=${OUT_DIR}/polishing
@@ -417,7 +427,10 @@ annotation() {
 # Step 6. Structural variant detection
 sv_calling() {
   log "step 6: structural variant detection"
-  mkdir -p "${SV_OUT}"/{bam,pbsv,sniffles,svim,svimasm,merged}
+  mkdir -p "${SV_OUT}"/{bam,pbsv,sniffles,svim,svimasm,filtered,truvari,merged}
+  for CMD in bcftools bgzip truvari SURVIVOR; do
+    command -v "${CMD}" >/dev/null 2>&1 || { log "  missing required command: ${CMD}"; return 1; }
+  done
 
   while read -r S; do
     [[ -z "${S}" ]] && continue
@@ -458,25 +471,69 @@ sv_calling() {
              "${GRCH38}"
     cp "${SV_OUT}/svimasm/${S}/variants.vcf" "${SV_OUT}/svimasm/${S}.svimasm.vcf"
 
-    # 6-6) per-sample consensus: SVIM-asm is required, plus >=2 of pbsv,
-    #      Sniffles and SVIM (>=3 of the 4 callers; SV length >50 bp).
-    #      The order here defines the positions in SURVIVOR INFO/SUPP_VEC.
-    printf '%s\n' \
-      "${SV_OUT}/pbsv/${S}.pbsv.vcf" \
-      "${SV_OUT}/sniffles/${S}.sniffles.vcf" \
-      "${SV_OUT}/svim/${S}.svim.vcf" \
-      "${SV_OUT}/svimasm/${S}.svimasm.vcf" \
-      > "${SV_OUT}/merged/${S}.filelist"
+    # 6-6) Filter individual callers before pairwise Truvari matching.
+    declare -A SV_VCFS=()
+    local CALLER RAW_VCF FILTERED_VCF BASE_VCF BENCH_DIR
+    for CALLER in pbsv sniffles svim svimasm; do
+      case "${CALLER}" in
+        pbsv) RAW_VCF="${SV_OUT}/pbsv/${S}.pbsv.vcf" ;;
+        sniffles) RAW_VCF="${SV_OUT}/sniffles/${S}.sniffles.vcf" ;;
+        svim) RAW_VCF="${SV_OUT}/svim/${S}.svim.vcf" ;;
+        svimasm) RAW_VCF="${SV_OUT}/svimasm/${S}.svimasm.vcf" ;;
+      esac
+      FILTERED_VCF="${SV_OUT}/filtered/${S}.${CALLER}"
+      bcftools norm -m -any "${RAW_VCF}" -Ov \
+        | python3 "${SRC_DIR}/filter_sv_caller_quality.py" \
+            --caller "${CALLER}" --input - \
+            --output "${FILTERED_VCF}.unsorted.vcf" \
+            --audit "${FILTERED_VCF}.filter_audit.tsv" \
+            --min-size "${SV_MIN_SIZE}" \
+            --min-dp "${SV_MIN_DP}" --min-alt "${SV_MIN_ALT_SUPPORT}" \
+            --sniffles-gq "${SNIFFLES_MIN_GQ}" \
+            --svim-qual "${SVIM_MIN_QUAL}"
+      bcftools sort "${FILTERED_VCF}.unsorted.vcf" -Oz \
+        -o "${FILTERED_VCF}.vcf.gz"
+      bcftools index -f -t "${FILTERED_VCF}.vcf.gz"
+      rm -f "${FILTERED_VCF}.unsorted.vcf"
+      SV_VCFS["${CALLER}"]="${FILTERED_VCF}.vcf.gz"
+    done
 
-    SURVIVOR merge "${SV_OUT}/merged/${S}.filelist" 100 3 1 0 0 51 \
-      "${SV_OUT}/merged/${S}.survivor.min3.vcf"
+    # 6-7) Match SVIM-asm baseline against each read-based caller.
+    BASE_VCF="${SV_VCFS[svimasm]}"
+    for CALLER in pbsv sniffles svim; do
+      BENCH_DIR="${SV_OUT}/truvari/${S}/${CALLER}"
+      if [[ -d "${BENCH_DIR}" ]]; then
+        rm -rf -- "${BENCH_DIR}"
+      fi
+      mkdir -p "$(dirname "${BENCH_DIR}")"
+      if [[ "$(bcftools index -n "${BASE_VCF}")" -eq 0 ||
+            "$(bcftools index -n "${SV_VCFS[${CALLER}]}")" -eq 0 ]]; then
+        mkdir -p "${BENCH_DIR}"
+        bcftools view -h "${BASE_VCF}" | bgzip -c \
+          > "${BENCH_DIR}/tp-base.vcf.gz"
+        bcftools index -f -t "${BENCH_DIR}/tp-base.vcf.gz"
+      else
+        truvari bench --base "${BASE_VCF}" --comp "${SV_VCFS[${CALLER}]}" \
+          --reference "${GRCH38}" --output "${BENCH_DIR}" \
+          --refdist "${TRUVARI_REFDIST}" \
+          --pctseq "${TRUVARI_PCTSEQ}" \
+          --pctsize "${TRUVARI_PCTSIZE}" \
+          --sizemin "${SV_MIN_SIZE}" --sizefilt "${SV_MIN_SIZE}" \
+          --sizemax -1 --passonly
+      fi
+      [[ -s "${BENCH_DIR}/tp-base.vcf.gz" ]] || {
+        log "  Truvari tp-base VCF missing: ${BENCH_DIR}"
+        return 1
+      }
+    done
 
-    python3 "${SRC_DIR}/filter_svim_asm_support.py" \
-      --input "${SV_OUT}/merged/${S}.survivor.min3.vcf" \
+    python3 "${SRC_DIR}/select_svim_asm_truvari.py" \
+      --base "${BASE_VCF}" \
+      --matched-vcf "pbsv=${SV_OUT}/truvari/${S}/pbsv/tp-base.vcf.gz" \
+      --matched-vcf "sniffles=${SV_OUT}/truvari/${S}/sniffles/tp-base.vcf.gz" \
+      --matched-vcf "svim=${SV_OUT}/truvari/${S}/svim/tp-base.vcf.gz" \
+      --min-read-callers 2 \
       --output "${SV_OUT}/merged/${S}.merged.vcf" \
-      --filelist "${SV_OUT}/merged/${S}.filelist" \
-      --required-vcf "${SV_OUT}/svimasm/${S}.svimasm.vcf" \
-      --min-other-callers 2 \
       --audit "${SV_OUT}/merged/${S}.caller_support.tsv"
   done < "${QC_PASS_LIST}"
 
@@ -494,8 +551,12 @@ sv_calling() {
     N_SAMPLE=$((N_SAMPLE + 1))
   done < "${QC_PASS_LIST}"
   (( N_SAMPLE > 0 )) || { log "  no QC-passed samples for SV cohort merge"; return 1; }
+  if (( EXPECTED_SV_SAMPLES > 0 && N_SAMPLE != EXPECTED_SV_SAMPLES )); then
+    log "  expected ${EXPECTED_SV_SAMPLES} QC-passed samples, found ${N_SAMPLE}"
+    return 1
+  fi
 
-  SURVIVOR merge "${SV_OUT}/merged/cohort.filelist" 100 "${N_SAMPLE}" 1 0 0 51 \
+  SURVIVOR merge "${SV_OUT}/merged/cohort.filelist" 100 "${N_SAMPLE}" 1 0 0 "${SV_MIN_SIZE}" \
     "${SV_OUT}/merged/shared_SV.vcf"
 
   log "step 6 finished"
@@ -510,8 +571,9 @@ Usage: bash $(basename "$0") <step>
   polishing     Inspector evaluation and correction
   asm_stats     Inspector, QUAST-LG, NGx, misjoin and HMM-Flagger statistics
   annotation    RepeatMasker, etrf, sdust and Liftoff
-  sv_calling    pbsv, Sniffles, SVIM, SVIM-asm; retain SVIM-asm and >=2
-                other-caller-supported SVs, then SURVIVOR cohort merge
+  sv_calling    filter four SV callers, compare with Truvari bench (500 bp,
+                >=70% sequence and size similarity), retain SVIM-asm calls
+                matching >=2 read callers; SURVIVOR 100 bp cohort merge
   all           run every step in order
 EOF
 }

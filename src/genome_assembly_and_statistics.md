@@ -232,34 +232,62 @@ KPR, HPRC-EAS and HPRC-nEAS assemblies.
 
 ### 3.5 Structural-variant discovery and integration
 
-The SV workflow combines read- and assembly-derived evidence. PacBio HiFi
-reads are aligned to GRCh38 with pbmm2 and analyzed using three read-based
-SV callers: pbsv (v2.9.0), Sniffles (v2.2), and SVIM (v2.0.0). Both polished
-haplotype assemblies are separately aligned to GRCh38 and analyzed using
-SVIM-asm (v1.0.3) in diploid mode.
+PacBio long-read sequencing (LRS) data from the 14 KOR individuals whose
+assemblies passed quality control were aligned to GRCh38 using **pbmm2
+(v1.17)**. Structural variants (SVs) were called by the read-based tools
+**pbsv (v2.9.0)**, **Sniffles (v2.2)**, and **SVIM (v2.0.0)**, and by
+the assembly-based **SVIM-asm (v1.0.3)**. SVIM-asm was run in diploid
+mode using the two polished haplotype assemblies for each individual.
 
-**Per-sample consensus rule.** SURVIVOR merges calls with a maximum
-breakpoint distance of 100 bp, agreement on SV type, and a minimum
-SV length of 51 bp (`SURVIVOR merge ... 100 3 1 0 0 51`).
-A candidate SV is retained only if it is supported by **SVIM-asm AND
-at least two of the three read-based callers (pbsv, Sniffles, SVIM)**.
-Thus, three-caller support is necessary but not sufficient: a call
-supported by all three read-based callers without SVIM-asm is excluded.
+**Caller-level filtering.** For each caller, records were restricted to
+`FILTER=PASS`, autosomes (`chr1`–`chr22`), and SV length **≥51 bp**.
+The read-based callsets were filtered further using the following
+caller-specific criteria:
 
-SURVIVOR stores the caller-level support in `INFO/SUPP_VEC`. The order of
-the four input caller VCFs is fixed in `SAMPLE.filelist` (pbsv, Sniffles,
-SVIM, SVIM-asm), and `src/filter_svim_asm_support.py` enforces the
-required combination before downstream merging. The prefiltered
-`SAMPLE.survivor.min3.vcf`, final `SAMPLE.merged.vcf`, and
-`SAMPLE.caller_support.tsv` are retained for auditing.
+| Caller | Additional criteria |
+|---|---|
+| pbsv | depth `DP ≥7`; reads supporting ALT `≥3` |
+| Sniffles | genotype quality `GQ ≥20`; `DR + DV ≥7`; ALT-supporting `DV ≥3` |
+| SVIM | `QUAL ≥10`; `DP ≥7`; ALT-supporting reads `≥3` (`INFO/SUPPORT` where provided) |
+| SVIM-asm | No additional read-depth criteria; PASS/autosome/size filters apply |
 
-**Across-sample consensus.** Only these filtered per-sample VCFs from
-the QC-passed sample list are merged again with SURVIVOR, retaining
-SVs detected in every included sample in `shared_SV.vcf`. This
-sample intersection is distinct from the per-sample caller-consensus
-rule and should not be interpreted as population-wide fixation.
-Insertions, deletions, duplications and inversions remain distinct
-where the underlying call sets support their classification.
+Depth and ALT-support fields are read from each caller's VCF rather
+than treated as interchangeable annotations. The public wrapper
+uses `FORMAT/DP` (or documented allele-depth sums where necessary)
+and `FORMAT/AD` for pbsv; `FORMAT/GQ`, `FORMAT/DR`, `FORMAT/DV`
+for Sniffles; and `QUAL`, depth, and `INFO/SUPPORT` for SVIM.
+Records lacking required values are excluded and counted in a
+per-caller audit file, rather than being assumed to pass.
+Confirm the relevant `FORMAT`/`INFO` definitions against the actual
+caller outputs before reproducing the manuscript numbers.
+
+**Truvari-supported SV selection.** Each filtered read-based VCF was
+compared independently against the filtered **SVIM-asm baseline** using
+`truvari bench`. Two calls were considered matched using a maximum
+reference-position difference of **500 bp**, a minimum SV-size similarity
+of **70%**, and a minimum sequence similarity of **70%**.
+An SVIM-asm variant was retained if **at least two** of the three
+read-based callers matched that SVIM-asm variant. A match in all three
+read-based callers also meets the criterion. The matched
+SVIM-asm records, rather than the read-based representatives, form
+the per-sample consensus VCF.
+
+**Cohort-level integration.** Filtered consensus VCFs from the
+**14 QC-passed KOR individuals** were merged with SURVIVOR using
+a **100-bp breakpoint distance** and a minimum SV length of 51 bp.
+The final `shared_SV.vcf` contains SVs observed in all 14 included
+samples. The 100-bp distance refers to this *across-sample merge*,
+not to the Truvari agreement threshold between callers.
+The consensus is limited to the analyzed cohort and is not evidence
+of population-wide fixation.
+
+The full manuscript also describes a separate, seven-person
+variant-benchmarking truth-set analysis, including SVIM-asm SV sets
+supported by ≥1, ≥2, or all three read-based callers. The primary
+SV truth set for that benchmarking analysis uses **≥2 read-based
+callers** and adds depth/support filters for INS/DEL. See the
+[stage 5 benchmark design](Variant_benchmark.md). Stage 5 remains
+a placeholder for executing those truth-set and benchmarking analyses.
 
 Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 `assembly`; `asm_stats` needs `polishing` and writes `qc_pass.list`;
@@ -280,6 +308,12 @@ Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 | `GENOME_SIZE` | `3200000000` | genome size used for raw depth |
 | `MIN_N50` | `20000000` | minimum contig N50 |
 | `MAX_CONTIG` | `1500` | maximum number of contigs |
+| `SV_MIN_SIZE` | `51` | minimum SV length (bp) |
+| `SV_MIN_DP` / `SV_MIN_ALT_SUPPORT` | `7` / `3` | read-caller depth and ALT support |
+| `SNIFFLES_MIN_GQ` / `SVIM_MIN_QUAL` | `20` / `10` | caller-specific quality thresholds |
+| `TRUVARI_REFDIST` | `500` | Truvari reference distance (bp) |
+| `TRUVARI_PCTSEQ` / `TRUVARI_PCTSIZE` | `0.70` / `0.70` | sequence and size similarity |
+| `EXPECTED_SV_SAMPLES` | `14` | manuscript cohort size; `0` disables the count check |
 
 Individual reference files can be overridden as well, for example
 `GRCH38=/path/to/GRCh38.fa`.
@@ -305,14 +339,17 @@ Main tables:
   rate, self-mapping depth and small-scale error counts per haplotype
 - `statistics/assembly_qc_summary.tsv` — contig number, N50 and PASS/FAIL
   status against the contiguity criteria
-- `sv/merged/SAMPLE.survivor.min3.vcf` — per-sample candidate SVs
-  supported by at least three of four callers, before enforcing SVIM-asm
-- `sv/merged/SAMPLE.merged.vcf` — final per-sample SV set requiring
-  SVIM-asm plus at least two of pbsv, Sniffles and SVIM
-- `sv/merged/SAMPLE.caller_support.tsv` — per-sample caller-support filter
-  counts, including retained and excluded SVs
-- `sv/merged/shared_SV.vcf` — filtered consensus SVs of at least 51 bp
-  detected in every QC-passed sample
+- `sv/filtered/SAMPLE.CALLER.vcf.gz` — per-caller PASS, autosomal,
+  ≥51-bp SVs with read-based quality thresholds as applicable
+- `sv/filtered/SAMPLE.CALLER.filter_audit.tsv` — filtering reasons/counts,
+  including missing depth or ALT-read support
+- `sv/truvari/SAMPLE/{pbsv,sniffles,svim}/tp-base.vcf.gz` — the
+  SVIM-asm variants matched by each independent read-based caller
+- `sv/merged/SAMPLE.merged.vcf` — per-sample SVIM-asm SVs matched by
+  at least two of pbsv, Sniffles and SVIM
+- `sv/merged/SAMPLE.caller_support.tsv` — 0/1/2/3 matched read-caller counts
+- `sv/merged/shared_SV.vcf` — ≥51-bp SVs observed in all 14 QC-passed
+  individuals after SURVIVOR merging at 100 bp
 
 The polished assemblies in `polishing/corrected/` are the input for
 `3.pangenome_construction_and_statistics.sh`.
@@ -367,7 +404,7 @@ the execution log rather than assumed.
 | Repeats and annotation | RepeatMasker 4.1.6; Liftoff 1.6.3; etrf; sdust |
 | Read-based structural variants | pbmm2 1.17; pbsv 2.9.0; Sniffles 2.2; SVIM 2.0.0 |
 | Assembly-based structural variants | SVIM-asm 1.0.3 |
-| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; Python 3; jq |
+| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; Truvari bench; bcftools; Python 3; jq |
 
 The manuscript's GATK-based short-read sample-selection workflow is
 separate from this long-read assembly stage; it used bwa-mem2 2.2.1,
