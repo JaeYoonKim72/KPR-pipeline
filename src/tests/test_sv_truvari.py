@@ -30,6 +30,12 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(filter_record(record("pbsv", sample="0/1:6:3,3"), "pbsv", 7, 3, 20, 10), "depth_below_threshold")
         self.assertEqual(filter_record(record("pbsv", sample="0/1:10:8,2"), "pbsv", 7, 3, 20, 10), "alt_support_below_threshold")
 
+    def test_pbsv_requires_explicit_dp(self):
+        self.assertEqual(
+            filter_record(record("pbsv", fmt="GT:AD", sample="0/1:5,5"), "pbsv", 7, 3, 20, 10),
+            "missing_depth",
+        )
+
     def test_sniffles_gq_dr_dv(self):
         v = record("sniffles", fmt="GT:GQ:DR:DV", sample="0/1:20:4:3")
         self.assertIsNone(filter_record(v, "sniffles", 7, 3, 20, 10))

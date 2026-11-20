@@ -253,8 +253,9 @@ caller-specific criteria:
 
 Depth and ALT-support fields are read from each caller's VCF rather
 than treated as interchangeable annotations. The public wrapper
-uses `FORMAT/DP` (or documented allele-depth sums where necessary)
-and `FORMAT/AD` for pbsv; `FORMAT/GQ`, `FORMAT/DR`, `FORMAT/DV`
+requires an explicit `FORMAT/DP` or `INFO/DP` value and uses
+`FORMAT/AD` for ALT-support counts in pbsv; `FORMAT/GQ`,
+`FORMAT/DR`, and `FORMAT/DV`
 for Sniffles; and `QUAL`, depth, and `INFO/SUPPORT` for SVIM.
 Records lacking required values are excluded and counted in a
 per-caller audit file, rather than being assumed to pass.

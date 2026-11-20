@@ -67,10 +67,8 @@ def allele_depth(genotype, info):
 
 
 def depth_and_alt(caller, genotype, info):
-    ad_depth, ad_alt = allele_depth(genotype, info)
+    _, ad_alt = allele_depth(genotype, info)
     depth = numeric(genotype.get("DP", info.get("DP")))
-    if depth is None:
-        depth = ad_depth
     if caller == "svim":
         alt = numeric(info.get("SUPPORT"))
         if alt is None:
