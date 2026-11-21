@@ -66,6 +66,8 @@ different haplotypes must not be combined by numeric position alone.
 
 ## 2. Seven-step workflow
 
+![Gene annotation workflow](../gene_annotation_workflow.png)
+
 ### 1) Repeat soft masking
 
 To reduce interference from repetitive sequence during gene annotation,
