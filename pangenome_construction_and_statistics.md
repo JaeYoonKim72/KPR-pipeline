@@ -1,6 +1,6 @@
 # pangenome_construction_and_statistics.sh
 
-Construction of the pangenome graphs with Minigraph–Cactus, graph indexing, and
+This is the explanation of construction of the pangenome graphs with Minigraph–Cactus, graph indexing, and
 assessment of the graphs: graph statistics, pangenome size, variants derived
 from the graph, growth curves, bubbles, non-reference nodes and non-reference
 sequence.
