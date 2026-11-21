@@ -15,6 +15,7 @@ Run in the order below; each script consumes the output of the previous one.
 |---|---|---|---|
 | 1 | `genome_assembly_and_statistics.sh` | Long-read and Hi-C read QC, haplotype-resolved *de novo* assembly, polishing, assembly statistics, repeat and gene annotation, structural variant detection | [docs](genome_assembly_and_statistics.md) |
 | 2 | `pangenome_construction_and_statistics.sh` | Pangenome graph construction from the quality-controlled assemblies, graph statistics, graph-derived variants, growth curves, bubbles and non-reference sequence | [docs](pangenome_construction_and_statistics.md) |
+| 2-2 | `gene_annotation_and_copy_number_analysis.sh` | Ensemble gene annotation and copy-number gain analysis | [docs](gene_annotation_and_copy_number_analysis.md) |
 | 2-1 | `compare_pangenome_variant_counts.sh` | SV and small-variant decomposition of the graph-derived variants and comparison between the KPR and HPRC haplotypes at the locus and allele level | [docs](compare_pangenome_variant_counts.md) |
 | 3 | `pangenome_short_read_mapping.sh` | Short-read mapping to the pangenome graph and graph-based small variant and structural variant calling | [docs](pangenome_short_read_mapping.md) |
 | 3-1 | `pangenome_variant_benchmarking.sh` | Long-read truth sets of Korean individuals and benchmarking of the graph-based and GRCh38 small variant and structural variant calls with hap.py and Truvari | [docs](pangenome_variant_benchmarking.md) |
