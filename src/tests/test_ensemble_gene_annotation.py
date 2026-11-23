@@ -77,7 +77,7 @@ class GeneAnnotationWorkflowTests(unittest.TestCase):
         self.assertIn("≥95%", self.doc)
 
     def test_author_year_references_and_clean_shell(self):
-        self.assertIn("## References", self.doc)
+        self.assertIn("## 9. References", self.doc)
         self.assertIn("(Wu et al., 2026)", self.doc)
         self.assertIn("(Camacho et al., 2009)", self.doc)
         self.assertIn("(Asri et al., 2026)", self.doc)
