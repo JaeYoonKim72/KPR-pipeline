@@ -505,18 +505,17 @@ For SVs, Truvari distinguishes matching alleles from
 matching genotypes. Let `B` denote `base cnt` (truth
 variants) and `C` denote `comp cnt` (query variants):
 
-\[
-\mathrm{Recall}_{GT}=\frac{\mathrm{TP\text{-}base\_TP\text{-}gt}}{B}
-\]
+```math
+\mathrm{Recall}_{GT} = \frac{\text{TP-base\_TP-gt}}{\text{base cnt}}
+```
 
-\[
-\mathrm{Precision}_{GT}=\frac{\mathrm{TP\text{-}comp\_TP\text{-}gt}}{C}
-\]
+```math
+\mathrm{Precision}_{GT} = \frac{\text{TP-comp\_TP-gt}}{\text{comp cnt}}
+```
 
-\[
-F_1=\frac{2\,\mathrm{Precision}_{GT}\,\mathrm{Recall}_{GT}}
-{\mathrm{Precision}_{GT}+\mathrm{Recall}_{GT}}
-\]
+```math
+F_1 = \frac{2 \cdot \mathrm{Precision}_{GT} \cdot \mathrm{Recall}_{GT}}{\mathrm{Precision}_{GT} + \mathrm{Recall}_{GT}}
+```
 
 A genotype-discordant SV match contributes one truth-side
 FN (`TP-base_FP-gt`) and one query-side FP
@@ -530,15 +529,13 @@ not be substituted for GT-aware TP.
 **Presence** represents the fraction of truth variants
 with a matching query allele, independent of genotype:
 
-\[
-\mathrm{Presence}_{small}
-=\frac{\mathrm{TRUTH.TP}+\mathrm{BK{=}am}}{\mathrm{TRUTH.TOTAL}}
-\]
+```math
+\mathrm{Presence}_{\mathrm{small}} = \frac{\text{TRUTH.TP} + \text{BK=am}}{\text{TRUTH.TOTAL}}
+```
 
-\[
-\mathrm{Presence}_{SV}
-=\frac{\mathrm{TP\text{-}base}}{\mathrm{base\ cnt}}
-\]
+```math
+\mathrm{Presence}_{\mathrm{SV}} = \frac{\text{TP-base}}{\text{base cnt}}
+```
 
 Here, `BK=am` identifies genotype-only mismatches in
 the hap.py annotated truth records. **GT concordance**
@@ -631,11 +628,9 @@ The analysis is **child-centered**, restricted
 to autosomal child non-reference variants with
 testable diploid genotypes for all three members.
 
-\[
-\mathrm{Observed\ inconsistency\ rate\ (\%)}
-=\frac{\mathrm{Observed\ inconsistent\ child\ variants}}
-{\mathrm{Testable\ child\ nonreference\ variants}}\times100
-\]
+```math
+\text{Observed inconsistency rate (\%)} = \frac{\text{Observed inconsistent child variants}}{\text{Testable child non-reference variants}} \times 100
+```
 
 This rate is a genotype inheritance incompatibility
 measure, not proof of calling errors or of de novo
@@ -659,11 +654,9 @@ using the same Truvari criteria in Section 7.
 - **Outside confidence:** the candidate is outside
   the corresponding truth-set confidence region.
 
-\[
-\mathrm{False\ inconsistent\ rate\ (\%)}
-=\frac{\mathrm{False\ inconsistent\ variants}}
-{\mathrm{True\ inconsistent}+\mathrm{False\ inconsistent}}\times100
-\]
+```math
+\text{False inconsistent rate (\%)} = \frac{\text{False inconsistent variants}}{\text{True inconsistent variants} + \text{False inconsistent variants}} \times 100
+```
 
 The denominator contains only adjudicated
 inconsistent variants from the truth-confidence
