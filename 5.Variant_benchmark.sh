@@ -187,7 +187,7 @@ small_truth_sample() {
     | bcftools norm -f "${GRCH38}" -m -any -Ou \
     | bcftools view -m2 -M2 -v indels -Ou \
     | bcftools +fill-tags -Ou -- -t FORMAT/VAF \
-    | bcftools view -i "${GQ} && (${VAF}) && STRLEN(ALT)>STRLEN(REF) && STRLEN(ALT)-STRLEN(REF)<=50" -Oz -o "${OUT}/${S}.INS.truth.vcf.gz
+    | bcftools view -i "${GQ} && (${VAF}) && STRLEN(ALT)>STRLEN(REF) && STRLEN(ALT)-STRLEN(REF)<=50" -Oz -o "${OUT}/${S}.INS.truth.vcf.gz"
   index_vcf "${OUT}/${S}.DEL.truth.vcf.gz"
   index_vcf "${OUT}/${S}.INS.truth.vcf.gz"
 }
