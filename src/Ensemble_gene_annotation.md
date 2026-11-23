@@ -3,7 +3,7 @@
 The ensemble gene annotation workflow identifies protein-coding genes in
 haplotype-resolved assemblies while reducing false-positive predictions.
 It follows the hybrid gene-annotation strategy described for Asian
-Pangenome Project phase 1 (APGp1; Wu et al., 2026), combining `de novo` prediction,
+Pangenome Project phase 1 (APGp1) (Wu et al., 2026), combining `de novo` prediction,
 protein-to-genome alignment and reference annotation transfer.
 The workflow consists of seven stages using RepeatMasker, AUGUSTUS,
 Exonerate, Liftoff, BLASTp and HMM-Flagger classification data.
