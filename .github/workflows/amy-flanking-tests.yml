@@ -13,6 +13,15 @@ on:
       - 'src/select_svim_asm_truvari.py'
       - 'src/tests/test_sv_truvari.py'
       - 'src/Variant_benchmark.md'
+      - '5.Variant_benchmark.sh'
+      - 'src/sv_truth_helper.py'
+      - 'src/sv_truth_readsupport.py'
+      - 'src/prepare_sv_autosome.py'
+      - 'src/summarize_benchmark.py'
+      - 'src/classify_benchmark_fn.py'
+      - 'src/trio_mendelian_inconsistency.sh'
+      - 'src/summarize_mendelian.py'
+      - 'src/tests/test_variant_benchmarking.py'
       - 'README.md'
       - '4.compare_pangenome_variant_counts.sh'
       - '3.pangenome_construction_and_statistics.sh'
@@ -43,6 +52,7 @@ jobs:
           bash -n 7.AMY_locus_analysis_in_pagenomegraph.sh
           bash -n 2.Ensemble_gene_annotation.sh
           bash -n 5.Variant_benchmark.sh
+          bash -n src/trio_mendelian_inconsistency.sh
           bash -n 6.pangenome_short_read_mapping.sh
           bash -n 3.pangenome_construction_and_statistics.sh
           bash -n 4.compare_pangenome_variant_counts.sh
@@ -74,3 +84,7 @@ jobs:
         run: python3 -m py_compile src/filter_sv_caller_quality.py src/select_svim_asm_truvari.py
       - name: Check ensemble gene annotation workflow
         run: python3 -m unittest discover -s src/tests -p 'test_ensemble_gene_annotation.py' -v
+      - name: Verify benchmark and trio synthetic metrics
+        run: python3 -m unittest discover -s src/tests -p 'test_variant_benchmarking.py' -v
+      - name: Compile new benchmark helpers
+        run: python3 -m py_compile src/sv_truth_helper.py src/sv_truth_readsupport.py src/prepare_sv_autosome.py src/summarize_benchmark.py src/classify_benchmark_fn.py src/summarize_mendelian.py

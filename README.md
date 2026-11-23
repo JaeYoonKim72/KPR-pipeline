@@ -32,8 +32,9 @@ support reproducible use and interpretation of the implemented workflows.
 The primary analysis is organized into eight numbered stages. Each stage
 has an executable Shell entry point in the repository root and its
 method documentation under `src/`. Stage 2 provides an executable
-seven-step ensemble gene annotation workflow; stage 5 remains a
-placeholder for variant benchmarking.
+seven-step ensemble gene annotation workflow. Stage 5 implements
+variant benchmarking and a separate GIAB trio inheritance-inconsistency
+analysis.
 
 | Stage | Main script | Purpose | Documentation | Version |
 |:--:|---|---|---|---|
@@ -41,7 +42,7 @@ placeholder for variant benchmarking.
 | 2 | `2.Ensemble_gene_annotation.sh` | RepeatMasker, AUGUSTUS, Exonerate, Liftoff, BLASTp and HMM-Flagger-based gene annotation and CNG analysis | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
 | 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
 | 4 | `4.compare_pangenome_variant_counts.sh` | Compare KPR-private, shared and HPRC-private SV and small-variant counts at locus and allele levels | [Documentation](src/compare_pangenome_variant_counts.md) | v1.0 |
-| 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | v1.0 |
+| 5 | `5.Variant_benchmark.sh` | KOR/GIAB small-variant and SV benchmarking; GIAB trio genotype inheritance inconsistency | [Documentation](src/Variant_benchmark.md) | v1.0 |
 | 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | v1.0 |
 | 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | v1.0 |
 | 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | v1.0 |
@@ -51,7 +52,11 @@ placeholder for variant benchmarking.
 `msa_to_vcf.py`, `hudson_fst.py`, `plot_haplotypes.R`,
 `sv_merge_alleles.py`, `filter_sv_caller_quality.py`,
 `select_svim_asm_truvari.py`, `dedup_sample.py`, `count_groups.py`,
-and `summarize_variant_comparison.py`. These tools are in `src/`;
+`summarize_variant_comparison.py`, `sv_truth_helper.py`,
+`sv_truth_readsupport.py`, `prepare_sv_autosome.py`,
+`summarize_benchmark.py`, `classify_benchmark_fn.py`,
+`trio_mendelian_inconsistency.sh` and `summarize_mendelian.py`.
+These tools are in `src/`;
 they are invoked by the main pipelines where applicable and can
 also be run independently using the documented arguments.
 
@@ -95,6 +100,25 @@ export REFERENCE_FA=/path/to/reference/GRCh38.fa
 OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh check
 OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh all
 ```
+
+Stage 5 requires seven KOR samples or the HG002 GIAB truth sets,
+plus matching high-confidence BED intervals. Its pipeline and trio
+inheritance-inconsistency procedures can be run separately:
+
+```bash
+export REF_DIR=/path/to/reference
+export TRUTH_DIR=/path/to/benchmark_truth
+export QUERY_DIR=/path/to/benchmark_query
+export SAMPLE_LIST=/path/to/lists/benchmark_samples.list
+export CONF_BED_DIR=/path/to/benchmark_truth/confidence_beds
+export OUT_DIR=/path/to/results/stage5
+bash 5.Variant_benchmark.sh check
+bash 5.Variant_benchmark.sh all
+```
+
+See [stage 5](src/Variant_benchmark.md) for the GIAB HG002 truth-set
+mode, Mendelian trio input layout, and false-negative classifications.
+Truvari v5.5.0 requires Python 3.12 or later.
 
 The AMY population-genetics stage takes **a joint, phased, biallelic
 SNP VCF and disjoint population sample-ID lists**, not copy-specific
@@ -151,8 +175,9 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
   by **Truvari bench** (≤500-bp reference distance; ≥70% sequence and
   size similarity). Only then are the per-sample consensus SVs merged
   across the 14 QC-passed KOR individuals using **SURVIVOR (100 bp)**.
-  Stage 5's seven-person benchmark truth-set construction is separate
-  and currently documented as a not-yet-implemented workflow.
+  Stage 5 separately constructs ≥1/≥2/3 read-caller-supported
+  SV truth sets for seven KOR samples, and uses the ≥2 set for
+  primary benchmarking. See the [stage 5 methods](src/Variant_benchmark.md).
 - Stage 6 uses GATK BQSR on graph-projected and linear-reference BAMs;
   supply indexed GRCh38 known-sites VCFs via `BQSR_KNOWN_SITES`.
   DeepVariant, Manta and Delly consume the recalibrated BAMs.
