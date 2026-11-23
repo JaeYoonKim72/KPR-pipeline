@@ -4,6 +4,10 @@ on:
     paths:
       - '8.Population_genetics_in_AMY_flanking_locus.sh'
       - '1.genome_assembly_and_statistics.sh'
+      - '2.Ensemble_gene_annotation.sh'
+      - 'src/Ensemble_gene_annotation.md'
+      - 'src/tests/test_ensemble_gene_annotation.py'
+      - 'gene_annotation_workflow.png'
       - 'src/genome_assembly_and_statistics.md'
       - 'src/filter_sv_caller_quality.py'
       - 'src/select_svim_asm_truvari.py'
@@ -68,3 +72,5 @@ jobs:
         run: python3 -m unittest discover -s src/tests -p 'test_sv_truvari.py' -v
       - name: Validate added Python helpers
         run: python3 -m py_compile src/filter_sv_caller_quality.py src/select_svim_asm_truvari.py
+      - name: Check ensemble gene annotation workflow
+        run: python3 -m unittest discover -s src/tests -p 'test_ensemble_gene_annotation.py' -v

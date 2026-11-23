@@ -31,13 +31,14 @@ support reproducible use and interpretation of the implemented workflows.
 
 The primary analysis is organized into eight numbered stages. Each stage
 has an executable Shell entry point in the repository root and its
-method documentation under `src/`. Stages 2 and 5 are explicit
-placeholders and do not implement analyses.
+method documentation under `src/`. Stage 2 provides an executable
+seven-step ensemble gene annotation workflow; stage 5 remains a
+placeholder for variant benchmarking.
 
 | Stage | Main script | Purpose | Documentation | Version |
 |:--:|---|---|---|---|
 | 1 | `1.genome_assembly_and_statistics.sh` | Long-read assemblies, assembly quality control, and Truvari-supported structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
-| 2 | `2.Ensemble_gene_annotation.sh` | Reserved Ensembl/GENCODE annotation workflow | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
+| 2 | `2.Ensemble_gene_annotation.sh` | RepeatMasker, AUGUSTUS, Exonerate, Liftoff, BLASTp and HMM-Flagger-based gene annotation and CNG analysis | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
 | 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
 | 4 | `4.compare_pangenome_variant_counts.sh` | Compare KPR-private, shared and HPRC-private SV and small-variant counts at locus and allele levels | [Documentation](src/compare_pangenome_variant_counts.md) | v1.0 |
 | 5 | `5.Variant_benchmark.sh` | Reserved truth-set benchmarking workflow | [Documentation](src/Variant_benchmark.md) | v1.0 |
@@ -79,6 +80,20 @@ bash 3.pangenome_construction_and_statistics.sh all
 bash 4.compare_pangenome_variant_counts.sh all
 bash 6.pangenome_short_read_mapping.sh all
 bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
+```
+
+Stage 2 additionally requires a haplotype-assembly manifest with
+`sample`, `group`, `fasta`, and `flagger_bed` columns,
+the GRCh38 GENCODE v46 annotation, human Swiss-Prot release 2024_01,
+and precomputed HMM-Flagger BED classifications:
+
+```bash
+export SAMPLE_TABLE=/path/to/lists/gene_annotation_samples.tsv
+export SWISSPROT_FA=/path/to/reference/uniprot_sprot.human.2024_01.fasta
+export GENCODE_GTF=/path/to/reference/gencode.v46.annotation.gtf.gz
+export REFERENCE_FA=/path/to/reference/GRCh38.fa
+OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh check
+OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh all
 ```
 
 The AMY population-genetics stage takes **a joint, phased, biallelic
@@ -148,8 +163,11 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
 - Stage 8's optional genomewide feature needs an indexed
   joint all-chromosome VCF (chr1 for the default pilot, chr1–22
   for the manuscript-scale configuration).
-- Stages 2 and 5 are placeholders; they exit with
-  `NOT IMPLEMENTED` rather than report false success.
+- Stage 2 implements seven annotation stages and optional CNG tables;
+  RepeatMasker, AUGUSTUS, Exonerate, Liftoff and BLASTp may run natively,
+  while HMM-Flagger BED classifications are inputs. See the
+  [stage 2 instructions](src/Ensemble_gene_annotation.md).
+- Stage 5 remains a placeholder and exits with `NOT IMPLEMENTED`.
 
 ## Data availability
 
