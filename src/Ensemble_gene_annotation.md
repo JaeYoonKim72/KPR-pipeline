@@ -202,25 +202,20 @@ supplementary-table integration.
 | `OUT_DIR` | `./results/gene_annotation` | Output directory |
 | `RUN_MODE` | `tools` | Run native tools or read cached outputs |
 | `AUGUSTUS_SPECIES` | `human` | AUGUSTUS species model |
-| `MIN_PROTEIN_IDENTITY` | `95` | AUGUSTUS vs Swiss-Prot protein identity (%) |
-| `MIN_BLASTP_IDENTITY` | `90` | BLASTp identity for new gene annotations (%) |
-| `MIN_EXONERATE_IDENTITY` | `90` | Additional Exonerate alignment identity (%) in source pipeline |
-| `MIN_PROTEIN_COVERAGE` | `80` | Minimum protein alignment coverage (%) |
-| `MIN_LIFTOFF_OVERLAP` | `80` | Reciprocal coding-interval support (%) |
-| `MIN_EXON_SUPPORT` | `80` | Supported AUGUSTUS coding exons (%) |
-| `MIN_INTRON_SUPPORT` | `80` | Supported AUGUSTUS introns (%) |
-| `MIN_INTRON_MATCH` | `80` | AUGUSTUS–Liftoff intron concordance (%) |
-| `MIN_UNANNOTATED_OVERLAP` | `95` | Strict Exonerate–AUGUSTUS CDS overlap for new loci (%) |
-| `EXONERATE_BATCH_BP` | `4000000` | Approximate batch size for protein-to-genome alignment |
+| `MIN_PROTEIN_IDENTITY` | `95` | AUGUSTUS–Swiss-Prot amino acid sequence identity (%) |
+| `MIN_BLASTP_IDENTITY` | `90` | BLASTp amino acid sequence identity for candidates without a Liftoff annotation (%) |
+| `MIN_LIFTOFF_OVERLAP` | `80` | Reciprocal CDS overlap with Liftoff annotation (%) |
+| `MIN_INTRON_MATCH` | `80` | Intron structure concordance with Liftoff annotation (%) |
 | `CHM13_ANNOTATION` | Unset | Optional GENCODE-ID-compatible CHM13 annotation |
 | `SATELLITE_LIBRARY` | Unset | Optional additional repeat library |
 | `PROTEIN_GENE_MAP` | Unset | Optional protein-to-gene mapping table |
 
-The key identity thresholds are **95% for AUGUSTUS–Swiss-Prot
-candidate validation** and **90% for BLASTp validation of genes
-not overlapping Liftoff annotations**. The Exonerate command's
-`--percent 80` controls alignment reporting and is distinct
-from either amino acid identity cutoff.
+The principal thresholds described in the manuscript are **95% amino
+acid identity** for AUGUSTUS candidates supported by Swiss-Prot,
+**80% reciprocal CDS overlap and intron concordance** against Liftoff,
+and **90% amino acid identity** for BLASTp annotation of candidates
+without Liftoff overlap. Exonerate's `--percent 80` is an alignment
+reporting-score threshold, not an amino acid identity threshold.
 
 ---
 
@@ -234,8 +229,8 @@ Each haplotype is processed separately under
 | Output | Contents |
 |---|---|
 | `samples/SAMPLE/mask/` | Masked assembly FASTA and input audit |
-| `samples/SAMPLE/augustus/orf_review.tsv` | Validated AUGUSTUS coding transcript candidates |
-| `samples/SAMPLE/exonerate/protein_support_review.tsv` | Protein identity, coding coverage and alignment checks |
+| `samples/SAMPLE/augustus/orf_review.tsv` | AUGUSTUS coding transcript candidate records |
+| `samples/SAMPLE/exonerate/protein_support_review.tsv` | Exonerate alignment and Swiss-Prot protein-support records |
 | `samples/SAMPLE/liftoff/liftoff.gff3` | GRCh38/GENCODE transferred annotation |
 | `samples/SAMPLE/compare/liftoff_structure_review.tsv` | Reciprocal CDS overlap and intron concordance |
 | `samples/SAMPLE/blastp/candidate_review.tsv` | UniProt-supported candidates not annotated by Liftoff |
@@ -257,150 +252,73 @@ and input-provenance files.
 
 ## 6. Analysis procedures
 
-### 6.1 Repeat soft masking
+### 6.1 RepeatMasker soft masking
 
-To reduce interference from repetitive sequence during gene annotation,
-repeats in each assembly are soft-masked using **RepeatMasker v4.1.6**
-(Smit et al., 2015).
-Soft masking preserves the original sequence coordinates. The soft-masked
-assembly is used for coding transcript prediction.
+Soft-masked assembly sequences generated with **RepeatMasker v4.1.6**
+(Smit et al., 2015) are used as input for protein-coding gene prediction.
 
-### 6.2 AUGUSTUS coding transcript prediction
+### 6.2 AUGUSTUS de novo gene prediction
 
-**AUGUSTUS v3.5.0** (Stanke et al., 2008) is used to identify
-coding transcript/ORF candidates.
-Predicted CDSs are translated, and candidates with intact start and stop
-codons and no internal stop codons are selected during coding-model validation.
-The source prediction command and coordinate mapping are retained with each run.
+**AUGUSTUS v3.5.0** (Stanke et al., 2008) predicts candidate
+protein-coding genes and their exon, intron and CDS structures
+from the soft-masked assemblies using:
 
-The de novo prediction branch corresponds to this step. Existing extra-copy
-validation runs that used Exonerate-derived AUGUSTUS hints retain that original
-provenance; their predictions are not relabeled as independent de novo results.
+```text
+--species=human --softmasking=1
+```
 
-### 6.3 Exonerate alignment and candidate selection
+### 6.3 Exonerate protein-to-genome alignment
 
-Human UniProtKB/Swiss-Prot proteins are aligned to candidate genomic regions
-using **Exonerate v2.4.0** (Slater and Birney, 2005):
+In parallel, human **UniProtKB/Swiss-Prot release 2024_01**
+(UniProt Consortium, 2025) proteins are aligned to the same
+soft-masked assemblies with **Exonerate v2.4.0**
+(Slater and Birney, 2005):
 
 ```text
 --model protein2genome --percent 80
 ```
 
-AUGUSTUS predictions are compared with the Exonerate alignments to retain
-protein-supported candidates with amino acid identity >=95%. For the
-Liftoff-unannotated candidate branch, the recorded postprocessing also requires
-matching strand and >=95% CDS overlap in both directions between the AUGUSTUS
-prediction and Exonerate alignment.
+The `--percent 80` option reports alignments scoring at least 80%
+of the maximum attainable score for each query. AUGUSTUS-predicted
+candidates are retained when the amino acid sequence identity to
+the Swiss-Prot protein aligned at the same locus is **≥95%**.
 
-The native Exonerate command also specifies:
+### 6.4 Liftoff annotation transfer
 
-```text
---softmasktarget no
---showvulgar no
---showalignment no
---showquerygff no
---showtargetgff yes
-```
-
-The `--percent 80` reporting option is separate from the subsequent >=95%
-identity filter. The recorded `--softmasktarget no` setting is preserved when
-reproducing this run.
-
-### 6.4 Liftoff gene annotation and extra-copy detection
-
-**Liftoff v1.6.3** (Shumate and Salzberg, 2021) maps GRCh38-based
-GENCODE v46 annotations to each assembly
-and detects additional gene copies using:
+Independently, GRCh38-based **GENCODE v46** annotation
+(Mudge et al., 2025) is mapped onto each KOR assembly using
+**Liftoff v1.6.3** (Shumate and Salzberg, 2021):
 
 ```text
 -copies -sc 0.95 -polish -exclude_partial
 ```
 
-The polished annotation and its gene/transcript hierarchy are retained.
-Loci with explicit `extra_copy_number >= 1` are treated as Liftoff extra-copy
-candidates. Different transcripts of the same gene locus are not counted as
-independent copies.
+This step establishes correspondence between gene structures
+and identifies additional gene copies.
 
-### 6.5 Concordance with Liftoff annotation
+### 6.5 Concordance with Liftoff
 
-The protein-supported AUGUSTUS transcripts are compared with the corresponding
-Liftoff extra-copy transcripts. Extra copies are retained when both
-**reciprocal CDS overlap and intron structure concordance are >=80%**.
-The selected AUGUSTUS coding transcript must also satisfy >=95% amino acid
-identity, intact start/stop codons and absence of internal stop codons.
+Candidates supported by AUGUSTUS and Exonerate are compared with
+the Liftoff annotation. Loci showing **≥80% reciprocal CDS overlap**
+and **≥80% intron structure concordance** are retained.
 
-The Python validation engine retains these additional screening parameters:
+### 6.6 BLASTp annotation of Liftoff-unannotated candidates
 
-```text
---min-identity 90
---min-augustus-identity 95
---min-query-coverage 80
---min-pred-coverage 80
---min-structure-overlap 80
---min-exon-support 80
---min-intron-support 80
---min-intron-chain-match 80
-```
+For candidates that do not overlap any Liftoff annotation,
+the predicted protein sequences are searched against the human
+UniProtKB/Swiss-Prot database using **BLASTp v2.15.0**
+(Camacho et al., 2009). Candidates with **≥90% amino acid
+sequence identity** are assigned annotations based on the
+corresponding homologous protein matches and added to the
+annotation set.
 
-Here, `--min-identity 90` belongs to the earlier Exonerate-support stage;
-`--min-augustus-identity 95` controls the final AUGUSTUS protein identity.
-The >=80% Liftoff concordance criteria are distinct from the >=95%
-AUGUSTUS/Exonerate CDS-overlap criterion used for unannotated-region candidates.
+### 6.7 HMM-Flagger reliability filtering
 
-### 6.6 BLASTp review of candidates without Liftoff annotation
-
-Predicted proteins from candidates supported by AUGUSTUS and Exonerate but
-lacking a corresponding Liftoff annotation are searched against human
-UniProtKB/Swiss-Prot using **BLASTp v2.15.0** (Camacho et al., 2009):
-
-```text
--task blastp-fast
--comp_based_stats 0
--seg yes
--evalue 1e-5
--max_target_seqs 20
--max_hsps 1
--outfmt "6 qseqid sseqid pident qcovhsp length qlen slen qstart qend sstart send evalue bitscore stitle"
-```
-
-The BLASTp review applies the following thresholds (the additional coverage and ORF filters are retained from the source pipeline):
-
-- Amino acid identity >=90% (the manuscript's BLASTp threshold).
-- Query coverage >=95%.
-- Reference coverage >=80%.
-- Complete ORFs with no internal stop codons or ambiguous translations.
-
-Candidates with >=50% lowercase CDS bases are excluded from the eligible set
-as repeat-dominated predictions. The saved review also excludes the specified
-LINE-1 ORF1 reference and quarantines the designated DUX-family and uncertain
-REXO1L1P reference matches. Hits within 99% of the best bit score are checked
-for conflicting gene symbols; ambiguous assignments are not automatically added.
-
-Passing candidates receive homologous protein information and enter the
-additional-annotation candidate set. All eligible loci in `all_loci.tsv` are
-considered during integration. No minimum of three new gene copies is required for integration.
-
-### 6.7 HMM-Flagger filtering and final integration
-
-The gene sets obtained from steps 5 and 6 are screened against the matching
-assembly-specific **HMM-Flagger classification tracks**
-(Asri et al., 2026).
-
-- Use the original Liftoff gene span for an existing extra copy.
-- Use the projected AUGUSTUS gene span for a new candidate without Liftoff annotation.
-- Exclude a locus if it overlaps a Dup, Col or Err region by at least 1 bp.
-- Retain newly assessed loci only when their entire spans are covered by Haploid regions.
-- Record unknown classification, incomplete BED coverage or unmatched contigs separately.
-
-One-based inclusive annotation coordinates are converted to zero-based
-half-open BED coordinates. Haplotype identity is checked when matching contigs,
-and overlapping BED intervals are evaluated by covered-base union.
-
-Before adding a new annotation, compare it with the full existing Liftoff gene
-annotation. The current integration quarantines candidates overlapping an
-existing Liftoff gene span rather than automatically adding duplicate or
-conflicting loci. Overlapping same-symbol/same-strand candidate spans are
-merged conservatively; adjacent nonoverlapping loci remain separate.
+The gene set obtained from steps 5 and 6 is assessed using
+**HMM-Flagger v1.0.0** assembly-reliability classifications
+(Asri et al., 2026). Only genes whose **entire genomic span
+lies within regions classified as haploid (Hap)** are retained
+in the final annotation.
 
 ---
 
@@ -443,14 +361,9 @@ are not interchangeable. Where an HMM-Flagger BED is shared
 across multiple assemblies without an explicit contig mapping,
 the code does not treat unassigned segments as reliable Hap coverage.
 
-The original source pipeline also includes additional screening
-of translated ORFs, ambiguous Swiss-Prot gene assignments, repeats
-and incomplete alignments. These extra filters are documented in
-the detailed stages above and may make its results more restrictive
-than the threshold summary in the main manuscript Methods.
-Output files from the portable implementation should not be
-presented as historical manuscript results without a corresponding
-run and audit.
+Results from a new run depend on the input assemblies, reference
+resources and annotation files. Outputs should be associated with
+their recorded inputs and execution parameters.
 
 ---
 
