@@ -4,7 +4,7 @@ Variant-calling accuracy was assessed by comparing SNPs, small insertions and
 deletions, and structural insertions and deletions from graph-based and
 GRCh38-based call sets against reference truth sets. The workflow includes
 the GIAB v4.2.1 small-variant truth set, T2T-HG002-Q100 v1.1 structural-variant
-truth set, and long-read-derived truth sets for seven KOR individuals (Figures 4a–b and 4d–e; Tables a1, a3 and S29–S30)
+truth set, and long-read-derived truth sets for seven KOR individuals (Figures 4a–b and 4d–e)
 (Wagner et al., 2022; English et al., 2022).
 
 The pipeline uses hap.py with RTG vcfeval for small variants and Truvari
@@ -267,16 +267,18 @@ is separate from the seven-sample benchmarking average.
 
 ## 5. Output
 
+### 5.1 Output files
+
 ~~~text
 results/benchmarking/
 ├── autosomes.bed
 ├── truth/
 │   ├── small/SAMPLE/                   SNP/DEL/INS truth VCFs
-│   └── sv/SAMPLE/                      caller-filtered and supported SV sets
-│       └── ge1/, ge2/, ge3/           read-support evidence and INS/DEL truth
+│   └── sv/SAMPLE/                      Filtered SVIM-asm and read-based SVs
+│       └── ge1/, ge2/, ge3/           Caller support and INS/DEL truth sets
 ├── query/
-│   ├── small/SAMPLE/                   preprocessed query VCFs
-│   └── sv/SAMPLE/                      preprocessed SV query VCFs
+│   ├── small/SAMPLE/                   Small-variant query VCFs
+│   └── sv/SAMPLE/                      SV query VCFs
 ├── bench/
 │   ├── small/SAMPLE/                   hap.py *.summary.csv and annotated *.vcf.gz
 │   └── sv/SAMPLE/DATASET/LEVEL/TYPE/   Truvari summary.json, tp-base, tp-comp, fp, fn
@@ -287,7 +289,7 @@ results/benchmarking/
 │   ├── kor_sv_mean.tsv
 │   └── fn_failure_classes.tsv
 └── mendelian/REFERENCE.TRIO/
-    ├── SNP.annot.vcf.gz, Indel.annot.vcf.gz, INS.annot.vcf.gz, DEL.annot.vcf.gz
+    ├── CLASS.annot.vcf.gz
     ├── CLASS.mcv.vcf.gz
     ├── CLASS.child_mcv.vcf.gz
     ├── CLASS.truth.vcf.gz or CLASS.truvari/
@@ -295,11 +297,138 @@ results/benchmarking/
     └── mendelian_variant_adjudication.tsv
 ~~~
 
-The `mendelian_summary.tsv` retains total, child non-reference and
-testable variants, observed Mendelian-consistent and -inconsistent
-counts and rates, adjudicated true/false inconsistent variants,
-and the false-inconsistent rate. An unresolved or unsupported
-truth comparison is recorded separately, not silently counted false.
+Here, `SAMPLE` identifies an individual; `DATASET` identifies KPR,
+HPRC+KPR, HPRC or the GRCh38-based caller; `LEVEL` identifies the
+SV truth-support threshold (`ge1`, `ge2` or `ge3`); and `TYPE`
+identifies SNP, INS, DEL or the corresponding small-indel class.
+
+### 5.2 Reporting groups and source files
+
+The reporting layout distinguishes three analyses:
+
+| Analysis | Reference panels | Variant groups |
+|---|---|---|
+| GIAB individual benchmarking | KPR, HPRC+KPR, HPRC, GRCh38 | Small variants (hap.py), SV (INS + DEL), INS, DEL |
+| Seven KOR individual benchmarking | KPR, HPRC+KPR, HPRC, GRCh38 | Small variants (hap.py), SNP (hap.py), small insertion (hap.py), small deletion (hap.py), SV (INS + DEL), INS, DEL |
+| GIAB trio inheritance inconsistency | KPR, HPRC+KPR, HPRC, GRCh38 | Small variants, SNP, small indel (1–50 bp), SV, INS, DEL |
+
+The GIAB individual benchmarking layout includes HG001–HG007,
+but SV truth-based comparison is available for HG002 only in the
+supplied results. The current `giab_truth` command also prepares
+HG002 only; reproducing other GIAB individuals requires their
+corresponding inputs. For the KOR analyses, the seven individual
+rows are summarized by sample-level means. Combined small-variant
+or SV panels are calculated from the corresponding variant classes;
+combined rates are recalculated from their numerator and denominator
+rather than obtained by summing or averaging class-specific rates.
+
+The source fields below are those embedded in the reporting
+headers. The public pipeline exports additional TSV fields with
+different names; Section 5.5 gives their exact headers.
+
+### 5.3 Variant-benchmarking report headers
+
+The individual benchmark layouts begin with `Num` and `Sample ID`,
+followed by the 13 fields below for each variant group.
+
+For small variants, `*.summary.csv` is the hap.py summary and
+`*.vcf.gz` is its annotated comparison VCF. The annotated VCF's
+truth record carries `BK` categories used to classify false
+negatives. For SVs, `summary.json` is the Truvari benchmark
+output. The 13 reporting fields, in order, are:
+
+| Report header | Small variants: hap.py source field or formula | SV: Truvari source field or formula |
+|---|---|---|
+| Truth set (small) / Truth (SV) | `TRUTH.TOTAL` | `base cnt`; main KOR SV truth is SVIM-asm supported by ≥2 of pbsv, Sniffles and SVIM |
+| Sample variant | `QUERY.TP + QUERY.FP` | `comp cnt` |
+| Intersected variant | `TRUTH.TP + BK=am` | `TP-base` (allele matching, regardless of GT) |
+| Genotype-matched variant | `TRUTH.TP` | `TP-base_TP-gt` |
+| Unmatched sample variant | `QUERY.FP` | `FP + TP-comp_FP-gt` |
+| Unmatched truth variant | `TRUTH.FN` | `FN + TP-base_FP-gt` |
+| Detection failure | `BK=.` among unmatched truth variants | Custom FN classification: no corresponding query call within ±500 bp, or independently established absence of the truth allele from the personalized GBZ |
+| Matching failure | `BK=lm + BK=am` among unmatched truth variants | Unmatched truth variants minus confirmed detection failures; allele or GT discordance, with unresolved cases kept separate |
+| Presence | `(TRUTH.TP + BK=am) / TRUTH.TOTAL` | `TP-base / base cnt` |
+| Genotype concordance | `TRUTH.TP / (TRUTH.TP + BK=am)` | `gt_concordance` |
+| Recall | `METRIC.Recall` | `TP-base_TP-gt / base cnt` |
+| Precision | `METRIC.Precision` | `TP-comp_TP-gt / comp cnt` |
+| F1 | `METRIC.F1_Score` | `2 × Recall × Precision / (Recall + Precision)` |
+
+For small variants, `BK=.`, `BK=lm` and `BK=am`
+refer to hap.py annotations, not independently named columns
+in `summary.csv`. In the small-variant report, `Sample variant`
+is explicitly defined as `QUERY.TP + QUERY.FP`. The current
+`kor_small_detail.tsv` helper's `Query` field instead reads
+`QUERY.TOTAL`. These source expressions should not be silently
+interchanged without checking the individual hap.py output.
+
+For SVs, `TP-base` counts allele matches, whereas
+`TP-base_TP-gt` and `TP-comp_TP-gt` count genotype-concordant
+matches. The extra genotype-discordant counts
+`TP-base_FP-gt` and `TP-comp_FP-gt` must be included in
+GT-aware FN and FP, respectively. Truvari's `fn.vcf.gz`
+does not itself identify detection versus matching causes;
+the separate FN-classification file supplies this assessment.
+
+### 5.4 Mendelian-inconsistency report headers
+
+The trio results use the same ten columns for **small variants,
+SNP, small indel (1–50 bp), SV, INS and DEL**, with `Num`
+and `Trio` as identifying headers. The table below gives the
+reporting header, its corresponding `mendelian_summary.tsv`
+field, and the calculation or source.
+
+| Report header | Output TSV header | Source or calculation |
+|---|---|---|
+| Total variants | `total_variants` | Total variant records considered in the class |
+| Child alt variants (autosome) | `child_alt_variants` | Autosomal child non-reference variants |
+| Testable child variants (autosome) | `testable_child_variants` | Child non-reference variants with testable diploid trio genotypes |
+| Observed mendel consistent variants | `observed_consistent` | `testable_child_variants − observed_inconsistent` |
+| Observed mendel inconsistent variants | `observed_inconsistent` | RTG `mendelian`-flagged sites carrying `INFO/MCV` |
+| Observed mendel inconsistent rate (%) | `observed_inconsistent_rate_pct` | `100 × observed_inconsistent / testable_child_variants` |
+| Inconsistent variants intersected with truth set | `intersected_with_truth_set` | Confidence-restricted, adjudicated inconsistent variants (`true_inconsistent + false_inconsistent`) |
+| True inconsistent variants | `true_inconsistent` | Observed inconsistent variants whose **child** allele and GT match the truth |
+| False inconsistent variants | `false_inconsistent` | Observed inconsistent variants whose **child** call is unsupported or GT-discordant within an adjudicable confidence region |
+| False inconsistent variant rate (%) | `false_inconsistent_rate_pct` | `100 × false_inconsistent / intersected_with_truth_set` |
+
+`Observed mendel inconsistent rate (%)` uses all testable
+autosomal child non-reference variants as its denominator.
+`False inconsistent variant rate (%)` uses only the
+confidence-restricted, adjudicated inconsistent variants.
+The fields `outside_confidence`,
+`unresolved_inside_confidence` and `truth_unavailable`
+record exclusions and unavailable adjudications separately.
+Missing SV truth data for the HG005–HG007 trio are not
+reported as zero false-inconsistent variants. These
+classifications verify the child's genotype against truth;
+they do not independently establish the correctness of
+both parents' genotypes.
+
+### 5.5 Exact headers exported by the helper scripts
+
+The reporting names above and the pipeline TSV headers are
+related but not identical. The following are the column
+names written by the current helper scripts:
+
+| Output file | TSV headers |
+|---|---|
+| `summary/kor_small_detail.tsv` | `Sample`, `Dataset`, `Type`, `Truth`, `Query`, `TP`, `FN`, `FP`, `Precision`, `Recall`, `F1`, `Presence`, `GT_concordance`, `FN_detection_no_query`, `FN_matching_allele`, `FN_matching_genotype` |
+| `summary/kor_sv_detail.tsv` | `Sample`, `Dataset`, `Support`, `Type`, `Truth`, `Query`, `TP`, `FN`, `FP`, `Precision`, `Recall`, `F1`, `Presence`, `GT_concordance`, `Matched_alleles`, `GT_discordant_truth`, `GT_discordant_query` |
+| `summary/kor_small_mean.tsv` | `Type`, `Dataset`, `N`, `Truth_mean`, `Query_mean`, `TP_mean`, `FN_mean`, `FP_mean`, then `Precision_mean`, `Precision_sd`, `Recall_mean`, `Recall_sd`, `F1_mean`, `F1_sd`, `Presence_mean`, `Presence_sd`, `GT_concordance_mean`, `GT_concordance_sd` |
+| `summary/kor_sv_mean.tsv` | `Support`, `Type`, `Dataset`, `N`, followed by the same mean and SD headers as `kor_small_mean.tsv` |
+| `summary/fn_failure_classes.tsv` | `sample`, `dataset`, `variant_group`, `support_level`, `type`, `chrom`, `pos`, `id`, `classification`, `evidence` |
+| `mendelian/REFERENCE.TRIO/mendelian_summary.tsv` | `reference`, `trio`, `class`, `total_variants`, `child_alt_variants`, `testable_child_variants`, `observed_consistent`, `observed_inconsistent`, `observed_inconsistent_rate_pct`, `intersected_with_truth_set`, `true_inconsistent`, `false_inconsistent`, `false_inconsistent_rate_pct`, `outside_confidence`, `unresolved_inside_confidence`, `truth_unavailable` |
+| `mendelian/REFERENCE.TRIO/mendelian_variant_adjudication.tsv` | `reference`, `trio`, `class`, `chrom`, `pos`, `id`, `child_gt`, `status` |
+
+The `FN_detection_no_query`,
+`FN_matching_allele` and `FN_matching_genotype`
+fields are counts from the hap.py annotated truth records.
+SV failure causes are provided at variant level in
+`fn_failure_classes.tsv`. The reporting layout's
+`Detection failure` and `Matching failure` columns
+require aggregation by sample, dataset and variant class;
+these two columns are not emitted as separate aggregate
+columns by `kor_sv_detail.tsv`.
+
 
 ---
 
@@ -330,7 +459,7 @@ difference, **≥70%** size similarity and **≥70%** sequence
 similarity. The `ge1`, `ge2`, and `ge3` sets contain
 SVIM-asm variants supported by at least one, at least two,
 or all three read-based callers. The **ge2** set is used
-for the main SV truth benchmark (Table S30).
+for the main SV truth benchmark.
 
 Only INS and DEL are included. At least one read caller that
 supports the SVIM-asm allele must have both **ALT-supporting
@@ -544,7 +673,7 @@ genotypes are not independently re-verified against
 their own truth sets, the terms true and false here
 describe **truth-concordance of the child's call**,
 not verified biological truth of the trio inheritance
-event (Figure 4c; Table a2).
+event (Figure 4c).
 
 Figure 4c contains the SNP, small-indel, INS and DEL
 results for HG002–HG004. HG005–HG007 results are
