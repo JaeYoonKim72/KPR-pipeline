@@ -76,6 +76,20 @@ class GeneAnnotationWorkflowTests(unittest.TestCase):
         self.assertIn("≥90%", self.doc)
         self.assertIn("≥95%", self.doc)
 
+    def test_author_year_references_and_clean_shell(self):
+        self.assertIn("## References", self.doc)
+        self.assertIn("(Wu et al., 2026)", self.doc)
+        self.assertIn("(Camacho et al., 2009)", self.doc)
+        self.assertIn("(Asri et al., 2026)", self.doc)
+        self.assertNotIn("Source IDs in the manuscript", self.doc)
+        self.assertNotIn("The workflow figure below corresponds to Figure SX1", self.doc)
+        self.assertNotIn("[R1]", self.doc)
+        self.assertTrue(self.script.startswith("#!/usr/bin/env bash"))
+        self.assertFalse(any(
+            line.lstrip().startswith("#")
+            for line in self.script.splitlines()[1:]
+        ))
+
     def test_placeholder_removed(self):
         self.assertNotIn("NOT IMPLEMENTED", self.script)
         self.assertNotIn("run_test.sh", self.script)

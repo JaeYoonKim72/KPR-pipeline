@@ -3,7 +3,7 @@
 The ensemble gene annotation workflow identifies protein-coding genes in
 haplotype-resolved assemblies while reducing false-positive predictions.
 It follows the hybrid gene-annotation strategy described for Asian
-Pangenome Project phase 1 (APGp1), combining `de novo` prediction,
+Pangenome Project phase 1 (APGp1; Wu et al., 2026), combining `de novo` prediction,
 protein-to-genome alignment and reference annotation transfer.
 The workflow consists of seven stages using RepeatMasker, AUGUSTUS,
 Exonerate, Liftoff, BLASTp and HMM-Flagger classification data.
@@ -20,9 +20,8 @@ This script can execute the native annotation tools (`RUN_MODE=tools`)
 or validate and integrate previously generated tool outputs
 (`RUN_MODE=outputs`). It does not independently run HMM-Flagger;
 the per-assembly classification BED is required as an input.
-The workflow figure below corresponds to Figure SX1 in the manuscript.
 
-![Figure SX1. Ensemble gene annotation workflow](../gene_annotation_workflow.png)
+![Ensemble gene annotation workflow](../gene_annotation_workflow.png)
 
 Part of the [KPR-pipeline](../README.md) repository.
 
@@ -53,9 +52,10 @@ manuscript, rather than a claim that the script installs them.
 ### 1.2 Reference data
 
 Prepare the GRCh38 reference FASTA, GRCh38-based GENCODE v46
-annotation, and **human UniProtKB/Swiss-Prot release 2024_01**
-protein sequences. These resources must correspond to the versions
-used in the study. For GENCODE:
+annotation (Mudge et al., 2025), and **human UniProtKB/Swiss-Prot
+release 2024_01** protein sequences (UniProt Consortium, 2025).
+These resources must correspond to the versions used in the study.
+For GENCODE:
 
 ~~~bash
 mkdir -p reference
@@ -260,13 +260,15 @@ and input-provenance files.
 ### 6.1 Repeat soft masking
 
 To reduce interference from repetitive sequence during gene annotation,
-repeats in each assembly are soft-masked using **RepeatMasker v4.1.6**.
+repeats in each assembly are soft-masked using **RepeatMasker v4.1.6**
+(Smit et al., 2015).
 Soft masking preserves the original sequence coordinates. The soft-masked
 assembly is used for coding transcript prediction.
 
 ### 6.2 AUGUSTUS coding transcript prediction
 
-**AUGUSTUS v3.5.0** is used to identify coding transcript/ORF candidates.
+**AUGUSTUS v3.5.0** (Stanke et al., 2008) is used to identify
+coding transcript/ORF candidates.
 Predicted CDSs are translated, and candidates with intact start and stop
 codons and no internal stop codons are selected during coding-model validation.
 The source prediction command and coordinate mapping are retained with each run.
@@ -278,7 +280,7 @@ provenance; their predictions are not relabeled as independent de novo results.
 ### 6.3 Exonerate alignment and candidate selection
 
 Human UniProtKB/Swiss-Prot proteins are aligned to candidate genomic regions
-using **Exonerate v2.4.0**:
+using **Exonerate v2.4.0** (Slater and Birney, 2005):
 
 ```text
 --model protein2genome --percent 80
@@ -306,7 +308,8 @@ reproducing this run.
 
 ### 6.4 Liftoff gene annotation and extra-copy detection
 
-**Liftoff v1.6.3** maps GRCh38-based GENCODE v46 annotations to each assembly
+**Liftoff v1.6.3** (Shumate and Salzberg, 2021) maps GRCh38-based
+GENCODE v46 annotations to each assembly
 and detects additional gene copies using:
 
 ```text
@@ -348,7 +351,7 @@ AUGUSTUS/Exonerate CDS-overlap criterion used for unannotated-region candidates.
 
 Predicted proteins from candidates supported by AUGUSTUS and Exonerate but
 lacking a corresponding Liftoff annotation are searched against human
-UniProtKB/Swiss-Prot using **BLASTp v2.15.0**:
+UniProtKB/Swiss-Prot using **BLASTp v2.15.0** (Camacho et al., 2009):
 
 ```text
 -task blastp-fast
@@ -375,12 +378,13 @@ for conflicting gene symbols; ambiguous assignments are not automatically added.
 
 Passing candidates receive homologous protein information and enter the
 additional-annotation candidate set. All eligible loci in `all_loci.tsv` are
-considered during integration. No minimum of three new gene copies is imposed by the current annotation integration.
+considered during integration. No minimum of three new gene copies is required for integration.
 
 ### 6.7 HMM-Flagger filtering and final integration
 
 The gene sets obtained from steps 5 and 6 are screened against the matching
-assembly-specific **HMM-Flagger classification tracks**.
+assembly-specific **HMM-Flagger classification tracks**
+(Asri et al., 2026).
 
 - Use the original Liftoff gene span for an existing extra copy.
 - Use the projected AUGUSTUS gene span for a new candidate without Liftoff annotation.
@@ -457,7 +461,22 @@ Liftoff v1.6.3; BLASTp/BLAST+ v2.15.0;
 precomputed HMM-Flagger v1.0.0 classifications;
 Python 3.9+ and Biopython.
 
-The annotation strategy follows APGp1. Source IDs in the
-manuscript: APGp1 [R1], RepeatMasker [25], AUGUSTUS [R2],
-Exonerate [R3], UniProtKB/Swiss-Prot [R4], GENCODE [R5],
-Liftoff [59], BLASTp [R6], and HMM-Flagger [R7].
+## References
+
+Wu D, Yang C, Chen Q, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
+
+Smit AFA, Hubley R, Green P. (2015). *RepeatMasker Open-4.0* (2013–2015). https://www.repeatmasker.org/
+
+Stanke M, Diekhans M, Baertsch R, Haussler D. (2008). Using native and syntenically mapped cDNA alignments to improve de novo gene finding. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btn013
+
+Slater GSC, Birney E. (2005). Automated generation of heuristics for biological sequence comparison. *BMC Bioinformatics*. https://doi.org/10.1186/1471-2105-6-31
+
+The UniProt Consortium. (2025). UniProt: the Universal Protein Knowledgebase in 2025. *Nucleic Acids Research*. https://doi.org/10.1093/nar/gkae1010
+
+Mudge JM, Carbonell-Sala S, Diekhans M, et al. (2025). GENCODE 2025: reference gene annotation for human and mouse. *Nucleic Acids Research*. https://doi.org/10.1093/nar/gkae1078
+
+Shumate A, Salzberg SL. (2021). Liftoff: accurate mapping of gene annotations. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btaa1016
+
+Camacho C, Coulouris G, Avagyan V, et al. (2009). BLAST+: architecture and applications. *BMC Bioinformatics*. https://doi.org/10.1186/1471-2105-10-421
+
+Asri M, Eizenga JM, Hebbar P, et al. (2026). Evaluating genome assemblies with HMM-Flagger. *bioRxiv*. https://doi.org/10.64898/2026.02.27.708355

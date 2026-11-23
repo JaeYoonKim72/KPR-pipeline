@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Seven-step ensemble gene annotation and copy-number analysis.
-# RepeatMasker, AUGUSTUS, Exonerate, Liftoff, BLASTp, and HMM-Flagger tracks.
 
 set -euo pipefail
 
-###############################################################################
-# Configuration
-###############################################################################
 
 THREADS=${THREADS:-8}
 
@@ -17,37 +12,22 @@ OUT_DIR=${OUT_DIR:-$(pwd)/results/gene_annotation}
 TMP_DIR=${TMP_DIR:-}
 LOG_OUT=${LOG_OUT:-}
 
-# tools: run native programs; outputs: reuse supplied program outputs.
 RUN_MODE=${RUN_MODE:-tools}
 PYTHON_BIN=${PYTHON_BIN:-${PYTHON:-python3}}
 AUGUSTUS_SPECIES=${AUGUSTUS_SPECIES:-human}
 
-# --- reference files ---------------------------------------------------------
-# GRCh38-based GENCODE v46 annotation:
-#   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_46/gencode.v46.annotation.gtf.gz
 GENCODE_GTF=${GENCODE_GTF:-${REF_DIR}/gencode.v46.annotation.gtf.gz}
 
-# Human UniProtKB/Swiss-Prot FASTA, shared by Exonerate and BLASTp.
 SWISSPROT_FA=${SWISSPROT_FA:-${REF_DIR}/uniprot_sprot.human.fasta}
 
-# Required when Liftoff is run natively. If unset, reference/GRCh38.fa is used
-# when it exists. Cached-output replay does not require a reference FASTA.
 REFERENCE_FA=${REFERENCE_FA:-}
 
-# Optional files: CHM13 annotation carrying the same GENCODE IDs for Table S13,
-# a second RepeatMasker library, and a protein_id/gene mapping TSV.
 CHM13_ANNOTATION=${CHM13_ANNOTATION:-}
 SATELLITE_LIBRARY=${SATELLITE_LIBRARY:-}
 PROTEIN_GENE_MAP=${PROTEIN_GENE_MAP:-}
 
-# --- sample table ------------------------------------------------------------
-# Required columns: sample, group, fasta, flagger_bed (tab-delimited).
-# Groups: KPR, HPRC-EAS, HPRC-nEAS. Each row is one haplotype assembly.
-# File paths are relative to this table, or absolute.
 SAMPLE_TABLE=${SAMPLE_TABLE:-${LIST_DIR}/samples.tsv}
 
-# --- candidate validation ----------------------------------------------------
-# Identity and coverage settings are percentages, not fractions.
 MIN_PROTEIN_IDENTITY=${MIN_PROTEIN_IDENTITY:-95}
 MIN_BLASTP_IDENTITY=${MIN_BLASTP_IDENTITY:-90}
 MIN_EXONERATE_IDENTITY=${MIN_EXONERATE_IDENTITY:-90}
@@ -59,11 +39,6 @@ MIN_INTRON_MATCH=${MIN_INTRON_MATCH:-80}
 MIN_UNANNOTATED_OVERLAP=${MIN_UNANNOTATED_OVERLAP:-95}
 EXONERATE_BATCH_BP=${EXONERATE_BATCH_BP:-4000000}
 
-# BLASTp review additionally requires query coverage >=95%, reference coverage
-# >=80%, complete ORFs and <50% lowercase CDS. Ambiguous near-best assignments
-# and the specified repeat-associated reference matches are excluded.
-# Flagger filtering requires the entire gene span to be Hap; any >=1 bp
-# overlap with Dup, Col or Err excludes that locus.
 
 ENGINE_ARGS=()
 
@@ -76,8 +51,6 @@ die() {
   exit 2
 }
 
-# Command-line overrides are retained for compatibility with existing commands.
-# The same settings may instead be supplied as environment variables above.
 parse_options() {
   while [[ $# -gt 0 ]]; do
     if [[ "$1" == --*=* ]]; then
@@ -132,7 +105,6 @@ configure_runtime() {
   LOG_OUT=${LOG_OUT:-${OUT_DIR}/logs}
   mkdir -p "${OUT_DIR}" "${LOG_OUT}" "${TMP_DIR}"
 
-  # Native programs may use TMPDIR; the working data remain under OUT_DIR.
   export TMPDIR="$(cd -- "${TMP_DIR}" && pwd)"
   export CNG_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
 
@@ -167,130 +139,77 @@ configure_runtime() {
 }
 
 run_stage() {
-  # pipefail preserves the engine's exit status. Keep stderr separate while
-  # recording both output streams in the shared pipeline log.
   run_engine "$1" 2> >(tee -a "${LOG_OUT}/pipeline.log" >&2) | \
     tee -a "${LOG_OUT}/pipeline.log"
 }
 
-###############################################################################
-# Step 1. Repeat soft masking
-###############################################################################
 
 softmask() {
   log "step 1: repeat soft masking"
 
-  # 1-1) RepeatMasker v4.1.6, human library: -species human -xsmall.
-  # 1-2) Optional second round with SATELLITE_LIBRARY.
-  #      Coordinates and uppercase sequence are checked against the input.
   run_stage mask
 
   log "step 1 finished"
 }
 
-###############################################################################
-# Step 2. De novo coding transcript prediction
-###############################################################################
 
 predict_orfs() {
   log "step 2: AUGUSTUS coding transcript prediction"
 
-  # 2-1) AUGUSTUS v3.5.0: --species=human --softmasking=1 --gff3=on.
-  # 2-2) Translate CDSs and retain complete ORFs without internal stop codons
-  #      or ambiguous translations. Preserve any supplied hints provenance.
   run_stage augustus
 
   log "step 2 finished"
 }
 
-###############################################################################
-# Step 3. Protein alignment and candidate selection
-###############################################################################
 
 protein_support() {
   log "step 3: Exonerate protein support"
 
-  # 3-1) Exonerate v2.4.0: --model protein2genome --percent 80
-  #      --softmasktarget no --showtargetgff yes; project batch coordinates.
-  # 3-2) Compare predicted proteins with Swiss-Prot (identity >=95%) and check
-  #      CDS, exon and intron support. Unannotated candidates use CDS >=95%.
   run_stage exonerate
 
   log "step 3 finished"
 }
 
-###############################################################################
-# Step 4. GENCODE-based annotation and extra-copy detection
-###############################################################################
 
 gene_annotation() {
   log "step 4: Liftoff annotation and extra-copy detection"
 
-  # 4-1) Liftoff v1.6.3, GRCh38/GENCODE v46:
-  #      -copies -sc 0.95 -polish -exclude_partial.
-  # 4-2) Retain polished gene/transcript relationships and copy indices.
   run_stage liftoff
 
   log "step 4 finished"
 }
 
-###############################################################################
-# Step 5. Concordance with Liftoff annotation
-###############################################################################
 
 compare_annotations() {
   log "step 5: comparison with Liftoff extra-copy transcripts"
 
-  # 5-1) Match protein-supported AUGUSTUS and Liftoff transcripts.
-  # 5-2) Require reciprocal CDS overlap and intron-chain concordance >=80%.
-  # 5-3) Export proteins from supported loci without a Liftoff gene overlap.
   run_stage compare
 
   log "step 5 finished"
 }
 
-###############################################################################
-# Step 6. Homology search for candidates without Liftoff annotation
-###############################################################################
 
 search_unannotated() {
   log "step 6: BLASTp review of Liftoff-unannotated candidates"
 
-  # 6-1) BLASTp v2.15.0: -task blastp-fast -comp_based_stats 0 -seg yes
-  #      -evalue 1e-5 -max_target_seqs 20 -max_hsps 1.
-  # 6-2) Apply identity/coverage, complete-ORF, repeat and ambiguity filters.
-  #      Homology support alone does not establish copy-number gain.
   run_stage blastp
 
   log "step 6 finished"
 }
 
-###############################################################################
-# Step 7. HMM-Flagger filtering and final annotation
-###############################################################################
 
 filter_flagger() {
   log "step 7: assembly-error filtering and final annotation"
 
-  # 7-1) Use original Liftoff gene spans or projected AUGUSTUS gene spans.
-  # 7-2) Exclude >=1 bp Dup/Col/Err overlap; require full Hap coverage.
-  # 7-3) Write final annotations and count independent confirmed gene loci.
-  #      Read supplied HMM-Flagger BEDs; do not rerun HMM-Flagger here.
   run_stage flagger
 
   log "step 7 finished"
 }
 
-###############################################################################
-# Tables. Annotation ratios and group-specific CNG summaries
-###############################################################################
 
 make_tables() {
   log "tables: annotation ratios and CNG summaries"
 
-  # Table S13 is optional and uses CHM13 GENCODE-ID denominators.
-  # Tables S14-S17 contain per-haplotype counts, assembly-frequency bins,
-  # group frequencies, differences and group-specific/shared CNG gene lists.
   run_stage tables
 
   log "tables finished"
@@ -304,20 +223,11 @@ check_inputs() {
 run_all() {
   log "running steps 1-7 and table generation"
 
-  # The engine executes mask -> augustus -> exonerate -> liftoff -> compare
-  # -> blastp -> flagger -> tables in one process. This avoids hashing the
-  # same cohort FASTA files again between individual steps.
   run_stage all
 
   log "all steps finished"
 }
 
-###############################################################################
-# Internal filtering engine
-###############################################################################
-# The same validated engine is embedded to keep this .sh self-contained.
-# It runs the native tools or reads cached outputs, checks coordinates and
-# completion records, and writes the reviews and tables for each step.
 
 run_engine() {
   "${PYTHON_BIN}" - "$@" "${ENGINE_ARGS[@]}" <<'PY'
@@ -513,7 +423,6 @@ def translation(t,fa):
         else:phaseok=phaseok and p==((3-len(dna)%3)%3)
         seg=fa.get(t['contig'],s,e)
         dna+=str(Seq(seg).reverse_complement()) if t['strand']=='-' else seg
-    # AUGUSTUS CDS may omit the terminal stop, provided separately as stop_codon.
     if t['stops'] and not dna[-3:].upper() in ('TAA','TAG','TGA'):
         remaining=[]
         for s,e in t['stops']:
@@ -530,7 +439,6 @@ def translation(t,fa):
     internal=protein.count('*');ambiguous=any(x not in 'ACDEFGHIKLMNPQRSTVWY*' for x in protein)
     coding=merged(parts)
     if stop and dna[-3:].upper() in ('TAA','TAG','TGA'):
-        # Remove the stop from the CDS interval used for protein-alignment overlap.
         n=3 if len(dna)==sum(e-s for s,e in parts) else 0
         order=list(reversed(coding)) if t['strand']=='+' else coding[:]
         for piece in order:
@@ -756,7 +664,6 @@ class Pipeline:
         else:
             need(self.a.reference_fasta,'--reference-fasta required for Liftoff')
             ref=plain(self.a.reference_fasta,d/'reference.fa');gtf=plain(self.a.reference_gtf,d/'reference.gtf')
-            # Liftoff creates indices; copy references so user inputs remain read-only.
             localref=d/'liftoff_reference.fa';localgtf=d/'liftoff_reference.gtf'
             shutil.copyfile(ref,localref);shutil.copyfile(gtf,localgtf)
             target=d/'target.fa';shutil.copyfile(self.data(r,'mask')['fasta'],target)
@@ -942,7 +849,6 @@ class Pipeline:
         rows=[]
         for r in self.rows:
             lif=self.data(r,'liftoff');ids=defaultdict(set)
-            # S13 is based on original Liftoff unique reference IDs, not Swiss-Prot additions.
             for gid,g in lif['genes'].items():
                 ref=canonical(gid,g['copy'])
                 if ref in self.reference_genes:ids['protein_coding_genes' if g['biotype']=='protein_coding' else 'noncoding_genes'].add(ref)
@@ -1011,7 +917,6 @@ def cng(genes,new,refcounts,reference_genes):
     for t in new:by[t['gene']].append(t);types[t['gene']]='protein_coding';newcount[t['gene']]+=1
     result={};review=[]
     for gene,items in sorted(by.items()):
-        # Count independent same-symbol/same-strand loci, not transcript isoforms.
         keys=defaultdict(list)
         for g in items:keys[g['contig'],g['strand']].append([g['start0'],g['end0']])
         n=0
@@ -1080,9 +985,6 @@ if __name__=='__main__':
 PY
 }
 
-###############################################################################
-# Entry point
-###############################################################################
 
 usage() {
   cat <<'EOF'
