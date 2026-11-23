@@ -367,14 +367,7 @@ their recorded inputs and execution parameters.
 
 ---
 
-## Software and versions
-
-RepeatMasker v4.1.6; AUGUSTUS v3.5.0; Exonerate v2.4.0;
-Liftoff v1.6.3; BLASTp/BLAST+ v2.15.0;
-precomputed HMM-Flagger v1.0.0 classifications;
-Python 3.9+ and Biopython.
-
-## References
+## 9. References
 
 Wu D, Yang C, Chen Q, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
 
@@ -393,3 +386,12 @@ Shumate A, Salzberg SL. (2021). Liftoff: accurate mapping of gene annotations. *
 Camacho C, Coulouris G, Avagyan V, et al. (2009). BLAST+: architecture and applications. *BMC Bioinformatics*. https://doi.org/10.1186/1471-2105-10-421
 
 Asri M, Eizenga JM, Hebbar P, et al. (2026). Evaluating genome assemblies with HMM-Flagger. *bioRxiv*. https://doi.org/10.64898/2026.02.27.708355
+
+---
+
+## 10. Software and versions
+
+RepeatMasker v4.1.6; AUGUSTUS v3.5.0; Exonerate v2.4.0;
+Liftoff v1.6.3; BLASTp/BLAST+ v2.15.0;
+precomputed HMM-Flagger v1.0.0 classifications;
+Python 3.9+ and Biopython.
