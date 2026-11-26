@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use KPR-pipeline in research, please cite the software and associated study."
+type: software
+title: "KPR-pipeline: Korean Pangenome Reference construction and analysis"
+version: "1.0.0"
+authors:
+  - family-names: "Kim"
+    given-names: "Jae-Yoon"
+    affiliation: "Genomic Medicine Research Center, Korea Research Institute of Bioscience and Biotechnology (KRIBB)"
+abstract: >-
+  Eight command-line workflows for Korean long-read genome assembly and
+  quality assessment, ensemble gene annotation, pangenome construction,
+  variant comparison and benchmarking, GIAB trio genotype inheritance
+  inconsistency assessment, graph-based short-read mapping, and
+  structural and population-genetic analysis of the AMY locus.
+  Source code and documentation are provided; input datasets and
+  pangenome graph resources are distributed separately.
+keywords:
+  - pangenome
+  - Korean genomes
+  - genome assembly
+  - graph genome
+  - structural variants
+  - variant benchmarking
+  - AMY locus
+  - population genetics
+license: MIT
+repository-code: "https://github.com/JaeYoonKim72/KPR-pipeline"
+url: "https://github.com/JaeYoonKim72/KPR-pipeline"
