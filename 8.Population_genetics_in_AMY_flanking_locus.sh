@@ -12,8 +12,6 @@ PROJECTION_N="${PROJECTION_N:-168}"
 CALL_RATE="${CALL_RATE:-0.90}"
 THREADS="${THREADS:-4}"
 POPS="${POPS:-}"
-# Fast/optional and publication-scale uncertainty analyses.
-# Defaults are safe exploratory settings; see the docs for manuscript settings.
 INDIVIDUAL_CI="${INDIVIDUAL_CI:-0}"
 IND_BOOT_REPS="${IND_BOOT_REPS:-100}"
 IND_JACKKNIFE_FRACTION="${IND_JACKKNIFE_FRACTION:-0.30}"
@@ -100,7 +98,6 @@ while (( $# )); do
  *) echo "[ERROR] unknown argument: $1" >&2; exit 2;;
  esac
 done
-# --vcf is parsed after the environment defaults; inherit it for genomic runs.
 [[ -n "$GENOME_VCF" ]] || GENOME_VCF="$VCF"
 [[ -n "$XPNSL_VCF" ]] || XPNSL_VCF="$VCF"
 if [[ -n "$POPS" ]]; then
@@ -129,8 +126,6 @@ if [[ -n "$CALLABLE_BED" ]]; then
 else
  echo "[WARNING] No StrictMask BED: physical length, not callable bp, used for diversity denominator." >&2
 fi
-# Use indexed region extraction to avoid streaming whole-autosome VCFs for
-# distal/proximal flanking estimators and individual resampling. Never reuse stale extracted VCFs.
 prepare_flanking_vcf() {
  if [[ -z "${FLANK_VCF:-}" ]]; then
    FLANK_VCF="$OUT_DIR/intermediate/amy_distal_proximal_flanking.vcf.gz"
@@ -238,8 +233,6 @@ run_xpnsl() {
   done
  done
 }
-# Optional CI for SNP-level pi/thetaW/TajimaD/within-LD/across-LD/FST.
-# selscan-based nSL/XP-nSL CI needs separate reruns + genomewide normalization.
 run_individual_ci() {
  prepare_flanking_vcf
  python3 "$SRC_DIR/amy_flank_individual_ci.py" \
@@ -256,7 +249,6 @@ run_individual_ci() {
 
 run_genomic() {
  [[ -s "$GENOME_VCF" ]] || { echo "[ERROR] GENOME_VCF missing: $GENOME_VCF" >&2; return 1; }
- # A stand-alone genomic run creates distal/proximal flanking estimates if not yet present.
  if [[ ! -s "$OUT_DIR/stats/diversity.tsv" ]]; then calc diversity; fi
  if (( ${#NAMES[@]} > 1 )) && [[ ! -s "$OUT_DIR/stats/hudson_fst.tsv" ]]; then calc fst; fi
  local additional=()

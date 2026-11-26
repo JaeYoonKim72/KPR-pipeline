@@ -121,7 +121,6 @@ prepare_input() {
     return 1
   fi
 
-  # Prepare interval coordinates before streaming; exclude variants only after vcfbub.
   { zcat "${CENTROMERES}" | awk -v OFS='\t' '{print $2, $3, $4}'
     zcat "${GAPS}" | awk -v OFS='\t' '$8 == "telomere" {print $2, $3, $4}'
   } | sort -k1,1 -k2,2n > "${IN_OUT}/exclude.cen_telo.bed"

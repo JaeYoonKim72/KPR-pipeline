@@ -11,32 +11,18 @@ LIST_DIR=${LIST_DIR:-$(pwd)/lists}
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 SRC_DIR=${SRC_DIR:-${SCRIPT_DIR}/src}
 
-# --- reference files ---------------------------------------------------------
-# GRCh38 primary assembly (soft-masked)
-#   https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
 GRCH38=${GRCH38:-${REF_DIR}/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa}
 
-# Ensembl Regulatory Build, used by QUAST-LG as the feature track
-#   https://ftp.ensembl.org/pub/release-108/regulation/homo_sapiens/homo_sapiens.GRCh38.Regulatory_Build.regulatory_features.20221007.gff.gz
 GRCH38_GFF=${GRCH38_GFF:-${REF_DIR}/homo_sapiens.GRCh38.Regulatory_Build.regulatory_features.gff.gz}
 
-# T2T-CHM13 v2.0
-#   https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz
 CHM13=${CHM13:-${REF_DIR}/chm13v2.0.fa}
 
-# GENCODE v38 annotation
-#   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.annotation.gtf.gz
 GENCODE_GTF=${GENCODE_GTF:-${REF_DIR}/gencode.v38.annotation.gtf}
 
-# Augmented CHM13 satellite library used in the second RepeatMasker round
-#   https://github.com/marbl/CHM13  (T2T-CHM13 repeat annotation resources)
 SAT_LIB=${SAT_LIB:-${REF_DIR}/chm13_satellite_library.fa}
 
-# Kraken2 database for contaminant screening of the LCL-derived assemblies
-#   https://benlangmead.github.io/aws-indexes/k2
 KRAKEN_DB=${KRAKEN_DB:-${REF_DIR}/kraken2_db}
 
-# --- sample lists (one sample ID per line) -----------------------------------
 HIFI_LIST=${HIFI_LIST:-${LIST_DIR}/hifi.list}         # PacBio HiFi samples
 ONT_LIST=${ONT_LIST:-${LIST_DIR}/ont.list}            # ONT PromethION samples
 HIC_LIST=${HIC_LIST:-${LIST_DIR}/hic.list}            # samples with Hi-C data
@@ -44,7 +30,6 @@ QC_PASS_LIST=${QC_PASS_LIST:-${LIST_DIR}/qc_pass.list}
 ACROCENTRIC_BED=${ACROCENTRIC_BED:-}
 PAFTOOLS=${PAFTOOLS:-paftools.js}
 
-# --- assembly quality thresholds ---------------------------------------------
 MIN_N50=${MIN_N50:-20000000}      # contig N50 >= 20 Mb
 MAX_CONTIG=${MAX_CONTIG:-1500}    # number of contigs <= 1,500
 
@@ -95,7 +80,6 @@ read_qc() {
 
   echo -e "file\traw_reads\traw_bases\traw_depth" > "${QC_OUT}/stats/read_metrics.tsv"
 
-  # 1-1) PacBio HiFi: FastQC v0.12.1, HiFiAdapterFilt v3.0
   while read -r S; do
     [[ -z "${S}" ]] && continue
 
@@ -106,7 +90,6 @@ read_qc() {
     calc_fastq_metrics "${QC_OUT}/trimmed/${S}.hifi.filt.fastq.gz" >> "${QC_OUT}/stats/read_metrics.tsv"
   done < "${HIFI_LIST}"
 
-  # 1-2) ONT PromethION: Porechop v0.2.4, Trimmomatic v0.39
   while read -r S; do
     [[ -z "${S}" ]] && continue
 
@@ -125,7 +108,6 @@ read_qc() {
     calc_fastq_metrics "${QC_OUT}/trimmed/${S}.ont.filt.fastq.gz" >> "${QC_OUT}/stats/read_metrics.tsv"
   done < "${ONT_LIST}"
 
-  # 1-3) Hi-C (Dovetail Omni-C, Illumina NovaSeq X, 2 x 101 bp)
   while read -r S; do
     [[ -z "${S}" ]] && continue
 
@@ -143,7 +125,6 @@ assembly() {
   log "step 2: de novo assembly"
   mkdir -p "${ASM_OUT}"/{hifiasm,hifiasm_hic,flye,hifiasm_ont,fasta,screen}
 
-  # 2-1) HiFi assemblies, HiFiasm v0.24
   while read -r S; do
     [[ -z "${S}" ]] && continue
     mkdir -p "${ASM_OUT}/hifiasm/${S}"
@@ -159,8 +140,6 @@ assembly() {
     done
   done < "${HIFI_LIST}"
 
-  # 2-2) haplotype-resolved assemblies, HiFiasm v0.24 in Hi-C phasing mode
-  #      ultra-long ONT reads are supplied through --ul where available
   while read -r S; do
     [[ -z "${S}" ]] && continue
     mkdir -p "${ASM_OUT}/hifiasm_hic/${S}"
@@ -185,8 +164,6 @@ assembly() {
     done
   done < "${HIC_LIST}"
 
-  # 2-3) PromethION assemblies, Flye v2.9.5 (R10.4.1 data basecalled with Guppy)
-  #      plus HiFiasm v0.25 in ONT mode as an assembler control
   while read -r S; do
     [[ -z "${S}" ]] && continue
 
@@ -199,7 +176,6 @@ assembly() {
             -t "${THREADS}" "${QC_OUT}/trimmed/${S}.ont.filt.fastq.gz"
   done < "${ONT_LIST}"
 
-  # 2-4) removal of non-human contigs from the LCL-derived assemblies
   for FA in "${ASM_OUT}"/fasta/*.raw.fa; do
     B=$(basename "${FA}" .raw.fa)
 
@@ -207,7 +183,6 @@ assembly() {
             --output "${ASM_OUT}/screen/${B}.kraken.out" \
             --report "${ASM_OUT}/screen/${B}.kraken.report" "${FA}"
 
-    # contigs classified as anything other than Homo sapiens (taxid 9606)
     awk '$1=="C" && $3!=9606 {print $2}' "${ASM_OUT}/screen/${B}.kraken.out" \
       > "${ASM_OUT}/screen/${B}.contaminant.ids"
 
@@ -229,13 +204,11 @@ polishing() {
     local S=$1 H=$2 READS=$3
     local ID="${S}_${H}"
 
-    # Inspector v1.3, evaluation of the raw assembly
     inspector.py -c "${ASM_OUT}/fasta/${ID}.fa" \
                  -r "${READS}" \
                  -o "${POLISH_OUT}/eval_raw/${ID}" \
                  --datatype hifi -t "${THREADS}"
 
-    # correction of small-scale errors only
     inspector-correct.py -i "${POLISH_OUT}/eval_raw/${ID}" \
                          --datatype pacbio-hifi \
                          -o "${POLISH_OUT}/corrected/${ID}" \
@@ -244,7 +217,6 @@ polishing() {
     cp "${POLISH_OUT}/corrected/${ID}/contig_corrected.fa" \
        "${POLISH_OUT}/corrected/${ID}.polished.fa"
 
-    # re-evaluation of the corrected assembly
     inspector.py -c "${POLISH_OUT}/corrected/${ID}.polished.fa" \
                  -r "${READS}" \
                  -o "${POLISH_OUT}/eval_final/${ID}" \
@@ -269,7 +241,6 @@ asm_stats() {
   log "step 4: assembly statistics"
   mkdir -p "${STAT_OUT}"/{quast_grch38,quast_chm13,ngx,inspector,misjoin,flagger}
 
-  # 4-1) Inspector summary table
   {
     echo -e "assembly\tQV\tmapping_rate\tdepth\tbase_error\texpansion\tcollapse"
     for F in "${POLISH_OUT}"/stat/*_summary_statistics; do
@@ -284,7 +255,6 @@ asm_stats() {
     done
   } > "${STAT_OUT}/inspector/inspector_summary.tsv"
 
-  # 4-2) QUAST-LG v5.3 against GRCh38 and CHM13
   for FA in "${POLISH_OUT}"/corrected/*.polished.fa; do
     ID=$(basename "${FA}" .polished.fa)
 
@@ -301,7 +271,6 @@ asm_stats() {
       --est-ref-size 3100000000 --no-icarus -t "${THREADS}"
   done
 
-  # 4-3) NGx curves extracted from the QUAST HTML report (values converted to Mb)
   for D in "${STAT_OUT}"/quast_chm13/*/; do
     ID=$(basename "${D}")
     [[ -s "${D}/report.html" ]] || continue
@@ -318,7 +287,6 @@ asm_stats() {
     paste "${D}/x.txt" "${D}/y.txt" > "${STAT_OUT}/ngx/${ID}_ngx.txt"
   done
 
-  # 4-4) assemblies meeting N50 >= 20 Mb and <= 1,500 contigs
   {
     echo -e "assembly\tnum_contigs\tN50\tstatus"
     for D in "${STAT_OUT}"/quast_chm13/*/; do
@@ -371,9 +339,6 @@ asm_stats() {
     log "Acrocentric BED not supplied; candidates reported without contig exclusion."
   fi
 
-  # 4-6) misassembly flagging, HMM-Flagger v1.0.0
-  #      long reads are mapped back to the diploid assembly and each block is
-  #      labelled as erroneous, duplicated, haploid or collapsed
   while read -r S; do
     [[ -z "${S}" ]] && continue
     mkdir -p "${STAT_OUT}/flagger/${S}"
@@ -413,11 +378,9 @@ annotation() {
     FA="${QC_ASM_OUT}/${S}_${H}.polished.fa"
     ID=$(basename "${FA}" .polished.fa)
 
-    # 5-1) RepeatMasker v4.1.6, human repeat library
     RepeatMasker -species human -pa "${THREADS}" -e ncbi -a -xsmall \
       -dir "${ANNOT_OUT}/repeatmasker_human" "${FA}"
 
-    # 5-2) RepeatMasker v4.1.6, augmented CHM13 satellite library
     RepeatMasker -nolow -s -xsmall -e ncbi -pa "${THREADS}" \
       -lib "${SAT_LIB}" \
       -dir "${ANNOT_OUT}/repeatmasker_satellite" \
@@ -425,20 +388,16 @@ annotation() {
 
     MASKED="${ANNOT_OUT}/repeatmasker_satellite/$(basename "${FA}").masked.masked"
 
-    # 5-3) VNTRs with motifs of at least 7 bp
     etrf -m 7 "${MASKED}" > "${ANNOT_OUT}/vntr/${ID}.vntr.bed"
 
-    # 5-4) low-complexity regions
     sdust "${MASKED}" > "${ANNOT_OUT}/lowcomplexity/${ID}.sdust.bed"
 
-    # 5-5) gene annotation and gene copy number, Liftoff v1.6.3 with GENCODE v38
     liftoff -g "${GENCODE_GTF}" \
             -o "${ANNOT_OUT}/liftoff/${ID}.gencode38.gff3" \
             -u "${ANNOT_OUT}/liftoff/${ID}.unmapped.txt" \
             -copies -sc 0.95 -p "${THREADS}" \
             "${FA}" "${GRCH38}"
 
-    # 5-6) protein-coding genes present in more than one copy
     awk -F'\t' '$3=="gene"' "${ANNOT_OUT}/liftoff/${ID}.gencode38.gff3" \
       | grep 'gene_type=protein_coding' \
       | sed -n 's/.*gene_name=\([^;]*\).*/\1/p' \
@@ -462,31 +421,26 @@ sv_calling() {
   while read -r S; do
     [[ -z "${S}" ]] && continue
 
-    # 6-1) read alignment, pbmm2 v1.17
     pbmm2 align "${GRCH38}" "${QC_OUT}/trimmed/${S}.hifi.filt.fastq.gz" \
                 "${SV_OUT}/bam/${S}.GRCh38.bam" \
                 --preset HIFI --sort --rg "@RG\tID:${S}\tSM:${S}" \
                 -j "${THREADS}"
     samtools index -@ 8 "${SV_OUT}/bam/${S}.GRCh38.bam"
 
-    # 6-2) pbsv v2.9.0
     pbsv discover "${SV_OUT}/bam/${S}.GRCh38.bam" "${SV_OUT}/pbsv/${S}.svsig.gz"
     pbsv call -j "${THREADS}" "${GRCH38}" \
               "${SV_OUT}/pbsv/${S}.svsig.gz" "${SV_OUT}/pbsv/${S}.pbsv.vcf"
 
-    # 6-3) Sniffles v2.2, at least 10 supporting reads
     sniffles --input "${SV_OUT}/bam/${S}.GRCh38.bam" \
              --reference "${GRCH38}" \
              --vcf "${SV_OUT}/sniffles/${S}.sniffles.vcf" \
              --minsupport 10 --threads "${THREADS}"
 
-    # 6-4) SVIM v2.0.0, at least 10 supporting reads
     svim alignment "${SV_OUT}/svim/${S}" \
          "${SV_OUT}/bam/${S}.GRCh38.bam" "${GRCH38}" \
          --minimum_depth 10
     cp "${SV_OUT}/svim/${S}/variants.vcf" "${SV_OUT}/svim/${S}.svim.vcf"
 
-    # 6-5) SVIM-asm v1.0.3, assembly based calls from both haplotypes
     for H in 1 2; do
       minimap2 -a -x asm5 --cs -r2k -t "${THREADS}" \
         "${GRCH38}" "${QC_ASM_OUT}/${S}_${H}.polished.fa" \
@@ -498,7 +452,6 @@ sv_calling() {
              "${GRCH38}"
     cp "${SV_OUT}/svimasm/${S}/variants.vcf" "${SV_OUT}/svimasm/${S}.svimasm.vcf"
 
-    # 6-6) Filter individual callers before pairwise Truvari matching.
     declare -A SV_VCFS=()
     local CALLER RAW_VCF FILTERED_VCF BASE_VCF BENCH_DIR
     for CALLER in pbsv sniffles svim svimasm; do
@@ -525,7 +478,6 @@ sv_calling() {
       SV_VCFS["${CALLER}"]="${FILTERED_VCF}.vcf.gz"
     done
 
-    # 6-7) Match SVIM-asm baseline against each read-based caller.
     BASE_VCF="${SV_VCFS[svimasm]}"
     for CALLER in pbsv sniffles svim; do
       BENCH_DIR="${SV_OUT}/truvari/${S}/${CALLER}"
@@ -564,7 +516,6 @@ sv_calling() {
       --audit "${SV_OUT}/merged/${S}.caller_support.tsv"
   done < "${QC_PASS_LIST}"
 
-  # 6-7) cohort merge: use only consensus VCFs from QC-passed samples.
   N_SAMPLE=0
   : > "${SV_OUT}/merged/cohort.filelist"
   while IFS= read -r S || [[ -n "${S}" ]]; do
