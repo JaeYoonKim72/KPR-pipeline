@@ -25,46 +25,19 @@ Each pipeline can be executed independently with dataset-specific inputs and ana
 
 ## Data availability
 
-**Newly generated Korean long-read and Hi-C sequencing data.** Long-read
-sequencing (LRS) data were generated for **19 Korean individuals**:
-**12 individuals** were sequenced using PacBio Revio (HiFi), and
-**seven individuals** using Oxford Nanopore PromethION.
-Hi-C sequencing was additionally performed for **two of the
-Revio-sequenced individuals**, one of whom was also sequenced
-using PromethION. These raw sequencing data are deposited in
-the European Genome-phenome Archive (EGA) under study
-[EGAS50000002074](https://ega-archive.org/studies/EGAS50000002074)
-and dataset
-[EGAD50000002977](https://ega-archive.org/datasets/EGAD50000002977).
+**Newly generated Korean long-read and Hi-C sequencing data.** Long-read sequencing (LRS) data were generated for **19 Korean individuals**: **12 individuals** were sequenced using PacBio Revio (HiFi), and **seven individuals** using Oxford Nanopore PromethION. Hi-C sequencing was additionally performed for **two of the Revio-sequenced individuals**, one of whom was also sequenced using PromethION. These raw sequencing data are deposited in the European Genome-phenome Archive (EGA) under study [EGAS50000002074](https://ega-archive.org/studies/EGAS50000002074) and dataset [EGAD50000002977](https://ega-archive.org/datasets/EGAD50000002977).
 
-**Previously generated Korean PacBio Sequel II data.** Long-read
-sequencing data for **three additional Korean individuals**,
-generated using the **PacBio Sequel II** platform in our previous
-study, are available under EGA study
-[EGAS50000000375](https://ega-archive.org/studies/EGAS50000000375)
-and dataset
-[EGAD50000000552](https://ega-archive.org/datasets/EGAD50000000552).
-Together, the newly generated and previously available long-read
-datasets represent **22 Korean individuals**.
+**Previously generated Korean PacBio Sequel II data.** Long-read sequencing data for **three additional Korean individuals**, generated using the **PacBio Sequel II** platform in our previous study, are available under EGA study [EGAS50000000375](https://ega-archive.org/studies/EGAS50000000375) and dataset [EGAD50000000552](https://ega-archive.org/datasets/EGAD50000000552). Together, the newly generated and previously available long-read datasets represent **22 Korean individuals**.
 
-**Korean BioData Station (K-BDS).** The **same newly generated
-sequencing data from 19 Korean individuals** (12 PacBio Revio
-and seven Oxford Nanopore PromethION datasets, with additional
-Hi-C sequencing for two individuals) are also deposited at
-[K-BDS](https://kbds.re.kr/) under accession **KAP241783**.
-The K-BDS deposit also includes short-read sequencing data
-used in this study.
+**Haploid genome assemblies.** The polished haploid assemblies of **all 22 Korean individuals** — including the three sequenced on PacBio Sequel II in the previous study — are deposited in the EGA under the same study, [EGAS50000002074](https://ega-archive.org/studies/EGAS50000002074), and dataset [EGAD500000XXXXX](https://ega-archive.org/datasets/EGAD500000XXXXX). These are the assemblies described in Supplementary Table S7; the 28 that passed quality control (`KOR-001` to `KOR-014`, two haplotypes each) were used to build the KPR.
 
-**Data access committee.** Access to controlled EGA data is
-governed by the KRIBB Genomic Medicine Research Center
-Data Access Committee (DAC),
-[EGAC50000001142](https://ega-archive.org/dacs/EGAC50000001142).
+**Korean BioData Station (K-BDS).** The **same newly generated sequencing data from 19 Korean individuals** (12 PacBio Revio and seven Oxford Nanopore PromethION datasets, with additional Hi-C sequencing for two individuals) are also deposited at [K-BDS](https://kbds.re.kr/) under accession **KAP241783**. The K-BDS deposit also includes short-read sequencing data used in this study. Genome assemblies are not held at K-BDS.
 
-**Pangenome references and code.** Pangenome graph files and associated
-resources are available through the
-[Korean Genome Research project](https://kgr.appex.kr/).
-Executable workflow scripts and supporting analysis methods
-are maintained in this repository.
+**Pangenome graph files.** The KPR and HPRC+KPR graphs in GFA format are distributed through the [Korean Genome Research project site](https://kgr.appex.kr/). Because the graphs encode the haplotype sequences of identifiable individuals, they are governed by the same access terms as the assemblies from which they are built. Researchers who hold a current DAC approval submit a short form on that site giving the e-mail address named in their approval; **a download link is sent to that address within two working days**. This step is an identity check against an approval already granted, **not a second review** — no further application, justification or scientific assessment is involved, and a request from an approved applicant is not refused. The graphs are also fully reproducible from the deposited assemblies using stage 3 of this repository.
+
+**Data access committee.** Access to the controlled-access data above is governed by the KRIBB Genomic Medicine Research Center Data Access Committee (DAC), [EGAC50000001142](https://ega-archive.org/dacs/EGAC50000001142). The access policy — the categories of research that will be approved, the uses that will not, the review procedure, and the expected decision time — is published at [Policy_KPRv1.0](https://github.com/JaeYoonKim72/Policy_KPRv1.0). Applications are assessed only against eligibility criteria; they are not evaluated on scientific merit or on overlap with the data producers' own work.
+
+**Openly available resources.** The analysis pipelines and methods documentation in this repository (MIT License) and the supplementary tables published with the primary study are available without application to the DAC.
 
 ## Citation
 
