@@ -13,6 +13,10 @@ on:
       - 'src/select_svim_asm_truvari.py'
       - 'src/tests/test_sv_truvari.py'
       - 'src/Variant_benchmark.md'
+      - 'CITATION.cff'
+      - 'docs/REGISTRY_SUBMISSION.md'
+      - 'docs/RELEASE_NOTES_v1.0.0.md'
+      - '.github/workflows/publish-v1.0.0-release.yml'
       - '5.Variant_benchmark.sh'
       - 'src/sv_truth_helper.py'
       - 'src/sv_truth_readsupport.py'
@@ -36,7 +40,7 @@ on:
       - 'src/tests/test_amy_flanking.py'
       - '.github/workflows/amy-flanking-tests.yml'
   push:
-    branches: [amy-flanking-popgen-v1, pangenome-pop-analysis-v1]
+    branches: [main, pangenome-pop-analysis-v1.0]
 jobs:
   smoke:
     runs-on: ubuntu-latest
