@@ -423,13 +423,15 @@ Correspondence with paper supplementary tables:
 
 | Table | Within/between | Current public-code distal/proximal flanking-region coverage | Additional published metrics |
 |---|---|---|---|
-| X1 | Within | π, θW, exploratory Tajima D, raw nSL | Validated projected Tajima D, normalized nSL; all genomic ranks/CIs |
-| X2 | Within | Within-LD, across-LD corrected r² | Distance-matched LD enrichment and genomewide LD rank/interval |
-| X3 | Between | Hudson FST, raw XP-nSL | Normalized XP-nSL, empirical 93:93 subsampling, complete ranks/CIs |
+| S30 | Within-population diversity | π, θW and exploratory Tajima D | Projected Tajima D and genomewide ranks/CIs for π, θW and Tajima D |
+| S31 | Within- and cross-flank LD | Within-LD and across-SVR corrected r² | Distance-matched LD enrichment and genomewide LD rank/interval |
+| S32 | Between-population comparison | Hudson FST and raw XP-nSL | Normalized phased XP-nSL, empirical 93:93 subsampling, complete ranks/CIs |
 
 `status.tsv` distinguishes successfully computed values from raw,
-skipped, or failed stages. **Raw nSL and XP-nSL are not the signed/absolute
-normalized scores required for interpretation in the final paper.**
+skipped, or failed stages. **Raw XP-nSL is not equivalent to the
+normalized phased XP-nSL reported in Table S32.** Unphased within-population
+nSL is an optional exploratory output and is **not reported** in the
+final supplementary Tables S30–S32.
 
 ---
 
@@ -540,9 +542,10 @@ weights from the distal/proximal flanking-region 1-kb pair-distance histogram. I
 an all-autosome rank. Section 9.2 explains how to use the
 previously derived results and compute a corrected-r² ratio.
 
-### 6.6 nSL: within-population haplotype homozygosity
+### 6.6 nSL: optional exploratory within-population analysis
 
-Unphased nSL is calculated with selscan v3.0.1 [6–8,12].
+This optional analysis is not included in the manuscript's final
+within-population results (Table S30). Unphased nSL is calculated with selscan v3.0.1 [6–8,12].
 The core must meet MAF >= 0.05 by default; low-frequency
 markers may contribute to extension under `--keep-low-freq`.
 The distal/proximal flanking-region extension stops at the flank boundary and uses
@@ -874,7 +877,7 @@ observed point estimate 23.66242 and must **not**
 be described as a calibrated 95% confidence interval.
 
 The completed cross-SVR statistics may be shown
-alongside Table X2 as descriptive enrichment.
+alongside Table S31 as descriptive enrichment.
 The public helper currently implements neither
 genomic LD background generation nor LD
 percentile/interval estimation; those modules

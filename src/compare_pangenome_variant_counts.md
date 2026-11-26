@@ -10,7 +10,7 @@ Human Pangenome Reference Consortium (HPRC) graph. Variants are
 deconstructed against GRCh38 and classified as **KPR-private**,
 **shared**, or **HPRC-private**, using the sample-to-population table
 to assign graph haplotypes to the two comparison groups (Figures 3c–d;
-Table S32) [1–4].
+Table S21) [1–4].
 
 Two complementary counting units are reported. A **locus** represents
 a variant position or overlapping reference interval, even when

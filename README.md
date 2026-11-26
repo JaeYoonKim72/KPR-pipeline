@@ -47,6 +47,16 @@ analysis.
 | 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | v1.0 |
 | 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | v1.0 |
 
+Final supplementary-table correspondence: clinical and SRS cohort data (S1–S3);
+long-read samples, assemblies and QC (S4–S12); annotation and copy-number
+analysis (S13–S17); consensus SVs (S18); pangenome graph and variant-count
+analyses (S19–S23); GIAB benchmarking and trio inheritance analysis (S24–S25);
+KOR benchmarking and SRS call sets (S26–S27); AMY locus structural
+haplotypes (S28–S29); and AMY flanking population genetics (S30–S32).
+
+Optional unphased within-population nSL output from stage 8 is exploratory
+and is not reported in the final supplementary tables.
+
 **Helper scripts called by the pipelines:** `decon_split.sh`,
 `typecount.py`, `wline_sample_nodes.py`, `amy_haplotype_tags.py`,
 `msa_to_vcf.py`, `hudson_fst.py`, `plot_haplotypes.R`,
@@ -157,7 +167,7 @@ physical chromosome-stratified block bootstrap (10,000 draws)**.
 Those settings, estimator equations, window definitions and currently
 unsupported metrics are documented in [stage 8](src/Population_genetics_in_AMY_flanking_locus.md).
 Use verified manuscript tables rather than automatically equating
-exploratory public-pipeline values with the final X1/X2/X3 numbers.
+exploratory public-pipeline values with the final Supplementary Tables S30–S32.
 
 ## Requirements
 
@@ -192,7 +202,10 @@ exploratory public-pipeline values with the final X1/X2/X3 numbers.
   RepeatMasker, AUGUSTUS, Exonerate, Liftoff and BLASTp may run natively,
   while HMM-Flagger BED classifications are inputs. See the
   [stage 2 instructions](src/Ensemble_gene_annotation.md).
-- Stage 5 remains a placeholder and exits with `NOT IMPLEMENTED`.
+- Stage 5 implements KOR and GIAB small-variant/SV benchmarking and a separate
+  GIAB trio genotype inheritance inconsistency workflow. Its comparison
+  inputs and high-confidence regions must be supplied as documented;
+  synthetic CI tests do not reproduce the complete manuscript tables.
 
 ## Data availability
 

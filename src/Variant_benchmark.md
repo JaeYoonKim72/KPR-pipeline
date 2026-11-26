@@ -322,6 +322,15 @@ or SV panels are calculated from the corresponding variant classes;
 combined rates are recalculated from their numerator and denominator
 rather than obtained by summing or averaging class-specific rates.
 
+The final supplementary results are presented in Table S24
+(GIAB variant-calling benchmarks), Table S25 (GIAB trio Mendelian
+genotype inheritance inconsistency), and Table S26 (seven KOR
+variant-calling benchmarks). Table S24 additionally reports LRS-based
+SV results that the current stage 5 wrapper does not produce. The
+public GIAB truth preparation step currently supports HG002 only;
+full seven-sample GIAB reproduction requires additional inputs and
+workflow execution beyond that step.
+
 The source fields below are those embedded in the reporting
 headers. The public pipeline exports additional TSV fields with
 different names; Section 5.5 gives their exact headers.

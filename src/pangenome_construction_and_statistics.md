@@ -437,11 +437,12 @@ AMY locus analysis described in
 
 The main checks for manuscript Figure 3 are the
 relative graph complexities and content (Table S19);
-the SNP/indel/SV counts and their panel intersections
-(Figure 3b–d, Table S20); the accumulation of
-non-reference sequence (Figure 3e, Table S21);
+per-sample SNP/indel/SV counts (Table S20), and KPR/HPRC
+private and shared variants at locus and allele levels
+(Figure 3b–d, Table S21); the accumulation of
+non-reference sequence (Figure 3e, Table S22);
 and the repeat composition of panel-specific
-non-reference sequences (Figure 3f–g, Table S22).
+non-reference sequences (Figure 3f–g, Table S23).
 Keep the exact sample/path counts, frequency
 denominators and reference assignment with each table.
 Variant records at the same coordinate with

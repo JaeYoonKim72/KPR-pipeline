@@ -263,7 +263,7 @@ the same as π, θW, Tajima's D, LD, nSL, Hudson FST or XP-nSL from
 the separate flank-level population pipeline.
 
 The principal outputs support manuscript Figure 4 and
-Supplementary Tables S23–S24: the node/gene structure
+Supplementary Tables S28–S29: the node/gene structure
 map; distinct HxAy-Sz structures; sequence tree;
 AMY1 copy-number group counts; and distribution
 across KOR, HPRC-EAS and HPRC-nEAS assembly panels.
@@ -298,7 +298,7 @@ cohort used for flanking population genetics [1].
 
 ## References
 
-1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; Figure 4 and Tables S23–S24.
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; Figure 4 and Tables S28–S29.
 2. Bolognini D, et al. (2024). Recurrent evolution and selection shape structural diversity at the amylase locus. *Nature* 634:617–625. https://doi.org/10.1038/s41586-024-07911-1
 3. Yilmaz F, et al. (2024). Reconstruction of the human amylase locus reveals ancient duplications seeding modern-day variation. *Science*. https://doi.org/10.1126/science.adn0609
 4. Usher CL, et al. (2015). Structural forms of the human amylase locus and their relationships to SNPs, haplotypes and obesity. *Nature Genetics*. https://doi.org/10.1038/ng.3340

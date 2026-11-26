@@ -287,8 +287,10 @@ variant-benchmarking truth-set analysis, including SVIM-asm SV sets
 supported by ≥1, ≥2, or all three read-based callers. The primary
 SV truth set for that benchmarking analysis uses **≥2 read-based
 callers** and adds depth/support filters for INS/DEL. See the
-[stage 5 benchmark design](Variant_benchmark.md). Stage 5 remains
-a placeholder for executing those truth-set and benchmarking analyses.
+[stage 5 benchmark workflow](Variant_benchmark.md). Stage 5 provides
+an executable implementation, but requires the separately prepared
+per-sample input calls, truth sets and confidence regions; public
+synthetic tests do not verify the final manuscript-scale results.
 
 Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 `assembly`; `asm_stats` needs `polishing` and writes `qc_pass.list`;
