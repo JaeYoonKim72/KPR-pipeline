@@ -1,31 +1,8 @@
 # 2.Ensemble_gene_annotation.sh
 
-The ensemble gene annotation workflow identifies protein-coding genes in
-haplotype-resolved assemblies while reducing false-positive predictions.
-It follows the hybrid gene-annotation strategy described for Asian
-Pangenome Project phase 1 (APGp1) (Wu et al., 2026), combining `de novo` prediction,
-protein-to-genome alignment and reference annotation transfer.
-The workflow consists of seven stages using RepeatMasker, AUGUSTUS,
-Exonerate, Liftoff, BLASTp and HMM-Flagger classification data.
-
-AUGUSTUS-derived candidates are first supported by human Swiss-Prot
-proteins and compared with GENCODE v46 annotations transferred from
-GRCh38. Genes not represented in the Liftoff annotation can be added
-after protein homology screening. Only loci whose entire genomic spans
-are classified as haploid by the corresponding assembly-specific
-HMM-Flagger BED are retained. The separate copy-number gain (CNG)
-tables summarize the resulting annotation across sample groups.
-
-This script can execute the native annotation tools (`RUN_MODE=tools`)
-or validate and integrate previously generated tool outputs
-(`RUN_MODE=outputs`). It does not independently run HMM-Flagger;
-the per-assembly classification BED is required as an input.
-
-![Ensemble gene annotation workflow](../gene_annotation_workflow.png)
+Ensemble annotation of KOR and HPRC haplotype assemblies, annotation coverage and protein-coding copy-number gains (Figures 2b–g, S5–S6; Tables S13–S17).
 
 Part of the [KPR-pipeline](../README.md) repository.
-
----
 
 ## 1. Set up
 
@@ -118,7 +95,6 @@ export THREADS=8
 export RUN_MODE=tools
 ~~~
 
----
 
 ## 2. Run
 
@@ -171,7 +147,6 @@ output directory. This portable workflow generates new analyses
 and is not automatically identical to an earlier completed
 supplementary-table integration.
 
----
 
 ## 3. Steps
 
@@ -185,8 +160,6 @@ supplementary-table integration.
 | 6 | `search_unannotated` | Review loci without Liftoff annotations; BLASTp identity ≥90% | BLASTp |
 | 7 | `filter_flagger` | Keep gene spans fully covered by Hap regions | HMM-Flagger BED |
 | Additional | `tables` | Generate annotation ratios and CNG summaries | Python |
-
----
 
 ## 4. Configuration
 
@@ -209,22 +182,12 @@ supplementary-table integration.
 | `CHM13_ANNOTATION` | Unset | Optional GENCODE-ID-compatible CHM13 annotation |
 | `SATELLITE_LIBRARY` | Unset | Optional additional repeat library |
 | `PROTEIN_GENE_MAP` | Unset | Optional protein-to-gene mapping table |
-
-The principal thresholds described in the manuscript are **95% amino
-acid identity** for AUGUSTUS candidates supported by Swiss-Prot,
-**80% reciprocal CDS overlap and intron concordance** against Liftoff,
-and **90% amino acid identity** for BLASTp annotation of candidates
-without Liftoff overlap. Exonerate's `--percent 80` is an alignment
-reporting-score threshold, not an amino acid identity threshold.
-
----
+| `MIN_EXONERATE_IDENTITY` | `90` | Additional Exonerate identity filter in native workflow |
+| `MIN_PROTEIN_COVERAGE` | `80` | Additional protein coverage filter |
+| `MIN_EXON_SUPPORT` / `MIN_INTRON_SUPPORT` | `80` / `80` | Additional alignment support filters |
+| `MIN_UNANNOTATED_OVERLAP` | `95` | Additional unannotated candidate overlap filter |
 
 ## 5. Output
-
-Each haplotype is processed separately under
-`$OUT_DIR/samples/SAMPLE/`. Results are organized into
-`mask/`, `augustus/`, `exonerate/`, `liftoff/`, `compare/`,
-`blastp/` and `flagger/` folders.
 
 | Output | Contents |
 |---|---|
@@ -243,131 +206,23 @@ Each haplotype is processed separately under
 | `tables/TableS17.membership.tsv` | CNG membership among KPR/HPRC-EAS/HPRC-nEAS |
 | `tables/metadata.json` | Method parameters and summary metadata |
 
-The standard tables are written as TSV and CSV where applicable,
-while `TableS15.two_headers.csv` and `TableS17.seven_columns.csv`
-use layout-specific formats. The program also writes checkpoint
-and input-provenance files.
+## 6. Ensemble gene annotation
 
----
+We used the final soft-masked assembly from stage 1, or the mask step for input assemblies. AUGUSTUS v3.5.0 (--species=human --softmasking=1) predicted protein-coding candidates. Exonerate v2.4.0 aligned human UniProtKB/Swiss-Prot release 2024_01 proteins to the masked assemblies (--model protein2genome --percent 80). AUGUSTUS candidates were retained at ≥95% amino acid identity to the corresponding aligned protein.
 
-## 6. Analysis procedures
+Liftoff v1.6.3 transferred GRCh38 GENCODE v46 (-copies -sc 0.95 -polish -exclude_partial). Candidates supported by AUGUSTUS/Exonerate were compared with Liftoff using ≥80% reciprocal CDS overlap and ≥80% intron structure concordance. For loci without a Liftoff annotation, BLASTp v2.15.0 against human Swiss-Prot identified homologous proteins at ≥90% identity. HMM-Flagger v1.0.0 classification BEDs were applied to the final gene set; the entire retained gene span lay in haploid regions.
 
-### 6.1 RepeatMasker soft masking
+The native workflow also exposes alignment-coverage, exon/intron support and unannotated-candidate filters in section 4. For study replay, supply the original intermediate annotations and settings rather than treating the native defaults as additional manuscript criteria.
 
-Soft-masked assembly sequences generated with **RepeatMasker v4.1.6**
-(Smit et al., 2015) are used as input for protein-coding gene prediction.
+## 7. Gene and transcript annotation coverage
 
-### 6.2 AUGUSTUS de novo gene prediction
+Annotation coverage was evaluated relative to CHM13 for protein-coding genes, noncoding genes, protein-coding transcripts and noncoding transcripts. We compared 28 KOR, 10 HPRC-EAS and 84 HPRC-nEAS assemblies. Supply the corresponding CHM13 annotation using CHM13_ANNOTATION for the annotation ratio table (Figure 2b; Table S13).
 
-**AUGUSTUS v3.5.0** (Stanke et al., 2008) predicts candidate
-protein-coding genes and their exon, intron and CDS structures
-from the soft-masked assemblies using:
+## 8. Copy-number gain analysis
 
-```text
---species=human --softmasking=1
-```
+Copy-number gains were assessed relative to GRCh38. Count protein-coding genes with at least one additional copy in each assembly; summarize the number of assemblies carrying a CNG for each gene. Gene-level frequency equals the number of assemblies with a CNG divided by the number of assemblies in the group. For Figure 2e, rank genes by the mean of the absolute KOR–HPRC-EAS and KOR–HPRC-nEAS frequency differences. KOR-private CNGs are present in KOR but absent from both HPRC groups; Figure 2g shows those with KOR CNG frequency >0.1 (Tables S14–S17).
 
-### 6.3 Exonerate protein-to-genome alignment
-
-In parallel, human **UniProtKB/Swiss-Prot release 2024_01**
-(UniProt Consortium, 2025) proteins are aligned to the same
-soft-masked assemblies with **Exonerate v2.4.0**
-(Slater and Birney, 2005):
-
-```text
---model protein2genome --percent 80
-```
-
-The `--percent 80` option reports alignments scoring at least 80%
-of the maximum attainable score for each query. AUGUSTUS-predicted
-candidates are retained when the amino acid sequence identity to
-the Swiss-Prot protein aligned at the same locus is **≥95%**.
-
-### 6.4 Liftoff annotation transfer
-
-Independently, GRCh38-based **GENCODE v46** annotation
-(Mudge et al., 2025) is mapped onto each KOR assembly using
-**Liftoff v1.6.3** (Shumate and Salzberg, 2021):
-
-```text
--copies -sc 0.95 -polish -exclude_partial
-```
-
-This step establishes correspondence between gene structures
-and identifies additional gene copies.
-
-### 6.5 Concordance with Liftoff
-
-Candidates supported by AUGUSTUS and Exonerate are compared with
-the Liftoff annotation. Loci showing **≥80% reciprocal CDS overlap**
-and **≥80% intron structure concordance** are retained.
-
-### 6.6 BLASTp annotation of Liftoff-unannotated candidates
-
-For candidates that do not overlap any Liftoff annotation,
-the predicted protein sequences are searched against the human
-UniProtKB/Swiss-Prot database using **BLASTp v2.15.0**
-(Camacho et al., 2009). Candidates with **≥90% amino acid
-sequence identity** are assigned annotations based on the
-corresponding homologous protein matches and added to the
-annotation set.
-
-### 6.7 HMM-Flagger reliability filtering
-
-The gene set obtained from steps 5 and 6 is assessed using
-**HMM-Flagger v1.0.0** assembly-reliability classifications
-(Asri et al., 2026). Only genes whose **entire genomic span
-lies within regions classified as haploid (Hap)** are retained
-in the final annotation.
-
----
-
-## 7. Copy-number gain summaries and annotation ratios
-
-An added annotation does not automatically establish CNG. For newly assessed
-candidates, the confirmed primary loci, existing validated extra loci and new
-independent loci are considered together. A new CNG call is added only when
-the confirmed locus count exceeds the GRCh38 GENCODE protein-coding gene-locus
-count for that symbol. The previously established baseline CNG calls are
-preserved.
-
-For each gene, group-specific CNG frequency is the proportion of haplotype
-assemblies retaining at least one extra copy. The denominators are 28 for KPR,
-10 for HPRC-EAS and 84 for HPRC-nEAS. Group-specific gene lists describe CNG
-evidence within these datasets, not absence of the gene from other populations.
-
-Annotation ratios are calculated separately for protein-coding genes,
-noncoding genes, protein-coding transcripts and noncoding transcripts by
-dividing each assembly's unique GENCODE ID count by the corresponding CHM13
-count. Swiss-Prot-supported additions do not automatically create GENCODE IDs
-or change these ratios.
-
-
-The CNG tables are generated after the HMM-Flagger filter.
-A transferred transcript isoform is not treated as an independent
-gene copy. The tables reflect the input haplotypes, and
-the software does not assume that variants or copy-number patterns
-observed in one panel are exclusive to its source population.
-
----
-
-## 8. Provenance and reproducibility
-
-`RUN_MODE=outputs` uses precomputed prediction/alignment files
-but runs the same validation and output integration logic.
-Each manifest entry is matched to its original haplotype sequence
-and HMM-Flagger classification BED. Haplotype coordinate spaces
-are not interchangeable. Where an HMM-Flagger BED is shared
-across multiple assemblies without an explicit contig mapping,
-the code does not treat unassigned segments as reliable Hap coverage.
-
-Results from a new run depend on the input assemblies, reference
-resources and annotation files. Outputs should be associated with
-their recorded inputs and execution parameters.
-
----
-
-## 9. References
+## References
 
 Wu D, Yang C, Chen Q, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
 
@@ -387,9 +242,8 @@ Camacho C, Coulouris G, Avagyan V, et al. (2009). BLAST+: architecture and appli
 
 Asri M, Eizenga JM, Hebbar P, et al. (2026). Evaluating genome assemblies with HMM-Flagger. *bioRxiv*. https://doi.org/10.64898/2026.02.27.708355
 
----
 
-## 10. Software and versions
+## Software and versions
 
 RepeatMasker v4.1.6; AUGUSTUS v3.5.0; Exonerate v2.4.0;
 Liftoff v1.6.3; BLASTp/BLAST+ v2.15.0;

@@ -1,34 +1,8 @@
 # 1.genome_assembly_and_statistics.sh
 
-## Scope and rationale
-
-A high-quality Korean pangenome depends on accurate, haplotype-resolved
-de novo assemblies. Short reads provide reliable genotypes across much of
-the genome, but cannot consistently traverse long repeats, highly
-homologous segmental duplications or complex structural variants.
-PacBio high-fidelity (HiFi) reads, complemented by long Oxford Nanopore
-(ONT) reads and chromatin-conformation data where available, provide
-sequence continuity and haplotype information needed to resolve
-structures that are absent or collapsed in GRCh38. Reference alignment
-is used for evaluation, rather than as the basis of the assembly
-itself [1–3].
-
-This workflow processes PacBio Sequel II/Revio, ONT PromethION and
-Hi-C reads through platform-specific quality control, assembly,
-polishing, reference-based and reference-free validation, repeat/gene
-annotation and structural variant discovery. The distinction between
-`read_qc`, `assembly`, `polishing`, and `asm_stats` is deliberate:
-high raw-read accuracy or high contiguity alone does not establish that
-a genome assembly is complete, correctly phased or free of collapsed
-repeats, contaminant sequence and interchromosomal misjoins.
-
-This stage produces the polished FASTA sequences and validation
-evidence for [pangenome construction](pangenome_construction_and_statistics.md).
-Population-level comparisons are not calculated by this stage.
+Long-read assembly, quality assessment, repeat annotation and structural variant discovery in Korean genomes (Figures 1, 2a, S1–S4; Tables S1–S12, S18).
 
 Part of the [KPR-pipeline](../README.md) repository.
-
----
 
 ## 1. Set up
 
@@ -83,7 +57,7 @@ lists/hic.list       samples with Hi-C data
 
 A sample listed in both `hifi.list` and `hic.list` is assembled in Hi-C phasing
 mode; if a trimmed ONT FASTQ also exists for it, those reads are passed to
-HiFiasm through `--ul`. `lists/qc_pass.list` is written by the `asm_stats` step
+HiFiasm through `--ul`. `lists/qc_pass.list is written by the `asm_stats` step.
 and holds the samples whose assemblies meet N50 ≥ 20 Mb and ≤ 1,500 contigs;
 the later steps read it.
 
@@ -97,7 +71,10 @@ export LIST_DIR=/path/to/lists        # default: ./lists
 export THREADS=32
 ```
 
----
+
+### Acrocentric short-arm intervals
+
+Supply a zero-based, half-open CHM13 BED containing the short arms of chr13, chr14, chr15, chr21 and chr22. Set `ACROCENTRIC_BED` to this file for the study's misjoin filtering. `PAFTOOLS` specifies the Minimap2 v2.30 `paftools.js` executable.
 
 ## 2. Run
 
@@ -151,7 +128,6 @@ done
 Every step writes to `$OUT_DIR/logs/pipeline.log`. Steps are independent, so
 one can be rerun after fixing a problem without repeating the others.
 
----
 
 ## 3. Steps
 
@@ -160,144 +136,10 @@ one can be rerun after fixing a problem without repeating the others.
 | `read_qc` | FastQC, HiFiAdapterFilt, Porechop, Trimmomatic, raw read metrics |
 | `assembly` | HiFiasm, HiFiasm Hi-C mode, Flye, HiFiasm ONT mode, contaminant removal |
 | `polishing` | Inspector evaluation, correction and re-evaluation |
-| `asm_stats` | Inspector summary, QUAST-LG, NGx curves, contiguity filtering, Minigraph misjoins, HMM-Flagger |
+| `asm_stats` | Inspector summary, QUAST-LG, NGx curves, contiguity filtering, Minigraph/paftools.js misjoins, filtered assemblies, HMM-Flagger |
 | `annotation` | RepeatMasker (two rounds), etrf, sdust, Liftoff |
 | `sv_calling` | pbmm2, pbsv, Sniffles, SVIM, SVIM-asm; SVIM-asm plus at least two of the three read-based callers, followed by SURVIVOR cohort merging |
 | `all` | All of the above, in order |
-
-### 3.1 Read quality control and platform-specific assembly
-
-The PacBio HiFi branch removes residual adapter sequence with
-HiFiAdapterFilt and assembles long accurate reads using HiFiasm.
-For samples with Hi-C links, HiFiasm's Hi-C mode distinguishes
-maternal and paternal haplotype paths; the underlying per-sample
-read identifiers must remain consistent across technologies.
-The ONT branch removes adapters with Porechop, trims low-quality
-bases and assembles with Flye; an alternative HiFiasm ONT
-mode is available to assess assembler-dependent contiguity.
-Where a suitable trimmed ONT readset belongs to a Hi-C-enabled
-HiFi sample, the wrapper can pass those reads to HiFiasm
-with `--ul`. This does not imply that every ONT sample has
-Hi-C data or belongs in a haplotype-resolved final panel.
-
-### 3.2 Contaminant screening and polishing
-
-Assemblies of lymphoblastoid cell-line-derived genomes can
-contain viral or other non-human sequence. Kraken2-based
-classification and contaminant removal precede downstream
-annotation. Inspector assesses local assembly errors, applies
-polishing and re-evaluates the polished sequences; retain both
-pre- and post-polishing summaries for audit. Polishing is not
-a substitute for checking long-range structural accuracy.
-
-### 3.3 Contiguity, completeness and structural integrity
-
-Each haplotype assembly is evaluated across complementary
-dimensions:
-
-| Measure | Interpretation | Manuscript relationship |
-|---|---|---|
-| Contig count and N50 | Sequence fragmentation and long-range continuity | PASS requires N50 >=20 Mb and <=1,500 contigs |
-| Total assembled length | Missing or excess sequence | Compare to ungapped GRCh38/CHM13; neither is a complete truth set |
-| Inspector self-alignment and QV | Local consensus quality and coverage | Retain self-depth and small-error summaries |
-| QUAST-LG aligned/unaligned sequence | Reference representation and possible non-reference sequence | Evaluate independently against GRCh38 and CHM13 |
-| Duplication ratio | Potential duplicated or collapsed content | Investigate discordance with read depth |
-| Minigraph misjoins | Candidate interchromosomal connections | Review acrocentric chromosome alignments separately |
-| HMM-Flagger states | Reliable versus collapsed, duplicated or erroneous sequence | Preserve flagged bases as a QC limitation |
-
-The manuscript retained assemblies with a mean contig N50 of
-50.34 Mb and a mean assembled length of 3.02 Gb.
-Mean coverage of GRCh38 and CHM13 was 96.06% and 93.20%,
-respectively, and HMM-Flagger identified 43.89 Mb (1.46%)
-of unreliable assembly sequence on average. These are
-**observed manuscript results**, not universal software
-thresholds. Acrocentric alignments, including apparent
-interchromosomal joins, require particular caution because
-homologous satellite and segmental-duplication sequence
-can produce complex mappings.
-
-### 3.4 Repeats, gene models and copy-number gains
-
-RepeatMasker annotates interspersed elements, satellites and
-other repeat families. Separate etrf and sdust passes add VNTR
-and low-complexity sequence after accounting for previously
-masked intervals. Liftoff projects GENCODE gene/transcript
-models to the assembly. Report the percentage of models
-represented and the additional copies of each protein-coding
-gene relative to the selected reference. An inferred extra
-gene model is a copy-number-gain candidate, not an
-independently validated expression or functional result.
-The manuscript compared these quantities among the
-KPR, HPRC-EAS and HPRC-nEAS assemblies.
-
-### 3.5 Structural-variant discovery and integration
-
-PacBio long-read sequencing (LRS) data from the 14 KOR individuals whose
-assemblies passed quality control were aligned to GRCh38 using **pbmm2
-(v1.17)**. Structural variants (SVs) were called by the read-based tools
-**pbsv (v2.9.0)**, **Sniffles (v2.2)**, and **SVIM (v2.0.0)**, and by
-the assembly-based **SVIM-asm (v1.0.3)**. SVIM-asm was run in diploid
-mode using the two polished haplotype assemblies for each individual.
-
-**Caller-level filtering.** For each caller, records were restricted to
-`FILTER=PASS`, autosomes (`chr1`–`chr22`), and SV length **≥51 bp**.
-The read-based callsets were filtered further using the following
-caller-specific criteria:
-
-| Caller | Additional criteria |
-|---|---|
-| pbsv | depth `DP ≥7`; reads supporting ALT `≥3` |
-| Sniffles | genotype quality `GQ ≥20`; `DR + DV ≥7`; ALT-supporting `DV ≥3` |
-| SVIM | `QUAL ≥10`; `DP ≥7`; ALT-supporting reads `≥3` (`INFO/SUPPORT` where provided) |
-| SVIM-asm | No additional read-depth criteria; PASS/autosome/size filters apply |
-
-Depth and ALT-support fields are read from each caller's VCF rather
-than treated as interchangeable annotations. The public wrapper
-requires an explicit `FORMAT/DP` or `INFO/DP` value and uses
-`FORMAT/AD` for ALT-support counts in pbsv; `FORMAT/GQ`,
-`FORMAT/DR`, and `FORMAT/DV`
-for Sniffles; and `QUAL`, depth, and `INFO/SUPPORT` for SVIM.
-Records lacking required values are excluded and counted in a
-per-caller audit file, rather than being assumed to pass.
-Confirm the relevant `FORMAT`/`INFO` definitions against the actual
-caller outputs before reproducing the manuscript numbers.
-
-**Truvari-supported SV selection.** Each filtered read-based VCF was
-compared independently against the filtered **SVIM-asm baseline** using
-`truvari bench`. Two calls were considered matched using a maximum
-reference-position difference of **500 bp**, a minimum SV-size similarity
-of **70%**, and a minimum sequence similarity of **70%**.
-An SVIM-asm variant was retained if **at least two** of the three
-read-based callers matched that SVIM-asm variant. A match in all three
-read-based callers also meets the criterion. The matched
-SVIM-asm records, rather than the read-based representatives, form
-the per-sample consensus VCF.
-
-**Cohort-level integration.** Filtered consensus VCFs from the
-**14 QC-passed KOR individuals** were merged with SURVIVOR using
-a **100-bp breakpoint distance** and a minimum SV length of 51 bp.
-The final `shared_SV.vcf` contains SVs observed in all 14 included
-samples. The 100-bp distance refers to this *across-sample merge*,
-not to the Truvari agreement threshold between callers.
-The consensus is limited to the analyzed cohort and is not evidence
-of population-wide fixation.
-
-The full manuscript also describes a separate, seven-person
-variant-benchmarking truth-set analysis, including SVIM-asm SV sets
-supported by ≥1, ≥2, or all three read-based callers. The primary
-SV truth set for that benchmarking analysis uses **≥2 read-based
-callers** and adds depth/support filters for INS/DEL. See the
-[stage 5 benchmark workflow](Variant_benchmark.md). Stage 5 provides
-an executable implementation, but requires the separately prepared
-per-sample input calls, truth sets and confidence regions; public
-synthetic tests do not verify the final manuscript-scale results.
-
-Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
-`assembly`; `asm_stats` needs `polishing` and writes `qc_pass.list`;
-`annotation` and `sv_calling` need `polishing`, and `sv_calling` also needs the
-`qc_pass.list` written by `asm_stats`.
-
----
 
 ## 4. Configuration
 
@@ -317,11 +159,9 @@ Dependencies between steps: `assembly` needs `read_qc`; `polishing` needs
 | `TRUVARI_REFDIST` | `500` | Truvari reference distance (bp) |
 | `TRUVARI_PCTSEQ` / `TRUVARI_PCTSIZE` | `0.70` / `0.70` | sequence and size similarity |
 | `EXPECTED_SV_SAMPLES` | `14` | manuscript cohort size; `0` disables the count check |
-
-Individual reference files can be overridden as well, for example
-`GRCH38=/path/to/GRCh38.fa`.
-
----
+| `ACROCENTRIC_BED` | unset | CHM13 acrocentric short-arm BED; required for classification and filtering |
+| `PAFTOOLS` | `paftools.js` | Minimap2 v2.30 misjoin utility |
+| `QC_ASM_OUT` | `$OUT_DIR/polishing/qc_assemblies` | QC-passed assemblies for downstream analysis |
 
 ## 5. Output
 
@@ -365,24 +205,36 @@ seqfiles. Record versions of the retained FASTA files, the
 `qc_pass.list`, contamination-screen reports and key
 quality summary tables together with graph input manifests.
 
----
+`polishing/qc_assemblies/` contains the retained haplotype FASTAs. `statistics/misjoin/interchromosomal_misjoins.tsv` records the candidate pairs, their CHM13 coordinates and classification. `lists/qc_pass.list` contains individuals with two passing haplotypes.
 
-## Study cohort and assembly results
+## 6. Selection of samples for long-read sequencing
 
-In the KPR manuscript, long-read datasets were collected for
-22 Korean individuals: 19 newly sequenced individuals (12 Revio,
-seven PromethION) and three previously generated PacBio Sequel II
-datasets. Assemblies were retained for pangenome construction
-only when contig N50 was at least 20 Mb and the number of contigs
-was at most 1,500. The retained panel consisted of **28 haploid
-assemblies from 14 individuals**. All seven PromethION-derived
-assemblies in this particular dataset failed the contig-count
-criterion; this outcome should not be interpreted as a general
-technology comparison. The workflow reports the underlying QC
-metrics so that exclusions and retained haplotype assemblies can
-be traced [1].
+We aligned paired-end SRS from 308 Korean individuals to GRCh38.p14 with bwa-mem2 v2.2.1, followed by GATK v4.3.0.0 duplicate removal, base quality recalibration, HaplotypeCaller and joint genotyping. Variants with MQ <30, QUAL <30, mean DP <7 or GQ <10 were filtered; VQSR used a truth sensitivity of 99.7%. Biallelic SNPs with <5% missingness and MAF ≥0.05 were phased with SHAPEIT5 v5.1.1 and imputed with IMPUTE5. The pre-MAF-filter QC SNP dataset was retained for AMY population genetics.
 
----
+The merged KOR/1000 Genomes panel contained 2,856 individuals (308 + 2,548). We ran fastSTRUCTURE v1.0 for K=2–5 and visualized K=4 in Figure 1a. PLINK v2.0 calculated PC1–PC30; the explained variance of PC i was its eigenvalue divided by the trace of the genomic relationship matrix (sum of all 2,856 diagonal elements), multiplied by 100. The study selected 16 core individuals using GenoCore v1.0 (-cv 99 -d 0.001). SRS structural variation was characterized using Manta INS/DUP (QUAL ≥30) and Delly PASS DEL (Tables S1–S4).
+
+## 7. Genome assembly and quality assessment
+
+PacBio Sequel II/Revio reads were adapter-trimmed with HiFiAdapterFilt v3.0 and assembled with HiFiasm v0.24; Hi-C data were used for Hi-C phasing. ONT reads were trimmed with Porechop v0.2.4 and Trimmomatic v0.39 and assembled using Flye v2.9.5; HiFiasm v0.25 ONT-mode assemblies provided an assembler comparison. Non-human contigs, including EBV sequences, were removed. Inspector v1.3 was used for polishing and self-alignment assessment. We retained both haplotypes of individuals passing N50 ≥20 Mb and ≤1,500 contigs. QUAST v5.3 assessed the assemblies against GRCh38 and CHM13 (Tables S5–S9).
+
+## 8. Interchromosomal misjoins
+
+Minigraph v0.21 (-cxasm) aligned the QC-passed haplotypes to CHM13. Minimap2 v2.30 paftools.js misjoin used a minimum alignment block length of 1 Mb. Both alignment intervals were intersected with the CHM13 acrocentric short-arm BED. Pairs for which both intervals overlapped acrocentric short arms were retained; all other interchromosomal candidate pairs were classified as assembly errors and the corresponding contigs excluded. The -e option outputs the alignment pairs for classification.
+
+~~~bash
+export ACROCENTRIC_BED=/path/to/CHM13.acrocentric_short_arms.bed
+bash 1.genome_assembly_and_statistics.sh asm_stats
+~~~
+
+Use the resulting QC_ASM_OUT FASTAs for annotation, SVIM-asm and the stage 3 assembly manifests. HMM-Flagger v1.0.0 assessed read coverage of the filtered assemblies. Erroneous, duplicated, collapsed and unknown sequence lengths were summed for the unreliable fraction; haploid regions provided the reliable annotation intervals (Figure 1f–g; Tables S10–S11).
+
+## 9. Repeat annotation
+
+For the assembly repeat analysis we used RepeatMasker v4.1.6 with the human repeat library, followed by an augmented CHM13 satellite library. Previously assigned repeats were hard-masked before the next annotation round. etrf identified VNTRs with repeat units ≥7 bp; sdust detected low-complexity regions after hard-masking the earlier repeat classes. The combined repeat intervals were applied to the original assembly using soft masking to prepare the stage 2 input. The annotation step supplies individual repeat annotations and a Liftoff comparison; combine the repeat intervals separately for the final soft-masked FASTA. Count repeat sites and annotated bases by Alu, L1, L2, SVA, ERV, other TE, VNTR, STR, LCR and satellite classes (Figure 2a; Table S12).
+
+## 10. Structural variant detection
+
+PacBio LRS was aligned to GRCh38 using pbmm2 v1.17. We called SVs with pbsv v2.9.0, Sniffles v2.2, SVIM v2.0.0 and SVIM-asm v1.0.3. All calls were autosomal PASS SVs ≥51 bp. pbsv required DP ≥7 and ALT reads ≥3; Sniffles required GQ ≥20, DR+DV ≥7 and DV ≥3; SVIM required QUAL ≥10, DP ≥7 and ALT reads ≥3. SVIM-asm calls matching at least two read-based callers were selected by Truvari bench (breakpoint distance ≤500 bp; size and sequence similarity ≥70%). SURVIVOR merged selected calls with a 100-bp breakpoint distance. Variants carried by all 14 individuals were counted in Table S18. Stage 5 uses a separate, more stringent truth-set procedure for seven benchmark samples.
 
 ## References
 
@@ -409,7 +261,5 @@ the execution log rather than assumed.
 | Assembly-based structural variants | SVIM-asm 1.0.3 |
 | Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; Truvari bench; bcftools; Python 3; jq |
 
-The manuscript's GATK-based short-read sample-selection workflow is
-separate from this long-read assembly stage; it used bwa-mem2 2.2.1,
-GATK 4.3.0.0, SHAPEIT5 5.1.1, fastSTRUCTURE 1.0,
-PLINK 2.0 and GenoCore 1.0 [1].
+
+Minimap2 v2.30 (`paftools.js`), fastSTRUCTURE v1.0, PLINK v2.0, GenoCore v1.0, SHAPEIT5 v5.1.1, IMPUTE5.

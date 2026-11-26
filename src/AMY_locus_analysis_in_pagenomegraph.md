@@ -1,45 +1,8 @@
 # 7.AMY_locus_analysis_in_pagenomegraph.sh
 
-## Scope and rationale
+Identification and visualization of structural haplotypes in the AMY locus of the augmented HPRC+KPR pangenome (Figures 5, S8; Tables S28–S29).
 
-The chromosome 1 amylase (AMY) locus consists of the salivary
-amylase gene family AMY1, the pancreatic amylase genes AMY2A
-and AMY2B, and the AMYP1 pseudogene. Large near-identical
-tandem and segmental duplications create a broad range of
-copy-number states, gene orientations and structural
-haplotypes. The **structurally variable region (SVR)** can
-change substantially in size between haplotypes and
-is difficult to reconstruct with one linear reference.
-Long-read haplotype assemblies and graph-based paths
-allow the physical ordering and orientation of the
-repeated segments to be examined directly [1–3].
-
-This stage identifies AMY-related structural bubbles
-in the augmented HPRC+KPR graph, extracts the
-corresponding subgraph, annotates AMY gene
-segments, reconstructs ordered gene-copy patterns
-and summarizes the structural haplotypes represented
-by the input assemblies. MAFFT alignment and IQ-TREE 2
-provide a sequence-based phylogenetic description
-of the resulting haplotypes. The tree organizes
-sequence relationships; it does not itself prove
-the timing, selection history or functional impact
-of a duplication event.
-
-**Analysis boundary.** This script does not
-treat individual AMY gene copies as independent
-diploid SNP loci. Copy-level FST, nucleotide
-diversity and LD from separated paralogs are
-not part of the revised analysis because
-variable copy number and potential interlocus
-gene conversion complicate independent allelic
-sampling. For locus-level population statistics
-using unique distal/proximal sequences, see
-[Population genetics of AMY flanks](Population_genetics_in_AMY_flanking_locus.md).
-
-Part of the [KPR-pipeline](../README.md).
-
----
+Part of the [KPR-pipeline](../README.md) repository.
 
 ## 1. Set up
 
@@ -82,7 +45,6 @@ export LIST_DIR=/path/to/lists
 export THREADS=8
 ~~~
 
----
 
 ## 2. Run
 
@@ -104,7 +66,6 @@ The structural subgraph's default reference interval is
 `AMY_REGION=chr1:103,570,000-103,760,000`, which is **independent** of
 the Bolognini distal/proximal regions analyzed in stage 8.
 
----
 
 ## 3. Steps
 
@@ -115,115 +76,6 @@ the Bolognini distal/proximal regions analyzed in stage 8.
 | `tag_haplotypes` | Determine gene order and orientation of every haplotype, group structural classes |
 | `haplotype_tree` | Assemble per-haplotype sequences, MAFFT alignment, IQ-TREE 2 and R plotting |
 | `all` | Run the four structural steps in order |
-
-### 3.1 Selection of a structurally complex locus
-
-Large bubbles provide candidates for multi-allelic
-or copy-number-variable sequence structures.
-The pipeline selects bubbles >10 kb with at
-least five per-sample allele observations,
-intersects them with protein-coding gene
-annotations and prioritizes the AMY gene
-cluster. These are *graph structural*
-selection criteria, not variant-allele
-frequency thresholds in a diploid population.
-The selected bubble interval and reference
-path coordinate must be recorded together:
-the script's extraction interval
-`chr1:103570000-103760000` is an adjustable
-subgraph boundary, not the unique distal/
-proximal windows of Bolognini et al. [2].
-
-### 3.2 Structural subgraph reconstruction
-
-The graph is extracted with gfabase and
-converted for odgi analysis. Node/edge
-orientation, path traversal and
-gene overlaps determine the order of
-AMY segments for each haplotype.
-Inversions change gene orientation,
-whereas duplications alter repeat
-unit counts; both must be retained
-when defining a structural class.
-A path missing part of the requested
-region or an ambiguous gene annotation
-requires manual review, rather than
-automatic assignment to the nearest
-copy-number class. Bandage provides
-a structural overview, not a genome
-assembly validity check.
-
-### 3.3 AMY structural haplotype naming
-
-The manuscript grouped haplotypes
-first by AMY1 copy number (H1–H7),
-then by AMY2A copy number (A0–A2),
-and subsequently by gene orientation
-and AMYP1 presence (S subtypes).
-For example, H5A1-S5 denotes a
-particular AMY1/AMY2A copy-count
-combination with a defined
-substructure; the subtype must be
-read from the gene-order annotation.
-Structural configurations that share
-AMY1 counts should not be collapsed
-if AMY2A content or gene direction
-differs. The manuscript reported
-no H6 assembly in its 124-path panel;
-that observation does not imply
-that H6 cannot exist in other samples.
-
-### 3.4 Haplotype sequence relationships
-
-MAFFT aligns the reconstructed
-haplotype-associated sequences, and
-IQ-TREE 2 estimates a nucleotide-based
-phylogenetic tree. Tree tips must
-retain the source path, population,
-sample identifier and structural
-HxAy-Sz label. Similar structural
-arrangements can evolve independently
-on distinct SNP backgrounds,
-as documented by Bolognini et al.;
-consequently, a structural tree and
-a single-copy flanking SNP tree
-address related but different
-evolutionary questions [2,3].
-The manuscript observed matching
-AMY1 H-group placement among
-72 of 85 shared haplotypes in a
-comparison to the prior HPRC analysis,
-which supports broad comparability
-without implying identical
-subtype definitions.
-
-### 3.5 Population-panel description and limitations
-
-Population annotations summarize
-how frequently each **assembly path**
-carries an observed structural class.
-The relevant denominators are
-the number of haplotype assemblies
-in each panel, not the number of
-individual gene copies. Reference
-paths GRCh38 and CHM13 are included
-in structure comparison but excluded
-from population-panel frequencies.
-The small HPRC East Asian panel
-and the absence of independently
-measured function prevent claims
-that a structural class is fixed,
-uniquely Korean or itself under
-diet-associated selection.
-The separate population-genetics
-pipeline evaluates diploid SNPs
-in the unique SVR flanks.
-
-The former steps `gene_copies`, `copy_snps` and `population_stats`
-are intentionally no longer supported. Existing supporting scripts may remain
-in this repository for provenance, but are **not** invoked by `all`.
-
----
 
 ## 4. Configuration
 
@@ -237,15 +89,14 @@ in this repository for provenance, but are **not** invoked by `all`.
 | `TMP_DIR` | `OUT_DIR/tmp` | Temporary files |
 | `GRAPH` | `hprc_kpr` | Combined graph name |
 | `GENE_BED` | `REF_DIR/gencode.GRCh38.genes.name.bed` | Gene BED with names |
-| `POP_MAP` | `LIST_DIR/sample_population.tsv` | Structural haplotype labels |
+| `POP_MAP` | `LIST_DIR/sample_population.tsv` | Sample-to-population mapping |
 | `AMY_CLUSTER` | `AMY1A AMY1B AMY1C AMYP1 AMY2B AMY2A` | Gene names for tagging |
 | `AMY_REGION` | `chr1:103,570,000-103,760,000` | Structural subgraph extraction |
 | `REF_SAMPLE` | `GRCh38` | Reference graph path |
 | `BUBBLE_MIN_LEN` | `10000` | Structural bubble minimum length |
 | `ALLELE_MIN` | `5` | Minimum number of sample alleles |
 | `THREADS` | `8` | Threads for supported tools |
-
----
+| `HAPLOTYPE_MAP` | unset | TSV with structure and haplotype_class columns for study nomenclature |
 
 ## 5. Output
 
@@ -275,26 +126,32 @@ not described as independent people. Structural
 counts may differ if the graph, assembly panel,
 gene interval or class definition changes.
 
----
+`haplotypes/GRAPH.AMY.haplotype_assignments.tsv` records the class and structure for each path. `haplotype_classes.tsv` contains structure group counts.
 
-## Study structural haplotype results
+## 6. Selection of structural variation loci
 
-The KPR manuscript evaluated **124 assembly/reference
-paths**: 28 Korean haplotype assemblies, 94 HPRC
-v1.0 haplotype assemblies, and the GRCh38 and
-CHM13 reference sequences. This analysis identified
-31 structural architectures, 17 of which were
-represented among the 28 Korean assemblies.
-Six haplotype architectures were observed only
-in the sampled Korean assembly panel, not in
-the HPRC comparisons. Their absence from those
-relatively small comparison panels should not
-be interpreted as population-wide exclusivity.
-The structural panel also remains distinct
-from the separate 302-person diploid SNP
-cohort used for flanking population genetics [1].
+We identified bubbles in HPRC+KPR using gfatools v0.5 and obtained per-assembly alleles with Minigraph v0.21 (--cxasm --call). Bubbles >10 kb with ≥5 alleles were retained and overlapping protein-coding genes annotated. The AMY gene-containing GRCh38 interval was chr1:103,554,644–103,758,692; set AMY_REGION to the graph extraction interval used for the subgraph.
 
----
+## 7. AMY subgraph extraction and gene tagging
+
+We extracted the subgraph with gfabase v0.5, processed node–gene annotations with odgi v0.9.0 and visualized the graph using Bandage v0.8.1. Gene tags record AMY1, AMY2A, AMY2B and AMYP1 copies and the +/− orientation of their nodes along haplotype walks. Inspect the full gene-tag structures and reconcile AMY1 paralog names to the AMY1 copy group before structural classification.
+
+## 8. Structural haplotype classification
+
+We analyzed 124 assemblies/paths (28 KOR, 94 HPRC, GRCh38 and CHM13) and classified structural haplotypes by AMY1 copy number (H1–H7), AMY2A copy number (A0–A2) and orientation/AMYP1 configurations (S1–S6), following the published AMY classification. Supply a two-column TSV with header structure and haplotype_class that maps the gene-tag strings to the verified HxAy–Sz labels in S28. The wrapper otherwise assigns deterministic Structure IDs; these are not the biological H-group names.
+
+~~~bash
+HAPLOTYPE_MAP=/path/to/AMY.structure_labels.tsv \
+  bash 7.AMY_locus_analysis_in_pagenomegraph.sh tag_haplotypes
+~~~
+
+## 9. Sequence alignment and phylogenetic analysis
+
+Align the extracted haplotype sequences using MAFFT, infer the phylogeny using IQ-TREE 2 and visualize with R. We compared classifications of shared assemblies with the previously reported HPRC AMY haplotypes (Table S29).
+
+## 10. Population distribution of AMY haplotypes
+
+Exclude GRCh38 and CHM13 from population counts. Compare 28 KOR, 10 HPRC-EAS and 84 HPRC-nEAS assemblies for structural haplotype membership (Figure 5c). For Figure 5d, group the 122 population assemblies into AFR, AMR, CHN, KOR, EUR, EAS and PJL as in S28; calculate each population's contribution within each H group using the total number of population assemblies in that H group as denominator. KOR-private and CHN-private labels refer to configurations absent from the other sampled populations in this panel. Use the verified HxAy–Sz assignments and population map for the final counts.
 
 ## References
 

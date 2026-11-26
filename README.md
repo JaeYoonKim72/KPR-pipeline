@@ -1,211 +1,52 @@
 # Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus
 
-This repository contains the analysis workflows, computational scripts, and
-methodological documentation accompanying the study *Constructing a Korean
-pangenome reveals distinct haplotypes at the amylase locus*. The study aims
-to improve the representation of Korean genomic diversity by integrating
-high-quality long-read genome assemblies into graph-based pangenome
-references. Long-read sequencing datasets from 22 Korean individuals
-(19 newly sequenced and three from a previous study) were processed through
-read quality control, de novo assembly, polishing, assembly quality
-assessment, repeat and gene annotation, and structural variant discovery.
-After quality filtering, 28 haploid assemblies from 14 individuals were
-used to construct the Korean Pangenome Reference (KPR) and an augmented
-HPRC v1.0+KPR pangenome graph.
+This repository provides computational workflows and analysis procedures for the Korean Pangenome Reference (KPR). We generated or incorporated long-read sequencing data from 22 Korean individuals and retained 28 haplotype assemblies from 14 individuals after assembly quality assessment. We constructed KPR and the augmented HPRC+KPR pangenome, compared graph variants at locus and allele levels, evaluated variant calling, and characterized structural haplotypes and flanking-region population genetics at the AMY locus.
 
-The workflows describe pangenome graph construction and indexing,
-graph-derived variant identification, population-panel comparisons,
-pangenome growth, and the characterization of non-reference sequences.
-They also cover short-read alignment and variant calling using
-pangenome graphs and the linear GRCh38 reference for comparative analyses.
-At the structurally complex amylase (AMY) locus, the study further examines
-gene copy number, gene order, and structural haplotype diversity, followed
-by locus-level population-genetic analyses of the unique distal and
-proximal flanking regions. The accompanying documentation specifies
-inputs, software dependencies, analytical procedures, and outputs to
-support reproducible use and interpretation of the implemented workflows.
+The scripts accept user-supplied references, assemblies, reads, variant calls and population manifests. The accompanying methods describe the study-specific configurations and additional analyses performed using the pipeline outputs and external analysis tools.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Pipelines
 
-The primary analysis is organized into eight numbered stages. Each stage
-has an executable Shell entry point in the repository root and its
-method documentation under `src/`. Stage 2 provides an executable
-seven-step ensemble gene annotation workflow. Stage 5 implements
-variant benchmarking and a separate GIAB trio inheritance-inconsistency
-analysis.
-
-| Stage | Main script | Purpose | Documentation | Version |
+| Stage | Script | Analysis | Documentation | Study tables |
 |:--:|---|---|---|---|
-| 1 | `1.genome_assembly_and_statistics.sh` | Long-read assemblies, assembly quality control, and Truvari-supported structural variants | [Documentation](src/genome_assembly_and_statistics.md) | v1.0 |
-| 2 | `2.Ensemble_gene_annotation.sh` | RepeatMasker, AUGUSTUS, Exonerate, Liftoff, BLASTp and HMM-Flagger-based gene annotation and CNG analysis | [Documentation](src/Ensemble_gene_annotation.md) | v1.0 |
-| 3 | `3.pangenome_construction_and_statistics.sh` | KPR and HPRC+KPR graph construction and statistics | [Documentation](src/pangenome_construction_and_statistics.md) | v1.0 |
-| 4 | `4.compare_pangenome_variant_counts.sh` | Compare KPR-private, shared and HPRC-private SV and small-variant counts at locus and allele levels | [Documentation](src/compare_pangenome_variant_counts.md) | v1.0 |
-| 5 | `5.Variant_benchmark.sh` | KOR/GIAB small-variant and SV benchmarking; GIAB trio genotype inheritance inconsistency | [Documentation](src/Variant_benchmark.md) | v1.0 |
-| 6 | `6.pangenome_short_read_mapping.sh` | Executable short-read mapping, graph variant calling and GRCh38 baseline | [Documentation](src/pangenome_short_read_mapping.md) | v1.0 |
-| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY locus structural haplotypes and phylogeny | [Documentation](src/AMY_locus_analysis_in_pagenomegraph.md) | v1.0 |
-| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | Distal and proximal AMY flanking-region population genetics | [Documentation](src/Population_genetics_in_AMY_flanking_locus.md) | v1.0 |
-
-Final supplementary-table correspondence: clinical and SRS cohort data (S1–S3);
-long-read samples, assemblies and QC (S4–S12); annotation and copy-number
-analysis (S13–S17); consensus SVs (S18); pangenome graph and variant-count
-analyses (S19–S23); GIAB benchmarking and trio inheritance analysis (S24–S25);
-KOR benchmarking and SRS call sets (S26–S27); AMY locus structural
-haplotypes (S28–S29); and AMY flanking population genetics (S30–S32).
-
-Optional unphased within-population nSL output from stage 8 is exploratory
-and is not reported in the final supplementary tables.
-
-**Helper scripts called by the pipelines:** `decon_split.sh`,
-`typecount.py`, `wline_sample_nodes.py`, `amy_haplotype_tags.py`,
-`msa_to_vcf.py`, `hudson_fst.py`, `plot_haplotypes.R`,
-`sv_merge_alleles.py`, `filter_sv_caller_quality.py`,
-`select_svim_asm_truvari.py`, `dedup_sample.py`, `count_groups.py`,
-`summarize_variant_comparison.py`, `sv_truth_helper.py`,
-`sv_truth_readsupport.py`, `prepare_sv_autosome.py`,
-`summarize_benchmark.py`, `classify_benchmark_fn.py`,
-`trio_mendelian_inconsistency.sh` and `summarize_mendelian.py`.
-These tools are in `src/`;
-they are invoked by the main pipelines where applicable and can
-also be run independently using the documented arguments.
-
-Stage 6 performs short-read graph mapping and variant calling, with
-a separate GRCh38 linear-reference comparison. Its steps are described
-in the [pangenome short-read mapping workflow](src/pangenome_short_read_mapping.md).
-
-## Quick start
-
-All scripts read paths and options from environment variables (or
-the listed command-line arguments). Create/activate the environment
-appropriate to each analysis before starting. Example run sequence
-for **implemented** stages:
-
-```bash
-export DATA_DIR=/path/to/fastq
-export REF_DIR=/path/to/reference
-export GRAPH_DIR=/path/to/graphs
-export OUT_DIR=/path/to/results
-export LIST_DIR=/path/to/lists
-export THREADS=32
-export BQSR_KNOWN_SITES="/path/to/known_snps.GRCh38.vcf.gz /path/to/known_indels.GRCh38.vcf.gz"
-
-bash 1.genome_assembly_and_statistics.sh all
-bash 3.pangenome_construction_and_statistics.sh all
-bash 4.compare_pangenome_variant_counts.sh all
-bash 6.pangenome_short_read_mapping.sh all
-bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
-```
-
-Stage 2 additionally requires a haplotype-assembly manifest with
-`sample`, `group`, `fasta`, and `flagger_bed` columns,
-the GRCh38 GENCODE v46 annotation, human Swiss-Prot release 2024_01,
-and precomputed HMM-Flagger BED classifications:
-
-```bash
-export SAMPLE_TABLE=/path/to/lists/gene_annotation_samples.tsv
-export SWISSPROT_FA=/path/to/reference/uniprot_sprot.human.2024_01.fasta
-export GENCODE_GTF=/path/to/reference/gencode.v46.annotation.gtf.gz
-export REFERENCE_FA=/path/to/reference/GRCh38.fa
-OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh check
-OUT_DIR=/path/to/results/gene_annotation bash 2.Ensemble_gene_annotation.sh all
-```
-
-Stage 5 requires seven KOR samples or the HG002 GIAB truth sets,
-plus matching high-confidence BED intervals. Its pipeline and trio
-inheritance-inconsistency procedures can be run separately:
-
-```bash
-export REF_DIR=/path/to/reference
-export TRUTH_DIR=/path/to/benchmark_truth
-export QUERY_DIR=/path/to/benchmark_query
-export SAMPLE_LIST=/path/to/lists/benchmark_samples.list
-export CONF_BED_DIR=/path/to/benchmark_truth/confidence_beds
-export OUT_DIR=/path/to/results/stage5
-bash 5.Variant_benchmark.sh check
-bash 5.Variant_benchmark.sh all
-```
-
-See [stage 5](src/Variant_benchmark.md) for the GIAB HG002 truth-set
-mode, Mendelian trio input layout, and false-negative classifications.
-Truvari v5.5.0 requires Python 3.12 or later.
-
-The AMY population-genetics stage takes **a joint, phased, biallelic
-SNP VCF and disjoint population sample-ID lists**, not copy-specific
-gene alignments. It can be run independently of graph structural steps:
-
-```bash
-mamba create -n amy_popgen -c conda-forge -c bioconda python bcftools bedtools htslib selscan=3.0.1
-conda activate amy_popgen
-
-export VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
-export POPS="KOR=/path/to/KOR.txt CHN=/path/to/CHN.txt"
-export CALLABLE_BED=/path/to/GRCh38.StrictMask.nonN.bed.gz
-export OUT_DIR=/path/to/results/amy_flanking
-bash 8.Population_genetics_in_AMY_flanking_locus.sh all
-```
-
-With **one** population, only within-population statistics are
-performed. With **two or more**, the first population is the query
-for Hudson FST and phased XP-nSL comparisons. If selscan v3.0.1 is
-missing, nSL and XP-nSL are **skipped with a warning** while other
-analyses continue.
-
-Individual bootstrap/jackknife and genomic block bootstrap default
-to **OFF**. To enable fast exploratory CIs:
-
-```bash
-INDIVIDUAL_CI=1 IND_BOOT_REPS=100 IND_JACKKNIFE_FRACTION=0.30 \
-GENOMIC_BOOTSTRAP=1 GENOMIC_CHROMS=chr1 GENOMIC_BLOCK_MB=50 \
-GENOMIC_BOOT_REPS=100 GENOMIC_WINDOW_STEP=1000 \
-bash 8.Population_genetics_in_AMY_flanking_locus.sh all
-```
-
-Our manuscript instead used **10,000** bootstrap replicates,
-full leave-one-person-out jackknife, and **chr1–22 / 5-Mb
-physical chromosome-stratified block bootstrap (10,000 draws)**.
-Those settings, estimator equations, window definitions and currently
-unsupported metrics are documented in [stage 8](src/Population_genetics_in_AMY_flanking_locus.md).
-Use verified manuscript tables rather than automatically equating
-exploratory public-pipeline values with the final Supplementary Tables S30–S32.
+| 1 | `1.genome_assembly_and_statistics.sh` | Sample selection, assembly, quality assessment, repeats and consensus SVs | [Methods](src/genome_assembly_and_statistics.md) | S1–S12, S18 |
+| 2 | `2.Ensemble_gene_annotation.sh` | Ensemble annotation and copy-number gains | [Methods](src/Ensemble_gene_annotation.md) | S13–S17 |
+| 3 | `3.pangenome_construction_and_statistics.sh` | Graph construction, graph statistics, growth and non-reference sequences | [Methods](src/pangenome_construction_and_statistics.md) | S19–S20, S22–S23 |
+| 4 | `4.compare_pangenome_variant_counts.sh` | Locus-level and allele-level variant comparisons | [Methods](src/compare_pangenome_variant_counts.md) | S21 |
+| 5 | `5.Variant_benchmark.sh` | GIAB and KOR benchmarking and trio inheritance inconsistency | [Methods](src/Variant_benchmark.md) | S24–S26 |
+| 6 | `6.pangenome_short_read_mapping.sh` | Short-read mapping and variant calling | [Methods](src/pangenome_short_read_mapping.md) | S24–S27 |
+| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY structural haplotypes and phylogeny | [Methods](src/AMY_locus_analysis_in_pagenomegraph.md) | S28–S29 |
+| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | AMY flanking-region population genetics | [Methods](src/Population_genetics_in_AMY_flanking_locus.md) | S30–S32 |
 
 ## Requirements
 
-- Unix/Bash, Python 3.9+, and the tools noted in each stage's
-  documentation. Variant extraction requires `bcftools` and a
-  coordinate-sorted/indexed VCF; structural graph workflows require
-  graph tools (minigraph, gfabase, odgi, etc.).
-- To obtain **nSL and XP-nSL**, activate a mamba/conda environment
-  containing **selscan v3.0.1**. Missing selscan skips only those
-  statistics, never installs it automatically.
-- Stage 1 applies autosomal `PASS` and ≥51-bp SV filters, then the
-  caller-specific read-depth, genotype-quality and read-support criteria
-  described in the [stage 1 methods](src/genome_assembly_and_statistics.md).
-  Each SVIM-asm variant must match at least two of pbsv, Sniffles and SVIM
-  by **Truvari bench** (≤500-bp reference distance; ≥70% sequence and
-  size similarity). Only then are the per-sample consensus SVs merged
-  across the 14 QC-passed KOR individuals using **SURVIVOR (100 bp)**.
-  Stage 5 separately constructs ≥1/≥2/3 read-caller-supported
-  SV truth sets for seven KOR samples, and uses the ≥2 set for
-  primary benchmarking. See the [stage 5 methods](src/Variant_benchmark.md).
-- Stage 6 uses GATK BQSR on graph-projected and linear-reference BAMs;
-  supply indexed GRCh38 known-sites VCFs via `BQSR_KNOWN_SITES`.
-  DeepVariant, Manta and Delly consume the recalibrated BAMs.
-  Graph-based `vg pack`/`vg call` continues to use the GAF alignments.
-- Stage 8 needs GRCh38 flanking SNP calls and a
-  `StrictMask(20160622) ∩ non-N` callable BED for appropriate
-  denominator lengths. It does not download private cohort data.
-- Stage 8's optional genomewide feature needs an indexed
-  joint all-chromosome VCF (chr1 for the default pilot, chr1–22
-  for the manuscript-scale configuration).
-- Stage 2 implements seven annotation stages and optional CNG tables;
-  RepeatMasker, AUGUSTUS, Exonerate, Liftoff and BLASTp may run natively,
-  while HMM-Flagger BED classifications are inputs. See the
-  [stage 2 instructions](src/Ensemble_gene_annotation.md).
-- Stage 5 implements KOR and GIAB small-variant/SV benchmarking and a separate
-  GIAB trio genotype inheritance inconsistency workflow. Its comparison
-  inputs and high-confidence regions must be supplied as documented;
-  synthetic CI tests do not reproduce the complete manuscript tables.
+Bash, Python 3.9+ and the analysis software listed in each methods document. Variant benchmarking with Truvari v5.5.0 requires Python ≥3.12. Install the specified versions and prepare reference indexes and analysis-specific input files before running each stage.
+
+## Run
+
+Each stage has a Shell entry point and a methods document with setup, execution, step descriptions, configuration, outputs, study analysis procedures, references and software versions. Stages can be executed independently using their documented inputs.
+
+~~~bash
+export DATA_DIR=/path/to/reads
+export REF_DIR=/path/to/reference
+export OUT_DIR=/path/to/results
+export LIST_DIR=/path/to/lists
+export THREADS=32
+
+bash 1.genome_assembly_and_statistics.sh all
+bash 2.Ensemble_gene_annotation.sh all
+bash 3.pangenome_construction_and_statistics.sh all
+bash 4.compare_pangenome_variant_counts.sh all
+bash 6.pangenome_short_read_mapping.sh all
+bash 5.Variant_benchmark.sh all
+bash 7.AMY_locus_analysis_in_pagenomegraph.sh all
+bash 8.Population_genetics_in_AMY_flanking_locus.sh all
+~~~
+
+Configure each stage's additional required variables according to its methods document. In particular, supply the stage 1 acrocentric BED for misjoin filtering, the stage 2 assembly/annotation manifest, stage 3 ordered assembly seqfiles, stage 4 population map, stage 5 truth and query sets with confidence BEDs, stage 6 matching graph indexes, stage 7 structural-label map and stage 8 SNP inputs, callable mask and population lists.
+
+The study used 302 Korean individuals and eight 1000 Genomes populations for AMY flanking analyses. Diversity, LD, Hudson's FST and phased XP-nSL were assessed in the distal and proximal flanks; the structurally variable region was excluded. See stage 8 for the study's 10,000-replicate individual and 5-Mb genomic block resampling configurations, separate LD background calculations and phased XP-nSL normalization and subsampling.
 
 ## Data availability
 
@@ -249,6 +90,10 @@ resources are available through the
 [Korean Genome Research project](https://kgr.appex.kr/).
 Executable workflow scripts and supporting analysis methods
 are maintained in this repository.
+
+## Citation
+
+See [CITATION.cff](CITATION.cff).
 
 ## License
 

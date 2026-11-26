@@ -1,39 +1,8 @@
 # 4.compare_pangenome_variant_counts.sh
 
-## Scope and rationale
-
-Graph-based pangenomes represent alternative sequences and structurally
-complex haplotypes that cannot be fully described using a single linear
-reference. This workflow compares structural variants (SVs) and small
-variants identified in the joint Korean Pangenome Reference (KPR) and
-Human Pangenome Reference Consortium (HPRC) graph. Variants are
-deconstructed against GRCh38 and classified as **KPR-private**,
-**shared**, or **HPRC-private**, using the sample-to-population table
-to assign graph haplotypes to the two comparison groups (Figures 3c–d;
-Table S21) [1–4].
-
-Two complementary counting units are reported. A **locus** represents
-a variant position or overlapping reference interval, even when
-multiple alternative alleles are present. An **allele** represents
-a distinct alternative sequence; SV alleles are clustered using
-PanSVMerger whereas small variant alleles are identified by
-chromosome, position, REF, and ALT. This distinction is important:
-a locus present in both panels can still contain alleles observed
-only in KPR. The pipeline reports the numbers of private loci and private alleles
-separately [1].
-
-The analysis follows the graph-based decomposition approach described
-for the Asian Pangenome Project phase 1 (APGp1; Wu et al., 2026) [1]. Seven steps
-prepare the deconstructed VCF, decompose SVs, merge similar SV
-alleles, decompose per-sample small variants, merge small variants
-across samples, count group-private and shared calls, and
-summarize genome-wide counts. The script is intended to use the
-graph products of [stage 3](pangenome_construction_and_statistics.md)
-and produces the variant-count tables used in the KPR–HPRC comparison.
+Comparison of KPR-private, shared and HPRC-private graph variants at the locus and allele levels (Figures 3c–d; Table S21).
 
 Part of the [KPR-pipeline](../README.md) repository.
-
----
 
 ## 1. Set up
 
@@ -125,7 +94,6 @@ export LIST_DIR=/path/to/lists        # default: ./lists
 export JOBS=4                         # chromosomes or samples in parallel
 ```
 
----
 
 ## 2. Run
 
@@ -171,28 +139,19 @@ log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
 an error once its remaining jobs have finished, and the following steps are not
 run.
 
----
 
 ## 3. Steps
 
 | Step | Description |
 |---|---|
 | `prepare_input` | Run `vcfbub`, rename/reference-filter contigs and samples, then exclude centromere/telomere-overlapping variants; recalculate AC/AN and prepare the SV input and reference sequence |
-| `sv_decompose` | `vcfwave` decomposition, SV alleles of more than 50 bp, SV loci with `vcfcreatemulti` |
+| `sv_decompose` | `vcfwave` decomposition, SV alleles, including reassigned inversions and long alleles, SV loci with `vcfcreatemulti` |
 | `sv_merge` | PanSVMerger allele clustering within each SV locus |
 | `small_decompose` | Per sample: `vcfwave`, `bcftools norm`, `rtg vcfdecompose`, small variants of 50 bp or less |
 | `small_merge` | Per chromosome: sample merge, SNV and indel files |
 | `count` | KPR-private, shared and HPRC-private variants per chromosome |
 | `summary` | Summary tables at the locus and allele level |
 | `all` | All of the above, in order |
-
-Dependencies between steps: `sv_decompose` and `small_decompose` need
-`prepare_input`; `sv_merge` needs `sv_decompose`; `small_merge` needs
-`small_decompose`; `count` needs `sv_merge` and `small_merge`; `summary` needs
-`count`. The SV branch and the small variant branch are independent and can
-run at the same time.
-
----
 
 ## 4. Configuration
 
@@ -214,7 +173,7 @@ run at the same time.
 | `VCFBUB_LEVEL` | `0` | `vcfbub -l` |
 | `VCFBUB_MAX_REF` | `10000000` | `vcfbub -r` |
 | `WAVE_MAXLEN` | `100000` | `vcfwave -L` |
-| `SV_MIN_LEN` | `50` | SVs are longer, small variants not |
+| `SV_MIN_LEN` | `50` | Length-difference threshold; inversions and long alleles are reassigned |
 | `MERGE_IDENTITY` | `0.9` | vsearch identity used by PanSVMerger |
 | `MERGE_WORKERS` | `16` | parallel vsearch processes per chromosome |
 | `MULTI_MEM_GB` | `32` | memory cap of `vcfcreatemulti` |
@@ -224,234 +183,7 @@ run at the same time.
 | `PANSVMERGER` | `./src/PanSVMerger/scripts/SV.merge_variants.py` | PanSVMerger script |
 | `JOBS` | `4` | chromosomes or samples processed in parallel |
 
----
-
-## 5. Analysis procedures
-
-The pipeline has two branches that share the same preprocessed input and meet
-again at the counting step:
-
-```
-Minigraph–Cactus --vcf (during graph construction)
-or vg deconstruct -P GRCh38 -a (stage 3 variants)
-        │
-        ▼
-Raw GRCh38-referenced graph VCF (INPUT_VCF)
-        │
-        ▼
-vcfbub -l 0 -r 10000000
-        │
-        ▼
-Contig renaming; remove CHM13 sample; retain chr1–22 and chrX
-        │
-        ▼
-Exclude centromere/telomere regions (UCSC hg38 BED)
-        │
-        ▼
-Recalculate AC/AN; retain variants with observed ALT
-        │
-        ├──────────────────────────────────┐
-        ▼                                  ▼
-  SV (> 50 bp)                       Small variants (≤ 50 bp)
-  all samples together, per chr      each sample separately
-        │                                  │
-sv_decompose   vcfwave                small_decompose   vcfwave
-               norm -m-                                 norm -c s -f GRCh38 -m -any
-               keep > 50 bp                             rtg vcfdecompose
-               vcfcreatemulti (loci)                    keep ≤ 50 bp, merge haplotypes
-        │                                  │
-sv_merge       PanSVMerger             small_merge      bcftools merge (all samples)
-               (vsearch id ≥ 0.9)                       SNV and indel files
-        │                                  │
-        └──────────────┬───────────────────┘
-                       ▼
-count          KPR-private / shared / HPRC-private, locus and allele
-                       ▼
-summary        proportion of KPR-private = KPR-private / (KPR-private + shared + HPRC-private)
-```
-
-The subsections below document the exact transformations performed by each
-of the seven processing steps.
-
-### Step 1. `prepare_input`
-
-Input: `INPUT_VCF`, `GRAPH_XG`, the UCSC tables. Output: `variant_comparison/input/`.
-
-- **1-1) Bubble decomposition with `vcfbub`.** The raw VCF is processed
-  first with `vcfbub -l 0 -r 10000000`. Top-level bubbles are retained;
-  if a bubble's reference allele exceeds 10 Mb, its nested child bubbles
-  are extracted instead. This is the APGp1 setting.
-- **1-2) Centromere and telomere exclusion.** Following `vcfbub`, the
-  reference-path contig names (for example, `GRCh38#0#chr1`) are renamed
-  to `chr1`–`chr22` and `chrX`, the CHM13 reference sample is removed,
-  and only those chromosomes are retained. Variants overlapping the
-  hg38 centromere intervals or the `telomere` entries of the UCSC gap
-  table are then excluded with `bcftools view -T ^...`.
-  The combined `exclude.cen_telo.bed` file is prepared from the UCSC
-  tables before the streaming command begins; creating this BED file
-  does **not** exclude any variants. The variant-filtering order remains
-  **`vcfbub` → centromere/telomere exclusion**.
-- **1-3) Finalize the VCF.** AC and AN are recalculated and variants with
-  no ALT carried by any retained sample are removed
-  (`bcftools view -c 1`). Output: `all.vcf.gz` and `samples.txt`.
-- **1-4) SV input.** Sites whose reference or an alternative allele is longer
-  than 50 bp are copied to `sv_input.vcf.gz`. A site whose alleles are all
-  50 bp or shorter cannot contain an allele differing from the reference by
-  more than 50 bp, so it cannot yield an SV after decomposition.
-- **1-5) Reference FASTA.** The GRCh38 sequence is extracted from the graph
-  with `vg paths -S GRCh38 -F`, renamed to `chr1` … and indexed. It is used by
-  `bcftools norm -f` in the small variant branch.
-
-### Step 2. `sv_decompose` (per chromosome)
-
-Input: `input/sv_input.vcf.gz`. Output: `sv/CHR/`.
-
-- **2-1) Decomposition.** A record deconstructed from a bubble holds the whole
-  sequence of each path through the bubble, so one long allele can hide
-  several variants. `vcfwave -L 100000` aligns every alternative allele to the
-  reference allele and writes each primitive difference (SNV, indel, SV,
-  inversion) as its own record. For example, an alternative allele that differs
-  from the reference by one substitution and one 3-bp deletion becomes two
-  records, an SNV and a deletion. Alleles longer than 100 kb are not realigned
-  and are kept as they are. The records are then split into bi-allelic records
-  (`bcftools norm -m-`), spanning-deletion alleles (`*`) are removed, the file
-  is sorted, and AC/AN are recomputed. Output: `CHR.bi.vcf.gz`.
-- **2-2) SV alleles.** Bi-allelic records with |len(ALT) − len(REF)| > 50 bp
-  are kept. Output: `CHR.sv.bi.vcf.gz`.
-- **2-3) SV loci.** After decomposition, the same SV in different haplotypes
-  is often written as several records with slightly different breakpoints or
-  lengths, for example three insertions of 300, 305 and 298 bp written at the
-  same position. `vcfcreatemulti` merges records with overlapping reference
-  spans into one multi-allelic record. Each such record is one **SV locus**. Output:
-  `CHR.sv.multi.vcf.gz`.
-
-### Step 3. `sv_merge` (per chromosome)
-
-Input: `sv/CHR/CHR.sv.multi.vcf.gz`. Output: `sv/CHR/CHR.sv.merged.vcf.gz`.
-
-- **3-1) Allele clustering.** Within a locus, alleles that differ only by a
-  few bases are still separate alleles, which inflates the number of distinct
-  SV alleles. `sv_merge_alleles.py` applies the PanSVMerger clustering to every
-  multi-allelic locus:
-  - the reference and alternative sequences are clustered with
-    `vsearch --cluster_fast --id 0.9 --strand both`;
-  - a cluster is split when its sequences differ in length by more than 50 bp;
-  - the cluster containing the reference allele becomes the reference, and
-    every other cluster becomes one alternative allele, represented by its
-    longest sequence;
-  - genotypes are rewritten to the new allele numbers, and AC and AN are
-    recomputed;
-  - a locus whose alternative alleles all cluster with the reference is
-    removed.
-
-  In the example above, the 300, 305 and 298 bp insertions form one cluster
-  and the locus is left with one alternative allele. Each cluster is one
-  **SV allele**.
-
-  The clustering functions are imported from PanSVMerger
-  (`SV.merge_variants.py`) unchanged, with its default limits (a locus with
-  more than 100 alleles of 50 kb or longer is not clustered). Compared with
-  running PanSVMerger directly, the wrapper keeps the diploid genotypes as they
-  are and clusters the loci of a chromosome in parallel
-  (`MERGE_WORKERS`); the result is the same as serial processing.
-
-### Step 4. `small_decompose` (per sample)
-
-Input: `input/all.vcf.gz`, `input/GRCh38.fa`. Output:
-`small_variants/samples/SAMPLE/SAMPLE.small.vcf.gz`.
-
-Small variants are processed one sample at a time, following the graph-based
-processing of loss-of-function variants in APGp1.
-
-- **4-1) Extraction and normalisation.**
-  `bcftools view -a -I -s SAMPLE -c 1:nref` keeps the sites carried by the
-  sample and trims the alleles it does not carry. `vcfwave -L 100000`
-  decomposes the alleles as in step 2-1, and `bcftools norm -c s -f GRCh38
-  -m -any` left-aligns the variants against GRCh38 and splits them into
-  bi-allelic records.
-- **4-2) Breaking MNPs and complex indels.**
-  `rtg vcfdecompose --break-mnps --break-indels` writes multi-base
-  substitutions as separate SNVs and complex indels as an SNV plus a simple
-  indel, so that a small variant has the same representation in every sample.
-  Before rtg, the graph path annotation `INFO/AT` (up to megabytes per record)
-  is removed, and inversions and records with an allele longer than 5 kb are
-  set aside. These records are SVs; rtg splits an inversion into thousands of
-  artificial SNVs, and its memory grows steeply with the allele length.
-- **4-3) Small variants.** Records with |len(ALT) − len(REF)| ≤ 50 bp are
-  kept. After decomposition, an allele carried on both haplotypes of a sample
-  can be written as two records (`1|0` and `0|1`). `dedup_sample.py` merges
-  them into one record (`1|1`), so that a homozygous variant is not counted as
-  two heterozygous ones. The number of merged records is written to
-  `SAMPLE.dedup.txt`.
-
-### Step 5. `small_merge` (per chromosome)
-
-Input: the per-sample VCFs. Output: `small_variants/merged/CHR/`.
-
-- **5-1) Sample merge.** `bcftools merge -m none --missing-to-ref` merges the
-  samples without combining different alleles into one record. Each sample file
-  holds only the variants that sample carries, so a sample without a record at
-  a site carries the reference allele there. AC, AN and AF are recomputed.
-  Output: `CHR.small.vcf.gz`.
-- **5-2) SNVs and indels.** `bcftools view -v snps` and `-v indels` write
-  `CHR.snv.vcf.gz` and `CHR.indel.vcf.gz`.
-
-### Step 6. `count` (per chromosome)
-
-Input: the merged SV and small variant files and `POP_TABLE`. Output:
-`counts/CHR.tsv`.
-
-**6-1) Group comparison.** `count_groups.py` reads the genotypes of every
-record. A group carries an allele when at least one haplotype of one of its
-samples carries it; missing genotypes are ignored. Every locus and every allele
-is then classified as carried by KPR only, by both groups (shared) or by HPRC
-only. Two units are counted for each variant type:
-
-| | Locus | Allele |
-|---|---|---|
-| SV | one record of `CHR.sv.merged.vcf.gz` (`--mode locus`) | one PanSVMerger allele cluster of that record |
-| Small variant | records of `CHR.small.vcf.gz` whose reference spans overlap (`--mode overlap`) | one distinct CHROM/POS/REF/ALT of `CHR.snv.vcf.gz` and `CHR.indel.vcf.gz` (`--mode exact`) |
-
-A locus is shared when both groups carry any alternative allele at it, even if
-they carry different alleles. For example, an SV locus with one allele carried
-only by KPR samples and another carried only by HPRC samples counts as one
-shared locus, one KPR-private allele and one HPRC-private allele. Such shared
-loci with a KPR-private allele are also counted separately, as new alleles at
-known SV sites.
-
-Every count is also split by class: SNV, insertion or deletion by the lengths
-of REF and ALT, and complex for a locus whose alleles are of more than one
-class or are multi-base substitutions.
-
-### Step 7. `summary`
-
-Input: `counts/`. Output: the three tables in `variant_comparison/`.
-
-**7-1)** `summarize_variant_comparison.py` sums the chromosome counts and
-calculates the proportion of KPR-private variants among all KPR-private,
-shared and HPRC-private variants, independently for each variant type
-and counting unit:
-
-```
-Proportion of KPR-private (%) =
-  KPR-private / (KPR-private + Shared + HPRC-private) × 100
-```
-
-The denominator is the sum of all three mutually exclusive classes.
-If a given unit has no variants, its proportion is reported as `NA`.
-
-### Running the helper scripts on their own
-
-```bash
-bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' chr22.sv.merged.vcf.gz \
-  | python3 src/count_groups.py --mode locus --varset sv --pop lists/population.tsv --target KOR
-python3 src/summarize_variant_comparison.py --counts results/variant_comparison/counts \
-  --out results/variant_comparison
-```
-
----
-
-## 6. Output
+## 5. Output
 
 ```
 results/variant_comparison/
@@ -479,7 +211,23 @@ Main tables:
 - `sv/CHR/CHR.sv.merged.vcf.gz` — SV loci after allele merging
 - `small_variants/merged/CHR/CHR.small.vcf.gz` — merged small variants
 
----
+## 6. Graph variant extraction and filtering
+
+We extracted variants from HPRC+KPR using vg deconstruct (-P GRCh38 -a). The analysis retained chr1–22 and chrX and excluded the CHM13 reference haplotype. vcfbub v0.1.2 (-l 0 -r 10000000) selected nested bubbles in place of top-level reference alleles longer than 10 Mb. After reference/sample selection, UCSC hg38 centromere and telomere intervals were excluded by record overlap. AC and AN were recalculated and records without observed ALT alleles removed.
+
+## 7. Small variant decomposition
+
+For each sample, vcfwave (-L 100000) decomposed complex alleles and bcftools norm v1.24 (-c s -f GRCh38 -m -any) normalized and split the records. Inversions and alleles longer than 5 kb were excluded from small variant counts and reassigned to the SV branch. RTG Tools v3.13 vcfdecompose (--break-mnps --break-indels) decomposed remaining MNPs and complex indels. After retaining length differences ≤50 bp, dedup_sample.py consolidated duplicate genotypes. bcftools merge (-m none --missing-to-ref) merged the decomposed per-sample VCFs; AC, AN and AF were recalculated. This missing-to-reference setting applies to the decomposed graph comparison, not to Mendelian analysis.
+
+## 8. Structural variant allele clustering
+
+The joint multi-sample VCF was decomposed using vcfwave (-L 100000) and bcftools norm (-m-). The SV branch retained length differences >50 bp and the reassigned inversion/long-allele records; vcfcreatemulti merged overlapping reference intervals. PanSVmerger (commit 9d9827f) and VSEARCH v2.32.0 (--cluster_fast --id 0.9 --strand both) clustered similar alleles, splitting clusters at allele-length gaps greater than 50 bp. The wrapper preserves genotypes and uses one representative sequence per cluster; alleles clustering with REF become reference alleles. Loci with no non-reference cluster are removed. After genotype reassignment AC, AN and AF are updated. Retain the clustering logs and complex variant classes when comparing the SV outputs with the reported INS and DEL counts.
+
+## 9. Locus-level and allele-level comparison
+
+A variant is carried by a population panel when at least one called haplotype contains its ALT allele. Missing genotypes are ignored in panel presence counting. Small-variant loci are the union of overlapping REF intervals; small-variant alleles are identical CHROM, POS, REF and ALT records. SV loci are merged records from vcfcreatemulti; SV alleles are PanSVmerger clusters. Count KPR-private, shared and HPRC-private loci and alleles separately; count KPR-private SV alleles inside shared loci as an additional category.
+
+For the study, the proportion private within KPR is KPR-private / (KPR-private + shared). The proportion added relative to HPRC is KPR-private / (HPRC-private + shared). The generic summary's union-based proportion has denominator KPR-private + shared + HPRC-private. Use the first two ratios for the Results and Table S21.
 
 ## References
 
@@ -492,7 +240,6 @@ Main tables:
 7. Rognes T, et al. (2016). VSEARCH: a versatile open source tool for metagenomics. *PeerJ* 4:e2584. https://doi.org/10.7717/peerj.2584
 8. Cleary JG, et al. (2015). Comparing variant call files for performance benchmarking of next-generation sequencing variant calling pipelines. *bioRxiv* 023754. https://doi.org/10.1101/023754
 
----
 
 ## Software and versions
 
