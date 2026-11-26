@@ -8,16 +8,16 @@ This repository provides computational pipelines and analysis procedures for the
 
 ## Pipelines
 
-| Stage | Script | Analysis | Documentation | Supplementary tables |
-|:--:|---|---|---|---|
-| 1 | `1.genome_assembly_and_statistics.sh` | Sample selection, genome assembly, quality assessment, repeat annotation and structural variant detection | [Methods](src/genome_assembly_and_statistics.md) | S1–S12, S18 |
-| 2 | `2.Ensemble_gene_annotation.sh` | Ensemble gene annotation and copy-number gain analysis | [Methods](src/Ensemble_gene_annotation.md) | S13–S17 |
-| 3 | `3.pangenome_construction_and_statistics.sh` | Pangenome construction, graph statistics, growth curves and non-reference sequence analysis | [Methods](src/pangenome_construction_and_statistics.md) | S19–S20, S22–S23 |
-| 4 | `4.compare_pangenome_variant_counts.sh` | Locus- and allele-level variant comparisons | [Methods](src/compare_pangenome_variant_counts.md) | S21 |
-| 5 | `5.Variant_benchmark.sh` | Variant benchmarking and Mendelian genotype inheritance inconsistency | [Methods](src/Variant_benchmark.md) | S24–S26 |
-| 6 | `6.pangenome_short_read_mapping.sh` | Short-read mapping and variant calling | [Methods](src/pangenome_short_read_mapping.md) | S24–S27 |
-| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY structural haplotype analysis | [Methods](src/AMY_locus_analysis_in_pagenomegraph.md) | S28–S29 |
-| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | AMY flanking-region population genetics | [Methods](src/Population_genetics_in_AMY_flanking_locus.md) | S30–S32 |
+| Stage | Script | Analysis | Documentation |
+|:--:|---|---|---|
+| 1 | `1.genome_assembly_and_statistics.sh` | Sample selection, genome assembly, quality assessment, repeat annotation and structural variant detection | [Methods](src/genome_assembly_and_statistics.md) |
+| 2 | `2.Ensemble_gene_annotation.sh` | Ensemble gene annotation and copy-number gain analysis | [Methods](src/Ensemble_gene_annotation.md) |
+| 3 | `3.pangenome_construction_and_statistics.sh` | Pangenome construction, graph statistics, growth curves and non-reference sequence analysis | [Methods](src/pangenome_construction_and_statistics.md) |
+| 4 | `4.compare_pangenome_variant_counts.sh` | Locus- and allele-level variant comparisons | [Methods](src/compare_pangenome_variant_counts.md) |
+| 5 | `5.Variant_benchmark.sh` | Variant benchmarking and Mendelian genotype inheritance inconsistency | [Methods](src/Variant_benchmark.md) |
+| 6 | `6.pangenome_short_read_mapping.sh` | Short-read mapping and variant calling | [Methods](src/pangenome_short_read_mapping.md) |
+| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY structural haplotype analysis | [Methods](src/AMY_locus_analysis_in_pagenomegraph.md) |
+| 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | AMY flanking-region population genetics | [Methods](src/Population_genetics_in_AMY_flanking_locus.md) |
 
 ## Usage
 

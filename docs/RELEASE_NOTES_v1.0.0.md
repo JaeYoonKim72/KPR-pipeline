@@ -13,11 +13,11 @@ Source code and analysis procedures for the Korean Pangenome Reference (KPR) wor
 7. AMY structural haplotype analysis
 8. AMY flanking-region population genetics
 
-Each workflow includes an executable Shell script and documentation describing its inputs, analysis parameters, commands and outputs. Additional study analyses are described in the corresponding methods documents.
+Each workflow includes an executable shell script and documentation describing its inputs, analysis parameters, commands and outputs. Additional study analyses are described in the corresponding methods documents.
 
 ## Validation and data
 
-Validation includes Shell and Python syntax checks and synthetic regression tests. Sequencing data, reference genomes, truth sets, confidence BEDs, pangenome graph files and third-party software are obtained separately. See the [README](../README.md) and pipeline documentation.
+Validation includes shell and Python syntax checks and synthetic regression tests. Sequencing data, reference genomes, truth sets, confidence BEDs, pangenome graph files and third-party software are obtained separately. See the [README](../README.md) and pipeline documentation.
 
 ## Citation and license
 

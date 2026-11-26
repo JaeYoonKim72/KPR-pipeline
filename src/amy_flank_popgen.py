@@ -86,7 +86,7 @@ def read_vcf(path, selected, regions, callrate, mask):
                 ds=[genotype(cells[i]) for i in ids]
                 ok=[v for v in ds if v is not None]
                 counts[pop]=(sum(ok),2*len(ok),ds)
-            # Retain pairwise/shared sites downstream; do not drop site for a low-call-rate unrelated group.
+            # Apply call-rate filters separately to each population comparison.
             record=(pos,counts)
             for k in where:result[k].append(record)
     return result

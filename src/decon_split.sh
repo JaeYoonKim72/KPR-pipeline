@@ -8,7 +8,7 @@ NAME=$(basename "${INPUT}")
 DIR=$(dirname "${INPUT}")
 OUT="${DIR}/${NAME%.vcf.gz}"
 
-# Include all target records, or emit a header-only VCF if the selection is empty.
+# Select target records; write a header-only VCF for an empty selection.
 select_targets() {
   local SOURCE=$1 DEST=$2 TARGETS
   TARGETS=$(mktemp "${OUT}.targets.XXXXXX")
@@ -63,7 +63,7 @@ select_targets "${OUT}.var_sizes.SVs_list.vcf.gz" \
   "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
   < "${OUT}.var_sizes.SVs_list.all_50_alts.txt"
 
-# sites that do not mix substitutions with length-changing alleles
+# Separate mixed substitution and length-changing sites
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
   | awk -F'\t' '{
       split($5, alts, ","); has_snp = 0; has_indel = 0
@@ -86,7 +86,7 @@ bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" \
     }' \
   | select_targets "${OUT}.var_sizes.SVs_list.all_50_alts.vcf.gz" "${OUT}.var_sizes.SVs_list.all_50_alts.only_mixed.vcf.gz"
 
-# structural deletions
+# Structural deletions
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
   | awk -F'\t' '{
       split($5, alts, ","); all_deletion = 1
@@ -100,7 +100,7 @@ bcftools filter -i 'strlen(REF) > strlen(ALT)' \
   | bcftools norm --rm-dup all -Oz \
     -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.DEL.DEL.vcf.gz"
 
-# structural insertions
+# Structural insertions
 bcftools view -H "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.vcf.gz" \
   | awk -F'\t' '{
       split($5, alts, ","); all_insertion = 1
@@ -114,7 +114,7 @@ bcftools filter -i 'strlen(ALT) > strlen(REF)' \
   | bcftools norm --rm-dup all -Oz \
     -o "${OUT}.var_sizes.SVs_list.all_50_alts.no_mixed.INS.INS.vcf.gz"
 
-# 4. Small variants: deletions, insertions and substitutions
+# Small variants: deletions, insertions and substitutions
 bcftools view -H "${OUT}.var_sizes.Smalls_list.vcf.gz" \
   | awk -F'\t' '{
       split($5, alts, ","); has_snp = 0; has_indel = 0

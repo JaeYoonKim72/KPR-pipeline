@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify benchmark false negatives without inferring missing GBZ evidence."""
+"""Classify benchmark false negatives; retain unresolved cases when graph evidence is unavailable."""
 
 import argparse
 from collections import defaultdict

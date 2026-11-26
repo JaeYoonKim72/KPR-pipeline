@@ -19,18 +19,15 @@ mamba create -n kpr_variant_counts -c conda-forge -c bioconda \
 conda activate kpr_variant_counts
 ```
 
-PanSVMerger [1] is not packaged and is used from its repository, at the
-commit used in the study:
+Install PanSVMerger [1] from the repository at the commit used in the study:
 
 ```bash
 git clone https://github.com/Asian-Pan-Genome/PanSVMerger.git src/PanSVMerger
 git -C src/PanSVMerger checkout 9d9827f
 ```
 
-`sv_merge_alleles.py` imports the clustering functions of
-`src/PanSVMerger/scripts/SV.merge_variants.py` unchanged. Set `PANSVMERGER` if the
-repository is installed elsewhere. PanSVMerger is an external dependency
-and is not bundled with this repository.
+`sv_merge_alleles.py` imports the clustering functions from
+`src/PanSVMerger/scripts/SV.merge_variants.py`. Set `PANSVMERGER` to the script path if installed elsewhere.
 
 RTG Tools asks about usage logging the first time it runs, which can halt a
 background job. Answer it once interactively, or set `RTG_TALKBACK=false` and
@@ -58,8 +55,8 @@ The input must be an unfiltered GRCh38-referenced graph VCF, with the
 reference paths and nested variants required by this analysis. To use
 the VCF generated directly by Minigraph–Cactus with `--vcf`, set
 `INPUT_VCF` to its path and check that its reference and sample paths
-and variant representation match the expected input. Do not apply
-`vcfbub` beforehand; bubble selection is performed by `prepare_input`.
+and variant representation match the expected input. The `prepare_input`
+step performs bubble selection with `vcfbub`.
 
 ### 1.3 Reference files
 

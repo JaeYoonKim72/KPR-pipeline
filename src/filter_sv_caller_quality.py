@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Filter caller-specific SV VCFs before Truvari matching.
 
-Single-sample VCFs only. Missing required depth/support fields fail closed:
-records are omitted and counted in the audit, never treated as passing.
+For single-sample VCFs, exclude records missing required depth or read support and report them in the audit.
 """
 
 import argparse

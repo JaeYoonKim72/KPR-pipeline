@@ -22,7 +22,7 @@ def load_pansvmerger(path):
     return mod
 
 
-# ---- worker side ----
+# Parallel allele clustering
 W = {}
 
 
@@ -39,7 +39,7 @@ def cluster_job(job):
     fa = os.path.join(W['tmpdir'], f'{tag}.fa')
     try:
         psm.write_tmp_fasta(chrom, pos, ref, alts, fa)
-        # Same command as PanSVMerger run_vsearch(); output captured instead of printed.
+        # VSEARCH clustering parameters follow PanSVMerger.
         cmd = [W['vsearch'], '--cluster_fast', fa, '--id', str(W['identity']), '--strand', 'both',
                '--uc', f'{fa}.uc', '--threads', str(W['threads']),
                '--maxseqlength', str(W['maxseqlength']), '--minseqlength', str(W['minseqlength'])]
@@ -59,7 +59,7 @@ def cluster_job(job):
                 os.remove(f)
 
 
-# ---- main side ----
+# VCF record merging
 DROP = object()  # merged_record() result: record removed
 
 
@@ -71,7 +71,7 @@ def merged_record(rec, mapping, header, keep_info):
             cluster_to_gt[c] = len(cluster_to_gt)
     n_alt = len(cluster_to_gt) - 1
     if n_alt == 0:
-        return DROP  # every ALT clustered with REF -> no SV left at this locus
+        return DROP  # All ALT alleles cluster with REF
     if n_alt == len(rec.alts):
         return None  # nothing merged
 
