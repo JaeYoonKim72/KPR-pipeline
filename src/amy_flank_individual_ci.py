@@ -46,7 +46,7 @@ def update_rows(rows, indices):
     return result
 
 
-def value(stat, region, p, ref, data, lengths, args):
+def value(stat, region, p, ref, data, lengths, args, fst_rate=None):
     if stat in ("pi_per_bp", "thetaW_per_bp", "Tajima_D"):
         result = focal.diversity(data[region], p, lengths[region], args.projection, args.callrate)
         return numeric(result[{"pi_per_bp":2,"thetaW_per_bp":3,"Tajima_D":4}[stat]])
@@ -56,7 +56,7 @@ def value(stat, region, p, ref, data, lengths, args):
     if stat == "across_corrected_r2":
         return numeric(focal.cross_ld(data["distal"], data["proximal"], p, args.callrate, args.ld_maf)[1])
     if stat == "Hudson_FST":
-        return numeric(focal.fst(data[region], p, ref, args.callrate)[1])
+        return numeric(focal.fst(data[region], p, ref, args.callrate if fst_rate is None else fst_rate)[1])
     raise ValueError("unknown statistic: "+stat)
 
 
@@ -95,16 +95,21 @@ def run(args):
     rnd = random.Random(args.seed)
     summaries, replicates = [], []
     for item_idx, (metric, region, pop, ref) in enumerate(definitions):
-        point = value(metric,region,pop,ref,data,lengths,args)
+        metric_data = data
+        fst_rate = None
+        if metric == "Hudson_FST":
+            metric_data = {region: focal.fst_panel(data[region], pop, ref, args.callrate)}
+            fst_rate = 0.0
+        point = value(metric,region,pop,ref,metric_data,lengths,args,fst_rate)
         involved = [pop]+([ref] if ref else [])
         boot=[]
         for i in range(args.bootstrap_reps):
             picks = {p:[rnd.randrange(len(chosen[p])) for _ in chosen[p]] for p in involved}
-            affected = {r:update_rows(rows,picks) for r,rows in data.items()
+            affected = {r:update_rows(rows,picks) for r,rows in metric_data.items()
                         if r==region or region=="across_flanks"}
             if region!="across_flanks":
                 affected={region:affected[region]}
-            score=value(metric,region,pop,ref,affected,lengths,args)
+            score=value(metric,region,pop,ref,affected,lengths,args,fst_rate)
             replicates.append((metric,region,pop,ref,"bootstrap",i+1,focal.pf(score)))
             if math.isfinite(score):
                 boot.append(score)
@@ -124,11 +129,11 @@ def run(args):
             samples=[]
             for j in chosen_i:
                 picks={p:[k for k in range(n) if k!=j]}
-                affected={r:update_rows(rows,picks) for r,rows in data.items()
+                affected={r:update_rows(rows,picks) for r,rows in metric_data.items()
                           if r==region or region=="across_flanks"}
                 if region!="across_flanks":
                     affected={region:affected[region]}
-                score=value(metric,region,pop,ref,affected,lengths,args)
+                score=value(metric,region,pop,ref,affected,lengths,args,fst_rate)
                 replicates.append((metric,region,pop,ref,"jackknife",j+1,focal.pf(score)))
                 if math.isfinite(score):
                     samples.append(score)

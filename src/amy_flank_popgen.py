@@ -172,6 +172,10 @@ def cross_ld(a,b,pop,rate,maf=.05):
             if v is not None:s+=v;n+=1
     return n,pf(s/n if n else float("nan"))
 
+def fst_panel(rows, p, q, rate):
+    return [(pos, d) for pos, d in rows
+            if all(d[g][1] >= max(2, 2*len(d[g][2])*rate-1e-9) for g in (p, q))]
+
 def fst(rows,p,q,rate):
     num=den=0.;used=0
     for _,d in rows:

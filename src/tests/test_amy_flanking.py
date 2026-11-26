@@ -25,6 +25,11 @@ class AMYTests(unittest.TestCase):
         self.assertAlmostEqual(r,1.0)
         self.assertEqual(f.pf(float("nan")),"NA")
 
+    def test_fixed_fst_panel(self):
+        data = [(1, {"A": (2, 4, [0, 2]), "B": (1, 4, [0, 1])}),
+                (2, {"A": (1, 2, [1, None]), "B": (1, 4, [0, 1])})]
+        self.assertEqual([pos for pos, _ in f.fst_panel(data, "A", "B", 0.9)], [1])
+
     @unittest.skipUnless(shutil.which("bcftools") and shutil.which("bgzip"), "requires bcftools and bgzip")
     def test_all_optional_ci_and_genomic(self):
         with tempfile.TemporaryDirectory() as tmp:

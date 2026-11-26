@@ -287,7 +287,8 @@ def main():
                         if focalL==0 or abs(length-focalL)>args.fst_callable_match*focalL:
                             continue
                     dest=observations[key]
-                    tail=int(value>=points[key])
+                    comparison = float(focal.pf(value))
+                    tail = 1.0 if comparison > points[key] else (0.5 if comparison == points[key] else 0.0)
                     dest["windows"]+=1;dest["tail"]+=tail
                     b=dest["blocks"][block]
                     b[0]+=1;b[1]+=tail

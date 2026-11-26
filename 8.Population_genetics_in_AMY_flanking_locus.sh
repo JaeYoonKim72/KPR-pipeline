@@ -3,6 +3,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC_DIR="${SCRIPT_DIR}/src"
 VCF="${VCF:-}"
+XPNSL_VCF="${XPNSL_VCF:-}"
 OUT_DIR="${OUT_DIR:-./results/amy_flanking_population_genetics}"
 DISTAL="${DISTAL:-chr1:103456163-103561526}"
 PROXIMAL="${PROXIMAL:-chr1:103760698-103826698}"
@@ -22,7 +23,7 @@ GENOMIC_BLOCK_MB="${GENOMIC_BLOCK_MB:-50}"
 GENOMIC_WINDOW_STEP="${GENOMIC_WINDOW_STEP:-1000}"
 GENOMIC_BOOT_REPS="${GENOMIC_BOOT_REPS:-100}"
 GENOMIC_FST_CALLABLE_MATCH="${GENOMIC_FST_CALLABLE_MATCH:-0.10}"
-GENOME_VCF="${GENOME_VCF:-$VCF}"
+GENOME_VCF="${GENOME_VCF:-}"
 GENOME_CHROM_SIZES="${GENOME_CHROM_SIZES:-}"
 SEED="${SEED:-20261117}"
 LD_MAF="${LD_MAF:-0.05}"
@@ -37,7 +38,7 @@ Usage: bash 8.Population_genetics_in_AMY_flanking_locus.sh all [options]
 Steps: all, diversity, ld, across_ld, fst, nsl, xpnsl, individual_ci, genomic
 Distal and proximal flanking regions are the two AMY intervals analyzed.
 Legacy "focal" names in helper options or output files refer to these flanks.
-Required: VCF=/path/to/joint.phased.biallelic.snps.vcf.gz
+Required: VCF=/path/to/joint.biallelic.snps.vcf.gz
           POPS="KOR=/path/KOR.samples CHN=/path/CHN.samples"
           OR repeated --pop NAME=sample_file
 Options: --vcf FILE --pop NAME=FILE --out DIR --mask BED
@@ -46,6 +47,7 @@ Options: --vcf FILE --pop NAME=FILE --out DIR --mask BED
          --individual-ci --bootstrap-reps 100 --jackknife-fraction 0.30
          --genomic --chromosomes chr1 --block-mb 50 --genomic-reps 100
          --window-step 1000 --genome-vcf FILE --chrom-sizes FILE
+         --xpnsl-vcf FILE
          --fst-callable-match 0.10 --ld-maf 0.05
          --ld-distal-max 100000 --ld-proximal-max 60000
          --core-maf 0.05 --max-extend-nsl 50 --seed 20261117
@@ -70,6 +72,7 @@ POPARGS=()
 while (( $# )); do
  case "$1" in
  --vcf) VCF="$2"; shift 2;;
+ --xpnsl-vcf) XPNSL_VCF="$2"; shift 2;;
  --pop) POPARGS+=("$2"); shift 2;;
  --out) OUT_DIR="$2"; shift 2;;
  --mask) CALLABLE_BED="$2"; shift 2;;
@@ -99,6 +102,7 @@ while (( $# )); do
 done
 # --vcf is parsed after the environment defaults; inherit it for genomic runs.
 [[ -n "$GENOME_VCF" ]] || GENOME_VCF="$VCF"
+[[ -n "$XPNSL_VCF" ]] || XPNSL_VCF="$VCF"
 if [[ -n "$POPS" ]]; then
  read -r -a FROMENV <<< "$POPS"
  POPARGS=("${FROMENV[@]}" "${POPARGS[@]}")
@@ -158,27 +162,24 @@ check_selscan() {
   echo "[WARNING] nSL/XP-nSL skipped; other statistics continue." >&2
  fi
 }
-EXTRACTED=0
 extract_inputs() {
- (( EXTRACTED )) && return 0
+ local input=$1
+ [[ -s "$input" ]] || { printf 'Missing phased VCF: %s\n' "$input" >&2; return 1; }
  for reg in distal proximal; do
   if [[ "$reg" == distal ]]; then coords="$DISTAL"; else coords="$PROXIMAL"; fi
   for i in "${!NAMES[@]}"; do
    name="${NAMES[$i]}"
    dest="$OUT_DIR/intermediate/$name.$reg.vcf.gz"
-   if [[ ! -s "$dest" ]]; then
-    if [[ -n "$CALLABLE_BED" ]]; then
+   if [[ -n "$CALLABLE_BED" ]]; then
       bcftools view -r "$coords" -T "$CALLABLE_BED" -S "${LISTS[$i]}" -m2 -M2 -v snps \
-        -Oz -o "$dest" "$VCF"
+        -Oz -o "$dest" "$input"
     else
       bcftools view -r "$coords" -S "${LISTS[$i]}" -m2 -M2 -v snps \
-        -Oz -o "$dest" "$VCF"
+        -Oz -o "$dest" "$input"
     fi
     bcftools index -f "$dest"
-   fi
   done
  done
- EXTRACTED=1
 }
 run_nsl() {
  if (( ! SELSCAN_OK )); then
@@ -187,7 +188,7 @@ run_nsl() {
    done
    return
  fi
- extract_inputs
+ extract_inputs "$XPNSL_VCF"
  for name in "${NAMES[@]}"; do
   for reg in distal proximal; do
    prefix="$OUT_DIR/selscan/$name.$reg.nsl"
@@ -214,7 +215,7 @@ run_xpnsl() {
    done
    return
  fi
- extract_inputs
+ extract_inputs "$XPNSL_VCF"
  for ((i=1;i<${#NAMES[@]};i++)); do
   pair="${NAMES[0]}_vs_${NAMES[$i]}"
   for reg in distal proximal; do
@@ -228,9 +229,9 @@ run_xpnsl() {
      >"$OUT_DIR/logs/$pair.$reg.match.log"
    prefix="$OUT_DIR/selscan/$pair.$reg.xpnsl"
    if selscan --xpnsl --vcf "$work.query.vcf" --vcf-ref "$work.ref.vcf" \
-      --maf "$NSL_CORE_MAF" --keep-low-freq --max-extend-nsl "$NSL_MAX_EXTEND" --threads "$THREADS" \
+      --maf 0 --keep-low-freq --max-extend-nsl "$NSL_MAX_EXTEND" --threads "$THREADS" \
       --out "$prefix" >"$OUT_DIR/logs/$pair.$reg.xpnsl.log" 2>&1; then
-     status xpnsl "$pair" "$reg" RAW_ONLY needs_genomewide_normalization
+     status xpnsl "$pair" "$reg" RAW_ONLY needs_balanced_core_filter_and_normalization
    else
      status xpnsl "$pair" "$reg" FAILED see_log
    fi
@@ -274,7 +275,6 @@ case "$STEP" in
  all)
    calc all
    check_selscan
-   run_nsl
    run_xpnsl
    if [[ "$INDIVIDUAL_CI" == 1 ]]; then run_individual_ci; fi
    if [[ "$GENOMIC_BOOTSTRAP" == 1 ]]; then run_genomic; fi
