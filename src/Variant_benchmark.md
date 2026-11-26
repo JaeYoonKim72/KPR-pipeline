@@ -46,7 +46,7 @@ query_input/
   delly/delly.SAMPLE.sv.DEL.vcf.gz
 ~~~
 
-The benchmark uses the actual high-confidence BED for each truth set. Prepare the Manta INS/DUP input as the insertion call set used in the benchmark, with normalized insertion representation and genotype information. Optional Manta DEL inputs can be compared separately.
+Supply the high-confidence BED for each truth set. Prepare the Manta INS/DUP insertion call set with normalized insertion representation and genotype information. Manta DEL calls can be evaluated separately.
 
 ## 2. Run
 
@@ -120,7 +120,19 @@ For the trio workflow, configure the child, parental and confidence-region input
 
 ## 5. Output
 
-The summary filenames retain the `kor_` prefix in both truth modes. Use the individual and mean tables for S24 and S26 and the trio summary/adjudication tables for S25.
+| Output under `$OUT_DIR/benchmarking/` | Contents |
+|---|---|
+| `truth/` | Prepared small-variant and SV truth sets |
+| `query/` | Normalized query VCFs |
+| `bench/small/` | hap.py benchmark summaries and annotated VCFs |
+| `bench/sv/` | Truvari benchmark summaries and TP/FP/FN VCFs |
+| `summary/kor_small_detail.tsv` | Individual small-variant metrics |
+| `summary/kor_small_mean.tsv` | Mean small-variant metrics |
+| `summary/kor_sv_detail.tsv` | Individual SV metrics |
+| `summary/kor_sv_mean.tsv` | Mean SV metrics |
+| `summary/fn_failure_classes.tsv` | False-negative classifications |
+
+Both truth modes use the `kor_` summary filename prefix. These tables provide the metrics for S24 and S26. The Mendelian workflow writes `mendelian_summary.tsv` and `mendelian_variant_adjudication.tsv` under `$MEND_OUTDIR/$MEND_REFERENCE.$MEND_TRIO/` (Table S25).
 
 ## 6. Construction of KOR truth sets
 
@@ -147,7 +159,7 @@ For SVs, presence = TP-base/base cnt; genotype concordance = gt_concordance. Rec
 
 ## 9. False-negative classification
 
-Small-variant FN annotations BK=. indicate detection failures; BK=lm and BK=am indicate allele and genotype matching failures. For SVs, inspect unmatched truth variants in fn.vcf.gz and query calls within ±500 bp. For each personalized GBZ used in mapping, deconstruct the relevant graph in GRCh38 coordinates and compare its represented alleles to the truth with the same Truvari matching parameters. A truth allele absent from that graph, or a truth call without any query call within the positional tolerance, is a detection failure. Remaining unmatched calls with a corresponding query call are matching failures. Supply the separately generated graph-representation evidence to GBZ_EVIDENCE_DIR as specified by classify_benchmark_fn.py; without it the output records the positional evidence, not a complete graph-representation adjudication.
+Small-variant FN annotations BK=. indicate detection failures; BK=lm and BK=am indicate allele and genotype matching failures. For SVs, inspect unmatched truth variants in fn.vcf.gz and query calls within ±500 bp. For each personalized GBZ used in mapping, deconstruct the relevant graph in GRCh38 coordinates and compare its represented alleles to the truth with the same Truvari matching parameters. A truth allele absent from that graph, or a truth call without any query call within the positional tolerance, is a detection failure. Remaining unmatched calls with a corresponding query call are matching failures. For graph-based comparisons, supply the truth-allele representation table using `GBZ_EVIDENCE_DIR` (see `src/classify_benchmark_fn.py`). Without this table, the classification uses positional evidence and retains unresolved cases.
 
 ## 10. Mendelian genotype inheritance inconsistency
 
@@ -180,7 +192,6 @@ For the seven KOR samples, compare paired sample-level SV recall values for the 
 5. Wu D, Yang C, Chen Q, et al. (2026). Hidden genetic diversity in 320 nearly-complete East Asian genome assemblies. *bioRxiv*. https://doi.org/10.64898/2026.07.27.740875
 6. Suzuki Y, Owa C, Kobayashi H, et al. (2026). Accessing medically relevant complex regions with a pangenome graph of 20 near-complete Japanese haplotypes. *Nature Communications*. https://doi.org/10.1038/s41467-026-73461-x
 
-
 ## Software and versions
 
 | Tool | Version or requirement | Use |
@@ -194,9 +205,4 @@ For the seven KOR samples, compare paired sample-level SV recall values for the 
 | pysam | Record installed version | SV truth-set preparation and allele matching |
 | samtools, bgzip, tabix | Record installed versions | FASTA and VCF indexing |
 
-The pipeline reproduces the stated comparison criteria but
-does not bundle the underlying GIAB and KOR truth VCFs,
-confidence BEDs, personalized GBZ files or raw reads.
-Those inputs must be supplied separately. For a reproducible
-run, record the full software environment, the reference
-build, sample list, truth-set versions and input checksums.
+Reference genomes, truth VCFs, confidence BEDs, personalized GBZ files and sequencing reads are separate inputs (section 1).

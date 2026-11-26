@@ -36,6 +36,8 @@ wget https://s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/free
 gzip -d hprc-v1.1-mc-grch38.gfa.gz
 ```
 
+HPRC v1.0 denotes the 94 haplotype assemblies used in the study. The workflow uses the distributed Minigraph–Cactus graph file `hprc-v1.1-mc-grch38.gfa.gz`.
+
 The `bubble_annotation` step additionally needs two BED files with the gene
 name in column 4, and a list of medically relevant gene symbols:
 
@@ -54,7 +56,7 @@ awk -F'\t' '$3=="exon"  {match($9,/gene_name "[^"]+"/); g=substr($9,RSTART+11,RL
 
 ### 1.3 Seqfiles
 
-Seqfiles are prepared by the user, one per graph, named after the graph
+Prepare one seqfile per graph, named after the graph
 (`kpr.seqfile`, `hprc_kpr.seqfile`) and placed in `SEQFILE_DIR`. Each line
 gives an assembly name and the path to its FASTA file; the two haplotypes of a
 sample are distinguished by a `.1` and `.2` suffix:
@@ -85,7 +87,6 @@ export ASM_DIR=/path/to/assemblies       # required by allele_mapping
 export OUT_DIR=/path/to/results          # default: ./results
 export THREADS=16
 ```
-
 
 ## 2. Run
 
@@ -135,7 +136,6 @@ Every step writes to `$OUT_DIR/logs/pipeline.log` and skips a graph whose input
 files are missing, so a step can be rerun after fixing a problem without
 redoing the graph. Cactus keeps its job store under `$TMP_DIR`; remove it only
 once construction has finished.
-
 
 ## 3. Steps
 
@@ -216,7 +216,7 @@ AMY locus analysis described in
 
 We constructed KPR from 28 haplotype assemblies of 14 KOR individuals and HPRC+KPR from these assemblies and 94 HPRC v1.0 haplotype assemblies. GRCh38 and CHM13 reference paths were not additional population samples. Assemblies were ordered by population (AFR, EUR, AMR, EAS, KOR, as applicable). Minigraph–Cactus v2.9 used Minigraph v0.19 with CHM13 as the backbone, soft-masked repetitive regions, excluded MAPQ <5 and soft-masked segments >100 kb, refined chromosome-level graphs by base-level alignment, normalized and merged them with the human-data defaults. The graphs were indexed using vg v1.63.1.
 
-For study-specific construction, set REFERENCE to the actual CHM13 backbone identifier in the seqfile and retain the GRCh38 reference path for stage 4. The configured reference identifiers and seqfile ordering determine the graph; the wrapper default remains GRCh38 for other applications. The study used 27 CPU cores on a node with 1.5 TB physical RAM. Cactus memory and disk arguments are configured separately.
+The study used CHM13 as the backbone, with GRCh38 retained for the variant comparison in stage 4. Set `REFERENCE` and `REF_PATHS` to the corresponding seqfile identifiers. Graph construction used 27 CPU cores on a node with 1.5 TB RAM; Cactus memory and disk limits are specified separately in section 4.
 
 ~~~bash
 THREADS=27 REFERENCE="CHM13 GRCh38" REF_PATHS="CHM13 GRCh38" \
@@ -227,13 +227,13 @@ Use the exact reference labels from the seqfile when running this command.
 
 ## 7. Graph statistics and variant identification
 
-We compared KPR, the published HPRC graph and HPRC+KPR. odgi v0.9.0 stat (odgi stats) provided graph topology and sequence statistics; odgi heaps used 200 permutations (Table S19). vg deconstruct generated variant records against CHM13 for Figure 3b and the GRCh38-referenced input of stage 4. Small variants and SVs were separated by the 50-bp REF–ALT length-difference threshold and subdivided by type and occurrence. Per-individual variant counts in HPRC+KPR were summarized by population, keeping singleton, doubleton and polymorphic categories (Figure 3e; Table S20). The locus and allele comparison in Figure 3c–d uses stage 4 rather than subtracting counts from separate graphs.
+We compared KPR, the published HPRC graph and HPRC+KPR. odgi v0.9.0 (`odgi stats`) provided graph topology and sequence statistics; odgi heaps used 200 permutations (Table S19). vg deconstruct generated variant records against CHM13 for Figure 3b and the GRCh38-referenced input of stage 4. Small variants and SVs were separated by the 50-bp REF–ALT length-difference threshold and subdivided by type and occurrence. Per-individual variant counts in HPRC+KPR were summarized by population, keeping singleton, doubleton and polymorphic categories (Figure 3e; Table S20). The locus- and allele-level comparisons in Figures 3c–d were performed within HPRC+KPR (stage 4).
 
 ## 8. Pangenome growth curves
 
 We used Panacus v0.4.1 to calculate cumulative non-reference sequence growth at the sample level, grouping the two haplotypes of each individual. The main growth analysis used the augmented HPRC+KPR graph; Figure S7 used HPRC (47 individuals) and KPR (14 individuals) subsets within that same graph. The combined panel comprised 61 individuals and 122 population haplotype assemblies. Exclude reference-only paths from the population grouping. Use the ordered population path lists for the full and subset runs, preserving the same graph, reference-node definition and frequency classification.
 
-Nodes were classified as core (>95%), common (5–95%), doubletons (two assemblies) or singletons (one assembly), with the study's frequency denominator and grouping applied consistently. The growth wrapper runs the configured graph files independently; for the subset analysis, supply the HPRC+KPR graph and the corresponding path-selection/grouping input to Panacus for each panel. Record the actual grouping and frequency denominators when preparing S22. The wrapper retains a rare category for nodes below 5% with more than two carriers; the original study used its four reported categories.
+Node frequency categories were core (>95%), common (5–95%), doubletons (two assemblies) and singletons (one assembly). For the subset growth curves, use the same HPRC+KPR graph with the corresponding Panacus path-selection and sample-grouping inputs. The `growth` step processes the configured graph files independently; the within-graph subset analysis uses the selected paths from HPRC+KPR. The non-reference node classification also provides a rare category for nodes below 5% with more than two carriers.
 
 ## 9. Non-reference sequence and repeat analysis
 
@@ -243,7 +243,7 @@ Annotate non-reference sequences by repeat type and frequency class, following t
 
 ## References
 
-1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; sections "Integrating Korean diversity into a pangenome framework" and "Assessment of the pangenome graph".
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* [Study citation](../CITATION.cff); sections "Integrating Korean diversity into a pangenome framework" and "Assessment of the pangenome graph".
 2. Hickey G, et al. (2024). Pangenome graph construction from genome alignments with Minigraph-Cactus. *Nature Biotechnology*. https://doi.org/10.1038/s41587-023-01793-w
 3. Liao WW, et al. (2023). A draft human pangenome reference. *Nature*. https://doi.org/10.1038/s41586-023-05896-x
 4. Guarracino A, et al. (2022). ODGI: understanding pangenome graphs. *Bioinformatics*. https://doi.org/10.1093/bioinformatics/btac308
@@ -251,10 +251,7 @@ Annotate non-reference sequences by repeat type and frequency class, following t
 
 ## Software and versions
 
-The following versions are taken from the manuscript Methods and the
-corresponding commands in the workflow.
-
-| Operation | Software (manuscript version) |
+| Operation | Software and version |
 |---|---|
 | Graph construction | Minigraph–Cactus 2.9; Minigraph 0.19 in the construction pipeline |
 | Graph alignment/allele extraction | Minigraph 0.21 for later allele calls |
@@ -264,4 +261,3 @@ corresponding commands in the workflow.
 | Bubble and graph extraction | gfatools 0.5; gfabase 0.5 |
 | Repetitive sequence annotation | RepeatMasker 4.1.6 |
 | Supporting utilities | bcftools (workflow specifies 1.16), bedtools, samtools, Python 3 |
-

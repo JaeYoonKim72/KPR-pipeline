@@ -71,7 +71,6 @@ export LIST_DIR=/path/to/lists        # default: ./lists
 export THREADS=32
 ```
 
-
 ### Acrocentric short-arm intervals
 
 Supply a zero-based, half-open CHM13 BED containing the short arms of chr13, chr14, chr15, chr21 and chr22. Set `ACROCENTRIC_BED` to this file for the study's misjoin filtering. `PAFTOOLS` specifies the Minimap2 v2.30 `paftools.js` executable.
@@ -127,7 +126,6 @@ done
 
 Every step writes to `$OUT_DIR/logs/pipeline.log`. Steps are independent, so
 one can be rerun after fixing a problem without repeating the others.
-
 
 ## 3. Steps
 
@@ -194,16 +192,7 @@ Main tables:
 - `sv/merged/shared_SV.vcf` — ≥51-bp SVs observed in all 14 QC-passed
   individuals after SURVIVOR merging at 100 bp
 
-The polished assemblies in `polishing/corrected/` are the input for
-`3.pangenome_construction_and_statistics.sh`.
-
-The downstream graph must use **the actual two retained haplotype
-assemblies per selected individual**, not duplicate FASTA records
-or both raw and polished versions. Check sequence identifiers,
-sample provenance and haplotype FASTA indexing before constructing
-seqfiles. Record versions of the retained FASTA files, the
-`qc_pass.list`, contamination-screen reports and key
-quality summary tables together with graph input manifests.
+Use the QC-passed haplotype assemblies in `polishing/qc_assemblies/` for pangenome construction (stage 3), gene annotation (stage 2) and assembly-based SV calling. Retain one FASTA per selected haplotype, the sample list and the assembly quality assessment tables.
 
 `polishing/qc_assemblies/` contains the retained haplotype FASTAs. `statistics/misjoin/interchromosomal_misjoins.tsv` records the candidate pairs, their CHM13 coordinates and classification. `lists/qc_pass.list` contains individuals with two passing haplotypes.
 
@@ -238,7 +227,7 @@ PacBio LRS was aligned to GRCh38 using pbmm2 v1.17. We called SVs with pbsv v2.9
 
 ## References
 
-1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; sections "Genome assembly and quality assessment" and "Repeat and gene annotation".
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* [Study citation](../CITATION.cff); sections "Genome assembly and quality assessment" and "Repeat and gene annotation".
 2. Cheng H, et al. (2024). Scalable telomere-to-telomere assembly for diploid and polyploid genomes with double graph. *Nature Methods*. https://doi.org/10.1038/s41592-024-02269-8
 3. Kolmogorov M, et al. (2019). Assembly of long, error-prone reads using repeat graphs. *Nature Biotechnology*. https://doi.org/10.1038/s41587-019-0072-8
 4. Chen Y, et al. (2021). Accurate long-read de novo assembly evaluation with Inspector. *Genome Biology*. https://doi.org/10.1186/s13059-021-02527-4
@@ -246,12 +235,7 @@ PacBio LRS was aligned to GRCh38 using pbmm2 v1.17. We called SVs with pbsv v2.9
 
 ## Software and versions
 
-The versions below follow the manuscript Methods. Tools that implement
-auxiliary command-line operations without a version in the manuscript
-are listed separately; their precise versions should be captured in
-the execution log rather than assumed.
-
-| Analysis stage | Software (manuscript version) |
+| Analysis stage | Software and version |
 |---|---|
 | Raw-read QC and trimming | FastQC 0.12.1; HiFiAdapterFilt 3.0; Porechop 0.2.4; Trimmomatic 0.39; Guppy 6.5.7 (ONT basecalling) |
 | Genome assembly | HiFiasm 0.24 (HiFi/Hi-C); HiFiasm 0.25 (ONT evaluation); Flye 2.9.5 |
@@ -259,7 +243,6 @@ the execution log rather than assumed.
 | Repeats and annotation | RepeatMasker 4.1.6; Liftoff 1.6.3; etrf; sdust |
 | Read-based structural variants | pbmm2 1.17; pbsv 2.9.0; Sniffles 2.2; SVIM 2.0.0 |
 | Assembly-based structural variants | SVIM-asm 1.0.3 |
-| Supporting tools | Kraken2; seqkit; samtools; minimap2; gfatools; SURVIVOR; Truvari bench; bcftools; Python 3; jq |
-
-
-Minimap2 v2.30 (`paftools.js`), fastSTRUCTURE v1.0, PLINK v2.0, GenoCore v1.0, SHAPEIT5 v5.1.1, IMPUTE5.
+| Interchromosomal misjoins | Minigraph 0.21; Minimap2 2.30 (`paftools.js`) |
+| Sample selection and phasing | fastSTRUCTURE 1.0; PLINK 2.0; GenoCore 1.0; SHAPEIT5 5.1.1; IMPUTE5 |
+| Supporting tools | Kraken2; seqkit; samtools; gfatools; SURVIVOR; Truvari bench; bcftools; Python 3; jq |

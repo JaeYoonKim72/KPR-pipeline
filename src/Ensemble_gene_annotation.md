@@ -8,31 +8,14 @@ Part of the [KPR-pipeline](../README.md) repository.
 
 ### 1.1 Software
 
-Use the following versions for reproducing the described workflow:
-
-| Tool | Version | Role |
-|---|---|---|
-| RepeatMasker | 4.1.6 | Repetitive-sequence soft masking |
-| AUGUSTUS | 3.5.0 | `de novo` gene prediction |
-| Exonerate | 2.4.0 | Swiss-Prot protein-to-genome alignment |
-| Liftoff | 1.6.3 | GENCODE annotation transfer and extra copies |
-| BLASTp (BLAST+) | 2.15.0 | Protein homology search |
-| HMM-Flagger | 1.0.0 | Precomputed assembly-reliability classifications |
-
-The executable also requires Bash, Python ≥3.9, Biopython,
-and (where applicable) RepeatMasker libraries and AUGUSTUS parameters.
-`makeblastdb` must be available for native BLASTp execution.
-The code reads supplied HMM-Flagger classification BEDs; it does not
-invoke HMM-Flagger. The versions listed above are those in the
-manuscript, rather than a claim that the script installs them.
+Install the software listed in [Software and versions](#software-and-versions). The pipeline also requires Bash, Python ≥3.9, Biopython, RepeatMasker libraries, AUGUSTUS parameters and BLAST+ `makeblastdb`. Supply the HMM-Flagger classification BED for each assembly.
 
 ### 1.2 Reference data
 
 Prepare the GRCh38 reference FASTA, GRCh38-based GENCODE v46
 annotation (Mudge et al., 2025), and **human UniProtKB/Swiss-Prot
 release 2024_01** protein sequences (UniProt Consortium, 2025).
-These resources must correspond to the versions used in the study.
-For GENCODE:
+Download GENCODE v46:
 
 ~~~bash
 mkdir -p reference
@@ -60,7 +43,7 @@ include these columns:
 | `fasta` | Assembly FASTA (plain or gzipped) |
 | `flagger_bed` | Full classified BED for the same assembly; Hap/Dup/Col/Err/Unk labels |
 
-Example (paths and sample identifiers are illustrative):
+Input manifest format:
 
 ~~~tsv
 sample	group	fasta	flagger_bed
@@ -77,10 +60,7 @@ manifest's directory. Optional input columns are `masked_fasta`,
 `liftoff_gff` and `blastp_tsv` to be populated for every row.
 An empty, existing BLASTp TSV is allowed when no hits were found.
 
-In the manuscript group comparison, there were 28 KPR,
-10 HPRC-EAS and 84 HPRC-nEAS haplotype assemblies.
-The actual manifest defines the sample counts for a new run;
-do not substitute these counts as fabricated input records.
+The study compared 28 KPR, 10 HPRC-EAS and 84 HPRC-nEAS haplotype assemblies.
 
 ### 1.4 Environment
 
@@ -95,7 +75,6 @@ export THREADS=8
 export RUN_MODE=tools
 ~~~
 
-
 ## 2. Run
 
 ### 2.1 Check inputs and tools
@@ -105,9 +84,7 @@ bash 2.Ensemble_gene_annotation.sh --help
 bash 2.Ensemble_gene_annotation.sh check
 ~~~
 
-`check` validates the manifest and required files, and verifies
-the tools needed for the selected execution mode. It does not
-produce a finished annotation.
+`check` validates the manifest, input files and software requirements for the selected execution mode.
 
 ### 2.2 Run the full workflow
 
@@ -140,13 +117,7 @@ RUN_MODE=outputs \
   bash 2.Ensemble_gene_annotation.sh all
 ~~~
 
-Reuse does not mean that reference files or HMM-Flagger BEDs
-can be omitted. Each stage records input hashes and completed
-outputs; a changed script, input or parameter requires a new
-output directory. This portable workflow generates new analyses
-and is not automatically identical to an earlier completed
-supplementary-table integration.
-
+The reference files and HMM-Flagger BEDs are required in both execution modes. Each step records input hashes and completed outputs. Use a new output directory when inputs, parameters or scripts change.
 
 ## 3. Steps
 
@@ -216,7 +187,7 @@ We used the final soft-masked assembly from stage 1, or the mask step for input 
 
 Liftoff v1.6.3 transferred GRCh38 GENCODE v46 (-copies -sc 0.95 -polish -exclude_partial). Candidates supported by AUGUSTUS/Exonerate were compared with Liftoff using ≥80% reciprocal CDS overlap and ≥80% intron structure concordance. For loci without a Liftoff annotation, BLASTp v2.15.0 (Camacho et al., 2009) against human Swiss-Prot identified homologous proteins at ≥90% identity. HMM-Flagger v1.0.0 (Asri et al., 2026) classification BEDs were applied to the final gene set; the entire retained gene span lay in haploid regions.
 
-The native workflow also exposes alignment-coverage, exon/intron support and unannotated-candidate filters in section 4. For study replay, supply the original intermediate annotations and settings rather than treating the native defaults as additional manuscript criteria.
+The configurable alignment-coverage, exon/intron support and unannotated-candidate filters are listed in section 4. The study criteria are described above; supply the study's intermediate annotations and settings using `RUN_MODE=outputs`.
 
 ## 7. Gene and transcript annotation coverage
 
@@ -245,7 +216,6 @@ Shumate A, Salzberg SL. (2021). Liftoff: accurate mapping of gene annotations. *
 Camacho C, Coulouris G, Avagyan V, et al. (2009). BLAST+: architecture and applications. *BMC Bioinformatics*. https://doi.org/10.1186/1471-2105-10-421
 
 Asri M, Eizenga JM, Hebbar P, et al. (2026). Evaluating genome assemblies with HMM-Flagger. *bioRxiv*. https://doi.org/10.64898/2026.02.27.708355
-
 
 ## Software and versions
 

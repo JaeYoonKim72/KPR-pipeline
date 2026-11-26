@@ -45,7 +45,6 @@ export LIST_DIR=/path/to/lists
 export THREADS=8
 ~~~
 
-
 ## 2. Run
 
 ~~~bash
@@ -65,7 +64,6 @@ bash 7.AMY_locus_analysis_in_pagenomegraph.sh haplotype_tree
 The structural subgraph's default reference interval is
 `AMY_REGION=chr1:103,570,000-103,760,000`, which is **independent** of
 the Bolognini distal/proximal regions analyzed in stage 8.
-
 
 ## 3. Steps
 
@@ -113,18 +111,7 @@ The results characterize **graph-based locus architecture** and are not
 the same as π, θW, Tajima's D, LD, nSL, Hudson FST or XP-nSL from
 the separate flank-level population pipeline.
 
-The principal outputs support manuscript Figure 4 and
-Supplementary Tables S28–S29: the node/gene structure
-map; distinct HxAy-Sz structures; sequence tree;
-AMY1 copy-number group counts; and distribution
-across KOR, HPRC-EAS and HPRC-nEAS assembly panels.
-Check that the total panel count reconciles to
-28 + 94 + 2 reference paths, that population
-statistics exclude the two references, and that
-multiple haplotype paths from the same donor are
-not described as independent people. Structural
-counts may differ if the graph, assembly panel,
-gene interval or class definition changes.
+The outputs provide node–gene maps, HxAy–Sz structural assignments, phylogenetic trees and AMY1 copy-number group counts (Figure 5; Tables S28–S29). Structural classification includes 124 paths (28 KOR, 94 HPRC and two references); population frequency calculations use the 122 population haplotypes.
 
 `haplotypes/GRAPH.AMY.haplotype_assignments.tsv` records the class and structure for each path. `haplotype_classes.tsv` contains structure group counts.
 
@@ -138,7 +125,7 @@ We extracted the subgraph with gfabase v0.5, processed node–gene annotations w
 
 ## 8. Structural haplotype classification
 
-We analyzed 124 assemblies/paths (28 KOR, 94 HPRC, GRCh38 and CHM13) and classified structural haplotypes by AMY1 copy number (H1–H7), AMY2A copy number (A0–A2) and orientation/AMYP1 configurations (S1–S6), following the published AMY classification. Supply a two-column TSV with header structure and haplotype_class that maps the gene-tag strings to the verified HxAy–Sz labels in S28. The wrapper otherwise assigns deterministic Structure IDs; these are not the biological H-group names.
+We analyzed 124 assemblies/paths (28 KOR, 94 HPRC, GRCh38 and CHM13) and classified structural haplotypes by AMY1 copy number (H1–H7), AMY2A copy number (A0–A2) and orientation/AMYP1 configurations (S1–S6), following the published AMY classification. Supply a two-column TSV with header structure and haplotype_class that maps the gene-tag strings to the verified HxAy–Sz labels in S28. When `HAPLOTYPE_MAP` is unset, the pipeline uses sequential structure identifiers. Supply the mapping for HxAy–Sz nomenclature.
 
 ~~~bash
 HAPLOTYPE_MAP=/path/to/AMY.structure_labels.tsv \
@@ -155,17 +142,14 @@ Exclude GRCh38 and CHM13 from population counts. Compare 28 KOR, 10 HPRC-EAS and
 
 ## References
 
-1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* KPR manuscript, revision 2026; Figure 4 and Tables S28–S29.
+1. Kim JY, et al. *Constructing a Korean pangenome reveals distinct haplotypes at the amylase locus.* [Study citation](../CITATION.cff); Figure 5 and Tables S28–S29.
 2. Bolognini D, et al. (2024). Recurrent evolution and selection shape structural diversity at the amylase locus. *Nature* 634:617–625. https://doi.org/10.1038/s41586-024-07911-1
 3. Yilmaz F, et al. (2024). Reconstruction of the human amylase locus reveals ancient duplications seeding modern-day variation. *Science*. https://doi.org/10.1126/science.adn0609
 4. Usher CL, et al. (2015). Structural forms of the human amylase locus and their relationships to SNPs, haplotypes and obesity. *Nature Genetics*. https://doi.org/10.1038/ng.3340
 
 ## Software and versions
 
-Versions are aligned with the structural haplotype Methods
-in the manuscript.
-
-| Task | Software (manuscript version) |
+| Task | Software and version |
 |---|---|
 | Structural bubbles and allele calls | gfatools 0.5; Minigraph 0.21 |
 | Locus subgraph extraction | gfabase 0.5; odgi 0.9.0 |
@@ -175,8 +159,3 @@ in the manuscript.
 | Haplotype phylogeny | IQ-TREE 2 |
 | Haplotype and tree plotting | R with ape, ggplot2, gggenes and dplyr |
 | Supporting scripts | Python 3 |
-
-Preserve the software release, input graph version and sequence-label
-conventions for each analysis; graph path changes can affect
-structural haplotype classification without any change to the
-visualization program.

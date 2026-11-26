@@ -51,7 +51,7 @@ GENOMIC_FST_CALLABLE_MATCH=-1 \
 bash 8.Population_genetics_in_AMY_flanking_locus.sh all
 ~~~
 
-The wrapper calculates focal statistics, raw phased XP-nSL, individual resampling and genomic ranks for diversity and FST. Sections 7 and 9 describe the separate normalization, subsampling, LD background and XP-nSL genomic analyses. The independent nsl command is available for other studies; within-population nSL was not reported in this study.
+The pipeline calculates focal statistics, raw phased XP-nSL, individual resampling, and genomic ranks for diversity and FST. Sections 7 and 9 describe XP-nSL normalization, subsampling and the separate LD and XP-nSL background analyses.
 
 ## 3. Steps
 
@@ -121,17 +121,13 @@ results/amy_flanking_population_genetics/
 
 Correspondence with paper supplementary tables:
 
-| Table | Within/between | Current public-code distal/proximal flanking-region coverage | Additional published metrics |
+| Table | Analysis | Pipeline outputs | Additional analysis procedures |
 |---|---|---|---|
-| S30 | Within-population diversity | π, θW and exploratory Tajima D | Projected Tajima D and genomewide ranks/CIs for π, θW and Tajima D |
+| S30 | Within-population diversity | π, projected θW and Tajima's D, individual intervals and genomic ranks | Study-specific summaries (sections 6, 8 and 9) |
 | S31 | Within- and cross-flank LD | Within-LD and across-SVR corrected r² | Distance-matched LD enrichment and genomewide LD rank/interval |
 | S32 | Between-population comparison | Hudson FST and raw XP-nSL | Normalized phased XP-nSL, empirical 93:93 subsampling, complete ranks/CIs |
 
-`status.tsv` distinguishes successfully computed values from raw,
-skipped, or failed stages. **Raw XP-nSL is not equivalent to the
-normalized phased XP-nSL reported in Table S32.** Unphased within-population
-nSL is an optional exploratory output and is **not reported** in the
-final supplementary Tables S30–S32.
+`status.tsv` records the execution status of each analysis. Normalize raw phased XP-nSL scores as described in section 7.3 for Table S32. The stand-alone `nsl` step is available for within-population analyses outside the study.
 
 ## 6. Within-population statistics
 
@@ -177,11 +173,11 @@ Sample 93 individuals without replacement from each population, independently fo
 
 ### 8.1 Individual bootstrap
 
-Resample individuals with replacement to the observed sample size (10,000 replicates). For FST, resample the two populations independently while retaining the original SNP panel. Calculate the 2.5th and 97.5th percentiles of the replicate estimates. The wrapper also reports mean-shifted intervals as an additional statistic; the study reports the raw percentile interval.
+Resample individuals with replacement to the observed sample size (10,000 replicates). For FST, resample the two populations independently while retaining the original SNP panel. Calculate the 2.5th and 97.5th percentiles of the replicate estimates. The study reports the raw percentile interval. The output also includes mean-shifted bootstrap intervals.
 
 ### 8.2 Delete-one jackknife
 
-Exclude each individual once, holding the other population fixed for FST. For two-population FST sum the two group-specific jackknife variance components and calculate SE. Report the observed estimate ±1.96 × SE. The study used complete delete-one jackknife intervals as the primary uncertainty measure for thetaW, Tajima's D and FST because individual bootstrap distributions were shifted relative to observed estimates. The generic fractional jackknife option is a separate reduced-replicate calculation.
+Exclude each individual once, holding the other population fixed for FST. For two-population FST sum the two group-specific jackknife variance components and calculate SE. Report the observed estimate ±1.96 × SE. The study used complete delete-one jackknife intervals as the primary uncertainty measure for thetaW, Tajima's D and FST because individual bootstrap distributions were shifted relative to observed estimates. Set `IND_JACKKNIFE_FRACTION=1` for complete delete-one jackknife intervals.
 
 ## 9. Genome-wide comparison and block bootstrap
 
@@ -225,7 +221,7 @@ The genomewide LD window and matched distance-bin computations are separate from
 
 ### 9.3 Upper-tail genomic rank
 
-For focal estimate T and W eligible background windows, upper-tail rank (%) = 100 × [number of windows greater than T + 0.5 × number tied with T] / W. Rank is based on Hudson's FST, mean |XP-nSL| or the corresponding within-population statistic. Smaller ranks indicate a higher relative position. Calculate autosomal ranks and supplementary chr1 ranks from the corresponding window distributions. The wrapper compares values at the same reported numeric precision.
+For focal estimate T and W eligible background windows, upper-tail rank (%) = 100 × [number of windows greater than T + 0.5 × number tied with T] / W. Rank is based on Hudson's FST, mean |XP-nSL| or the corresponding within-population statistic. Smaller ranks indicate a higher relative position. Calculate autosomal ranks and supplementary chr1 ranks from the corresponding window distributions. Ranks use values at the same reported numeric precision.
 
 ### 9.4 Chromosome-stratified block bootstrap
 
@@ -252,7 +248,6 @@ Use the autosomal phased, pair-specific normalized XP-nSL scores and the balance
 13. Vollger MR, et al. (2023). Increased mutation and gene conversion within human segmental duplications. *Nature* 617:325–334. https://doi.org/10.1038/s41586-023-05895-y
 14. Jeong H, et al. (2025). Structural polymorphism and diversity of human segmental duplications. *Nature Genetics* 57:390–401. https://doi.org/10.1038/s41588-024-02051-8
 
-
 ## Software and versions
 
 | Software | Version | Operation |
@@ -260,7 +255,7 @@ Use the autosomal phased, pair-specific normalized XP-nSL scores and the balance
 | bcftools | 1.15+ | VCF preparation |
 | PLINK | 2.0 | Inbreeding and relatedness QC |
 | SHAPEIT5 | 5.1.1 | KOR phasing |
-| IMPUTE5 | study input | KOR imputation |
+| IMPUTE5 | — | KOR imputation |
 | selscan | 3.0.1 | Phased XP-nSL and normalization |
 | Python | 3.9+ | SNP statistics, resampling and genomic ranks |
-| bedtools, htslib | compatible versions | Mask and indexed VCF preparation |
+| bedtools, htslib | — | Mask and indexed VCF preparation |

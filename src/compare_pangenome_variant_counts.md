@@ -75,8 +75,7 @@ Centromeres and the telomere entries of the gap table are excluded.
 ### 1.4 Population table
 
 `LIST_DIR/population.tsv` holds one sample per line, sample ID and population
-separated by a tab. The following identifiers are illustrative placeholders,
-not sample names from the study. The sample IDs are the sample columns of the input VCF.
+separated by a tab. Sample IDs must match the sample columns of the input VCF.
 Samples of `TARGET_POP` (`KOR`) are compared with all other samples:
 
 ```
@@ -93,7 +92,6 @@ export OUT_DIR=/path/to/results       # default: ./results
 export LIST_DIR=/path/to/lists        # default: ./lists
 export JOBS=4                         # chromosomes or samples in parallel
 ```
-
 
 ## 2. Run
 
@@ -138,7 +136,6 @@ log to `$OUT_DIR/logs/variant_comparison/`, and every step writes to
 `$OUT_DIR/logs/pipeline.log`. If any job of a step fails, the step exits with
 an error once its remaining jobs have finished, and the following steps are not
 run.
-
 
 ## 3. Steps
 
@@ -221,13 +218,21 @@ For each sample, vcfwave (-L 100000) decomposed complex alleles and bcftools nor
 
 ## 8. Structural variant allele clustering
 
-The joint multi-sample VCF was decomposed using vcfwave (-L 100000) and bcftools norm (-m-). The SV branch retained length differences >50 bp and the reassigned inversion/long-allele records; vcfcreatemulti merged overlapping reference intervals. PanSVmerger (commit 9d9827f) and VSEARCH v2.32.0 (--cluster_fast --id 0.9 --strand both) clustered similar alleles, splitting clusters at allele-length gaps greater than 50 bp. The wrapper preserves genotypes and uses one representative sequence per cluster; alleles clustering with REF become reference alleles. Loci with no non-reference cluster are removed. After genotype reassignment AC, AN and AF are updated. Retain the clustering logs and complex variant classes when comparing the SV outputs with the reported INS and DEL counts.
+The joint multi-sample VCF was decomposed using vcfwave (-L 100000) and bcftools norm (-m-). The SV branch retained length differences >50 bp and the reassigned inversion/long-allele records; vcfcreatemulti merged overlapping reference intervals. PanSVmerger (commit 9d9827f) and VSEARCH v2.32.0 (--cluster_fast --id 0.9 --strand both) clustered similar alleles, splitting clusters at allele-length gaps greater than 50 bp. One representative sequence was retained per cluster, with genotypes reassigned to the corresponding allele; alleles clustering with REF were assigned to the reference allele. Loci with no non-reference cluster are removed. After genotype reassignment AC, AN and AF are updated. The output retains complex variant classes alongside INS and DEL.
 
 ## 9. Locus-level and allele-level comparison
 
 A variant is carried by a population panel when at least one called haplotype contains its ALT allele. Missing genotypes are ignored in panel presence counting. Small-variant loci are the union of overlapping REF intervals; small-variant alleles are identical CHROM, POS, REF and ALT records. SV loci are merged records from vcfcreatemulti; SV alleles are PanSVmerger clusters. Count KPR-private, shared and HPRC-private loci and alleles separately; count KPR-private SV alleles inside shared loci as an additional category.
 
-For the study, the proportion private within KPR is KPR-private / (KPR-private + shared). The proportion added relative to HPRC is KPR-private / (HPRC-private + shared). The generic summary's union-based proportion has denominator KPR-private + shared + HPRC-private. Use the first two ratios for the Results and Table S21.
+Let K, S and H denote the KPR-private, shared and HPRC-private counts, respectively. Calculate the proportions separately for each variant type and counting level:
+
+| Metric | Calculation (%) |
+|---|---|
+| KPR-private proportion within KPR | 100 × K / (K + S) |
+| Proportion added to HPRC | 100 × K / (H + S) |
+| KPR-private proportion of the union | 100 × K / (K + S + H) |
+
+The first two proportions were used for the study (Table S21). The summary file reports the third proportion.
 
 ## References
 
@@ -239,7 +244,6 @@ For the study, the proportion private within KPR is KPR-private / (KPR-private +
 6. Danecek P, et al. (2021). Twelve years of SAMtools and BCFtools. *GigaScience* 10:giab008. https://doi.org/10.1093/gigascience/giab008
 7. Rognes T, et al. (2016). VSEARCH: a versatile open source tool for metagenomics. *PeerJ* 4:e2584. https://doi.org/10.7717/peerj.2584
 8. Cleary JG, et al. (2015). Comparing variant call files for performance benchmarking of next-generation sequencing variant calling pipelines. *bioRxiv* 023754. https://doi.org/10.1101/023754
-
 
 ## Software and versions
 
