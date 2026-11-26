@@ -2,9 +2,7 @@
 
 Version 1.0.0
 
-This repository contains computational pipelines and analysis procedures for the construction and characterization of the Korean Pangenome Reference (KPR). Genome assemblies were generated from long-read sequencing data for 22 Korean individuals. After quality assessment, 28 high-quality haplotype assemblies from 14 individuals were retained for pangenome construction.
-
-The pipelines cover genome assembly and quality assessment, ensemble gene annotation, pangenome construction, variant comparison and benchmarking, short-read mapping, and structural haplotype and population genetic analyses of the amylase (AMY) locus. Each pipeline can be applied to other datasets with the corresponding input files and analysis parameters.
+This repository provides computational pipelines and analysis procedures for the construction and characterization of the Korean Pangenome Reference (KPR). We assembled genomes from long-read sequencing data for 22 Korean individuals and selected 28 haplotype assemblies from 14 individuals for pangenome construction.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -13,27 +11,17 @@ The pipelines cover genome assembly and quality assessment, ensemble gene annota
 | Stage | Script | Analysis | Documentation | Supplementary tables |
 |:--:|---|---|---|---|
 | 1 | `1.genome_assembly_and_statistics.sh` | Sample selection, genome assembly, quality assessment, repeat annotation and structural variant detection | [Methods](src/genome_assembly_and_statistics.md) | S1–S12, S18 |
-| 2 | `2.Ensemble_gene_annotation.sh` | Ensemble annotation and copy-number gains | [Methods](src/Ensemble_gene_annotation.md) | S13–S17 |
-| 3 | `3.pangenome_construction_and_statistics.sh` | Graph construction, graph statistics, growth and non-reference sequences | [Methods](src/pangenome_construction_and_statistics.md) | S19–S20, S22–S23 |
-| 4 | `4.compare_pangenome_variant_counts.sh` | Locus-level and allele-level variant comparisons | [Methods](src/compare_pangenome_variant_counts.md) | S21 |
-| 5 | `5.Variant_benchmark.sh` | GIAB and KOR variant benchmarking and Mendelian genotype inheritance inconsistency | [Methods](src/Variant_benchmark.md) | S24–S26 |
+| 2 | `2.Ensemble_gene_annotation.sh` | Ensemble gene annotation and copy-number gain analysis | [Methods](src/Ensemble_gene_annotation.md) | S13–S17 |
+| 3 | `3.pangenome_construction_and_statistics.sh` | Pangenome construction, graph statistics, growth curves and non-reference sequence analysis | [Methods](src/pangenome_construction_and_statistics.md) | S19–S20, S22–S23 |
+| 4 | `4.compare_pangenome_variant_counts.sh` | Locus- and allele-level variant comparisons | [Methods](src/compare_pangenome_variant_counts.md) | S21 |
+| 5 | `5.Variant_benchmark.sh` | Variant benchmarking and Mendelian genotype inheritance inconsistency | [Methods](src/Variant_benchmark.md) | S24–S26 |
 | 6 | `6.pangenome_short_read_mapping.sh` | Short-read mapping and variant calling | [Methods](src/pangenome_short_read_mapping.md) | S24–S27 |
-| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY structural haplotypes and phylogeny | [Methods](src/AMY_locus_analysis_in_pagenomegraph.md) | S28–S29 |
+| 7 | `7.AMY_locus_analysis_in_pagenomegraph.sh` | AMY structural haplotype analysis | [Methods](src/AMY_locus_analysis_in_pagenomegraph.md) | S28–S29 |
 | 8 | `8.Population_genetics_in_AMY_flanking_locus.sh` | AMY flanking-region population genetics | [Methods](src/Population_genetics_in_AMY_flanking_locus.md) | S30–S32 |
-
-## Requirements
-
-The software requirements, reference datasets, input files and analysis parameters are described in the documentation for each pipeline.
 
 ## Usage
 
-Each pipeline can be executed independently. Refer to the corresponding documentation for input preparation, configuration, execution commands and output files. For example, after preparing the stage 2 inputs:
-
-~~~bash
-bash 2.Ensemble_gene_annotation.sh check
-~~~
-
-The documentation also describes additional analyses performed in this study using the pipeline outputs.
+Each pipeline can be executed independently with dataset-specific inputs and analysis parameters. Software requirements, input preparation, execution commands, output files and additional analysis procedures are provided in the corresponding documentation.
 
 ## Data availability
 
