@@ -40,7 +40,9 @@ KRAKEN_DB=${KRAKEN_DB:-${REF_DIR}/kraken2_db}
 HIFI_LIST=${HIFI_LIST:-${LIST_DIR}/hifi.list}         # PacBio HiFi samples
 ONT_LIST=${ONT_LIST:-${LIST_DIR}/ont.list}            # ONT PromethION samples
 HIC_LIST=${HIC_LIST:-${LIST_DIR}/hic.list}            # samples with Hi-C data
-QC_PASS_LIST=${QC_PASS_LIST:-${LIST_DIR}/qc_pass.list}  # written by asm_stats
+QC_PASS_LIST=${QC_PASS_LIST:-${LIST_DIR}/qc_pass.list}
+ACROCENTRIC_BED=${ACROCENTRIC_BED:-}
+PAFTOOLS=${PAFTOOLS:-paftools.js}
 
 # --- assembly quality thresholds ---------------------------------------------
 MIN_N50=${MIN_N50:-20000000}      # contig N50 >= 20 Mb
@@ -59,6 +61,7 @@ EXPECTED_SV_SAMPLES=${EXPECTED_SV_SAMPLES:-14}
 QC_OUT=${OUT_DIR}/read_qc
 ASM_OUT=${OUT_DIR}/assembly
 POLISH_OUT=${OUT_DIR}/polishing
+QC_ASM_OUT=${QC_ASM_OUT:-${POLISH_OUT}/qc_assemblies}
 STAT_OUT=${OUT_DIR}/statistics
 ANNOT_OUT=${OUT_DIR}/annotation
 SV_OUT=${OUT_DIR}/sv
@@ -329,24 +332,44 @@ asm_stats() {
     done
   } > "${STAT_OUT}/assembly_qc_summary.tsv"
 
-  awk -F'\t' '$4=="PASS"{split($1,a,"_"); print a[1]}' \
-    "${STAT_OUT}/assembly_qc_summary.tsv" | sort -u > "${QC_PASS_LIST}"
+  awk -F'\t' '$4=="PASS" && $1 ~ /_[12]$/ {
+    id=$1; h=substr(id,length(id),1); sub(/_[12]$/,"",id); pass[id,h]=1; samples[id]=1
+  } END {for (id in samples) if (pass[id,1] && pass[id,2]) print id}' \
+    "${STAT_OUT}/assembly_qc_summary.tsv" | sort > "${QC_PASS_LIST}"
   log "  assemblies passing quality control: $(wc -l < "${QC_PASS_LIST}") samples"
 
-  # 4-5) interchromosomal misjoins, Minigraph v0.21
-  #      contigs aligning to more than one chromosome over at least 100 kb
-  for FA in "${POLISH_OUT}"/corrected/*.polished.fa; do
-    ID=$(basename "${FA}" .polished.fa)
-
-    minigraph -xasm -K1.9g --show-unmap=yes -t "${THREADS}" \
-      "${CHM13}" "${FA}" > "${STAT_OUT}/misjoin/${ID}.paf"
-
-    awk -F'\t' '$6!="*" && ($9-$8)>=100000 {print $1"\t"$6}' \
-      "${STAT_OUT}/misjoin/${ID}.paf" \
-      | sort -u | cut -f1 | uniq -c \
-      | awk -v id="${ID}" '$1>1 {print id"\t"$2"\t"$1}' \
-      >> "${STAT_OUT}/misjoin/interchromosomal_misjoins.tsv"
-  done
+  # Interchromosomal misjoins
+  mkdir -p "${QC_ASM_OUT}"
+  printf 'assembly\tcontig\tcontig_length\tchr1\tstart1\tend1\tchr2\tstart2\tend2\tclassification\n' > "${STAT_OUT}/misjoin/interchromosomal_misjoins.tsv"
+  if [[ -n "${ACROCENTRIC_BED}" && ! -s "${ACROCENTRIC_BED}" ]]; then
+    printf 'Missing acrocentric short-arm BED: %s\n' "${ACROCENTRIC_BED}" >&2
+    return 1
+  fi
+  while read -r S; do
+    [[ -z "${S}" ]] && continue
+    for H in 1 2; do
+      ID="${S}_${H}"
+      FA="${POLISH_OUT}/corrected/${ID}.polished.fa"
+      [[ -s "${FA}" ]] || { printf 'Missing assembly: %s\n' "${FA}" >&2; return 1; }
+      minigraph -cxasm -K1.9g -t "${THREADS}" "${CHM13}" "${FA}" \
+        | sort -k1,1 -k3,3n > "${STAT_OUT}/misjoin/${ID}.paf"
+      "${PAFTOOLS}" misjoin -l 1m -e "${STAT_OUT}/misjoin/${ID}.paf" \
+        > "${STAT_OUT}/misjoin/${ID}.misjoin.txt"
+      python3 "${SRC_DIR}/filter_misjoins.py" \
+        --input "${STAT_OUT}/misjoin/${ID}.misjoin.txt" --assembly "${ID}" \
+        --bed "${ACROCENTRIC_BED}" --exclude "${STAT_OUT}/misjoin/${ID}.exclude.ids" \
+        >> "${STAT_OUT}/misjoin/interchromosomal_misjoins.tsv"
+      if [[ -s "${STAT_OUT}/misjoin/${ID}.exclude.ids" ]]; then
+        seqkit grep -v -f "${STAT_OUT}/misjoin/${ID}.exclude.ids" "${FA}" \
+          > "${QC_ASM_OUT}/${ID}.polished.fa"
+      else
+        cp "${FA}" "${QC_ASM_OUT}/${ID}.polished.fa"
+      fi
+    done
+  done < "${QC_PASS_LIST}"
+  if [[ -z "${ACROCENTRIC_BED}" ]]; then
+    log "Acrocentric BED not supplied; candidates reported without contig exclusion."
+  fi
 
   # 4-6) misassembly flagging, HMM-Flagger v1.0.0
   #      long reads are mapped back to the diploid assembly and each block is
@@ -355,8 +378,8 @@ asm_stats() {
     [[ -z "${S}" ]] && continue
     mkdir -p "${STAT_OUT}/flagger/${S}"
 
-    cat "${POLISH_OUT}/corrected/${S}_1.polished.fa" \
-        "${POLISH_OUT}/corrected/${S}_2.polished.fa" \
+    cat "${QC_ASM_OUT}/${S}_1.polished.fa" \
+        "${QC_ASM_OUT}/${S}_2.polished.fa" \
         > "${STAT_OUT}/flagger/${S}/${S}.dip.fa"
     samtools faidx "${STAT_OUT}/flagger/${S}/${S}.dip.fa"
 
@@ -384,7 +407,10 @@ annotation() {
   log "step 5: repeat and gene annotation"
   mkdir -p "${ANNOT_OUT}"/{repeatmasker_human,repeatmasker_satellite,vntr,lowcomplexity,liftoff}
 
-  for FA in "${POLISH_OUT}"/corrected/*.polished.fa; do
+  while read -r S; do
+    [[ -z "${S}" ]] && continue
+    for H in 1 2; do
+    FA="${QC_ASM_OUT}/${S}_${H}.polished.fa"
     ID=$(basename "${FA}" .polished.fa)
 
     # 5-1) RepeatMasker v4.1.6, human repeat library
@@ -419,7 +445,8 @@ annotation() {
       | sort | uniq -c \
       | awk -v id="${ID}" '$1>1 {print id"\t"$2"\t"$1}' \
       >> "${ANNOT_OUT}/liftoff/duplicated_protein_coding_genes.tsv"
-  done
+    done
+  done < "${QC_PASS_LIST}"
 
   log "step 5 finished"
 }
@@ -462,7 +489,7 @@ sv_calling() {
     # 6-5) SVIM-asm v1.0.3, assembly based calls from both haplotypes
     for H in 1 2; do
       minimap2 -a -x asm5 --cs -r2k -t "${THREADS}" \
-        "${GRCH38}" "${POLISH_OUT}/corrected/${S}_${H}.polished.fa" \
+        "${GRCH38}" "${QC_ASM_OUT}/${S}_${H}.polished.fa" \
         | samtools sort -@ 8 -o "${SV_OUT}/svimasm/${S}_${H}.bam" -
       samtools index -@ 8 "${SV_OUT}/svimasm/${S}_${H}.bam"
     done

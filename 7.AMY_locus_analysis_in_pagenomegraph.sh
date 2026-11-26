@@ -37,6 +37,7 @@ GENE_BED=${GENE_BED:-${REF_DIR}/gencode.GRCh38.genes.name.bed}
 # --- sample tables -----------------------------------------------------------
 # Two columns, sample name and population group
 POP_MAP=${POP_MAP:-${LIST_DIR}/sample_population.tsv}
+HAPLOTYPE_MAP=${HAPLOTYPE_MAP:-}
 
 BUBBLE_OUT=${OUT_DIR}/bubble_selection
 SUB_OUT=${OUT_DIR}/subgraph
@@ -176,13 +177,11 @@ tag_haplotypes() {
   python3 "${SRC_DIR}/amy_haplotype_tags.py" \
     "${SUBGFA}" "${NODEGENE}" "${HAP_OUT}/${GRAPH}.AMY"
 
-  # 3-2) haplotypes sharing the same gene structure are one haplotype class
-  awk -F'\t' 'NR>1 {count[$3]++; if (!($3 in first)) first[$3] = $1}
-    END {print "haplotype_class\tn_haplotypes\texample\tstructure"
-         i = 0
-         for (s in count) {i++; printf "H%d\t%d\t%s\t%s\n", i, count[s], first[s], s}}' \
-    "${HAP_OUT}/${GRAPH}.AMY.haplotype_structure.tsv" \
-    | sort -k2,2nr > "${HAP_OUT}/${GRAPH}.AMY.haplotype_classes.tsv"
+  python3 "${SRC_DIR}/classify_amy_structures.py" \
+    --structures "${HAP_OUT}/${GRAPH}.AMY.haplotype_structure.tsv" \
+    --mapping "${HAPLOTYPE_MAP}" \
+    --output "${HAP_OUT}/${GRAPH}.AMY.haplotype_classes.tsv" \
+    --assignments "${HAP_OUT}/${GRAPH}.AMY.haplotype_assignments.tsv"
 
   # 3-3) distribution of the haplotypes across the population groups
   if [[ -s "${POP_MAP}" ]]; then

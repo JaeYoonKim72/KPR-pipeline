@@ -523,6 +523,8 @@ nonref_sequence() {
 
     OUT="${SEQ_OUT}/${G}"
     mkdir -p "${OUT}"/{nodes,leninfo,nonref,classes}
+    : > "${OUT}/${G}.sequence_per_sample.txt"
+    : > "${OUT}/${G}.nonreference_sequence_per_sample.txt"
 
     # 9-1) segment lines and their lengths
     awk -F'\t' '$1=="S"' "${GFA}" > "${OUT}/${G}.S_line"
@@ -579,8 +581,8 @@ nonref_sequence() {
 
     # 9-7) frequency classes of the non-reference nodes, and the sequence of
     #      each class in FASTA format
-    N_SAMPLE=$(awk -F'\t' '{if ($3 > max) max = $3} END {print max}' \
-      "${OUT}/${G}.nonreference_node_summary.txt")
+    N_SAMPLE=$(find "${OUT}/nonref" -maxdepth 1 -type f -name '*.nonref.txt' | wc -l)
+    (( N_SAMPLE > 0 )) || { printf 'No sample node lists for %s\n' "${G}" >&2; return 1; }
 
     awk -F'\t' -v n="${N_SAMPLE}" 'BEGIN{OFS="\t"}
       { f = $3 / n

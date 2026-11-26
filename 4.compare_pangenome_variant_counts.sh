@@ -131,7 +131,7 @@ prepare_input() {
   vcfbub -l "${VCFBUB_LEVEL}" -r "${VCFBUB_MAX_REF}" -i "${INPUT_VCF}" \
     | bcftools annotate --rename-chrs "${IN_OUT}/rename_chrs.txt" -Ou \
     | bcftools view -s "^${EXCLUDE_SAMPLES}" --force-samples -t "$(echo ${CHROMS} | tr ' ' ',')" -Ou \
-    | bcftools view -T "^${IN_OUT}/exclude.cen_telo.bed" -Ou \
+    | bcftools view -T "^${IN_OUT}/exclude.cen_telo.bed" --targets-overlap 1 -Ou \
     | bcftools +fill-tags -Ou -- -t AC,AN \
     | bcftools view -c 1 -Oz -o "${IN_OUT}/all.vcf.gz"
   bcftools index -f -t "${IN_OUT}/all.vcf.gz"
@@ -162,7 +162,7 @@ sv_decompose_chr() {
     | bcftools view -c 1 -Oz -o "${OUT}/${CHR}.bi.vcf.gz"
   bcftools index -f -t "${OUT}/${CHR}.bi.vcf.gz"
 
-  bcftools view -i "abs(strlen(REF)-strlen(ALT))>${SV_MIN_LEN}" \
+  bcftools view -i "abs(strlen(REF)-strlen(ALT))>${SV_MIN_LEN} || INFO/INV=1 || strlen(REF)>${RTG_MAXLEN} || strlen(ALT)>${RTG_MAXLEN}" \
     "${OUT}/${CHR}.bi.vcf.gz" -Oz -o "${OUT}/${CHR}.sv.bi.vcf.gz"
   bcftools index -f -t "${OUT}/${CHR}.sv.bi.vcf.gz"
 
@@ -187,11 +187,14 @@ sv_merge_chr() {
 
   python3 "${SRC_DIR}/sv_merge_alleles.py" \
     --in "${OUT}/${CHR}.sv.multi.vcf.gz" \
-    --out "${OUT}/${CHR}.sv.merged.vcf.gz" \
+    --out "${OUT}/${CHR}.sv.clustered.vcf.gz" \
     --pansvmerger "${PANSVMERGER}" \
     --identity "${MERGE_IDENTITY}" \
     --workers "${MERGE_WORKERS}" \
     --tmpdir "${TMP_DIR}/merge.${CHR}"
+  bcftools +fill-tags "${OUT}/${CHR}.sv.clustered.vcf.gz" -Oz \
+    -o "${OUT}/${CHR}.sv.merged.vcf.gz" -- -t AC,AN,AF
+  bcftools index -f -t "${OUT}/${CHR}.sv.merged.vcf.gz"
 
   rm -rf "${TMP_DIR}/merge.${CHR}"
 }
