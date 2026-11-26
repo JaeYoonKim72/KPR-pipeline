@@ -50,18 +50,30 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends bcftools tabix
-      - name: Validate Bash scripts
+      - name: Check all code languages and syntax
         run: |
-          bash -n 8.Population_genetics_in_AMY_flanking_locus.sh
-          bash -n 7.AMY_locus_analysis_in_pagenomegraph.sh
-          bash -n 2.Ensemble_gene_annotation.sh
-          bash -n 5.Variant_benchmark.sh
-          bash -n src/trio_mendelian_inconsistency.sh
-          bash -n 6.pangenome_short_read_mapping.sh
-          bash -n 3.pangenome_construction_and_statistics.sh
-          bash -n 4.compare_pangenome_variant_counts.sh
-          bash -n 1.genome_assembly_and_statistics.sh
-          bash -n src/decon_split.sh
+          while IFS= read -r -d '' script; do
+            bash -n "$script"
+            printf 'PASS bash -n %s\n' "$script"
+          done < <(git ls-files -z '*.sh')
+          python3 - <<'PY'
+          import ast
+          import pathlib
+          import subprocess
+          import unicodedata
+
+          files = [pathlib.Path(p) for p in subprocess.check_output(
+              ["git", "ls-files", "-z", "*.sh", "*.py", "*.R"]
+          ).decode().split("\0") if p]
+          for p in files:
+              text = p.read_text(encoding="utf-8")
+              if any("HANGUL" in unicodedata.name(c, "") for c in text):
+                  raise SystemExit(f"Hangul detected: {p}")
+              if p.suffix == ".py":
+                  compile(text, str(p), "exec")
+                  print(f"PASS Python syntax {p}")
+          print(f"PASS no Hangul: {len(files)} code files")
+          PY
       - name: Check exact 50 bp vs 51 bp SV cutoff
         run: |
           mkdir -p /tmp/sv_cutoff
@@ -90,5 +102,7 @@ jobs:
         run: python3 -m unittest discover -s src/tests -p 'test_ensemble_gene_annotation.py' -v
       - name: Verify benchmark and trio synthetic metrics
         run: python3 -m unittest discover -s src/tests -p 'test_variant_benchmarking.py' -v
+      - name: Test revised assembly and structure helpers
+        run: python3 -m unittest discover -s src/tests -p 'test_revision_helpers.py' -v
       - name: Compile new benchmark helpers
         run: python3 -m py_compile src/sv_truth_helper.py src/sv_truth_readsupport.py src/prepare_sv_autosome.py src/summarize_benchmark.py src/classify_benchmark_fn.py src/summarize_mendelian.py

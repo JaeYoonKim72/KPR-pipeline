@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Sliding-window genomic backgrounds and chromosome-stratified block-bootstrap
-upper-tail genomic percentiles for AMY focal diversity and Hudson FST.
-
-Main target: chr1 pilot (50-Mb physical blocks). Publication configuration:
-GRCh38 autosomes 1-22, 5-Mb blocks, 10000 bootstrap replicates.
-Requires an indexed genomewide joint VCF and bcftools on PATH.
-"""
+"""Sliding-window diversity and Hudson FST ranks with chromosome-stratified block bootstrap."""
 import argparse
 import bisect
 import csv

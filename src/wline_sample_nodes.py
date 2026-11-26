@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the node identifiers traversed by each sample from the W lines of a
-GFA file.
-
-One file per sample is written, named <prefix>.<sample>.nodes.txt, holding the
-unique node identifiers carried by that sample.
-
-Usage:
-    python3 wline_sample_nodes.py <input.gfa> <output_prefix>
-"""
+"""Collect unique node IDs traversed by each sample in GFA W lines."""
 
 import re
 import sys

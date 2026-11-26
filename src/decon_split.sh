@@ -22,8 +22,7 @@ select_targets() {
   rm -f "${TARGETS}"
 }
 
-# 1. Length difference between the reference allele and every alternative
-#    allele of each site
+# Allele lengths
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
   | awk '{
       split($4, alts, ",")
@@ -34,8 +33,7 @@ bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${INPUT}" \
       }
     }' > "${OUT}.var_sizes.txt"
 
-# 2. SV alleles have absolute REF/ALT length difference > MINSV;
-#    small alleles have length difference <= MINSV.
+# Size classification
 awk -v m="${MINSV}" '$5 > m {print $1, $2}' "${OUT}.var_sizes.txt" \
   | sort -u -k1,1V -k2,2n > "${OUT}.var_sizes.SVs_list.txt"
 
@@ -50,8 +48,7 @@ select_targets "${INPUT}" "${OUT}.var_sizes.SVs_list.vcf.gz" \
 select_targets "${INPUT}" "${OUT}.var_sizes.Smalls_list.vcf.gz" \
   < "${OUT}.var_sizes.Smalls_list.txt"
 
-# 3. Structural variants: keep only sites where every alternative allele
-#    differs from REF by more than MINSV bases.
+# Structural variants
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' "${OUT}.var_sizes.SVs_list.vcf.gz" \
   | awk -v m="${MINSV}" '{
       split($4, alts, ","); all_large = 1

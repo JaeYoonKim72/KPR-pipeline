@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Individual-level bootstrap and delete-one jackknife for focal AMY SNP statistics.
-
-Uses the same allele-count, Hudson FST and dosage-r2 estimators as
-amy_flank_popgen.py. No paralog-level genotypes are used.
-"""
+"""Individual bootstrap and delete-one jackknife for AMY flanking SNP statistics."""
 import argparse
 import csv
 import math
@@ -141,10 +137,7 @@ def run(args):
             if not math.isfinite(variance):
                 jack_valid=False
             else:
-                # Complete delete-one JK: (n-1)/n * sum((theta_-i - mean)^2).
-                # For m<n randomly selected delete-one estimates, their
-                # sample variance estimates the finite-population variance.
-                # Hence this is explicitly an APPROXIMATE subset jackknife.
+                # Complete or subset delete-one jackknife variance.
                 jack_var+=((n-1)**2/n)*variance
         jackse=math.sqrt(jack_var) if jack_valid else float("nan")
         status="FULL_DELETE_ONE" if args.jackknife_fraction>=1 else "SUBSET_JACKKNIFE_APPROX"

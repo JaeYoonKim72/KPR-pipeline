@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""Count target-only / shared / other-only variants between two sample groups.
-
-Reads `bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n'` from stdin.
-A group carries an allele if any haplotype of any of its samples has it
-(missing '.' ignored).
-
---mode locus   : one record = one locus (multi-allelic VCF; SV after vcfcreatemulti
-                 + PanSVMerger, so one ALT = one allele cluster). Reports
-    locus                  : locus carried by target / other / both
-    allele_in_record       : each ALT of each record
-    allele_in_shared_locus : ALTs inside loci carried by both groups (APGp1 Fig. 6c text)
-    shared_locus_with_target_private_allele
---mode overlap : sorted biallelic VCF (small indels); records whose REF spans overlap
-                 form one locus (same locus definition as vcfcreatemulti for SVs),
-                 alleles inside a locus are exact CHROM/POS/REF/ALT. Same units as locus.
---mode exact   : biallelic VCF; identical CHROM/POS/REF/ALT = same allele
-    allele_exact
-Output: TSV  varset unit class category count
-"""
+"""Count private and shared loci and alleles from grouped bcftools query records."""
 import argparse
 import re
 import sys

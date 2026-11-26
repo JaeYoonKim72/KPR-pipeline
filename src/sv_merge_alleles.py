@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Merge similar SV alleles within each multi-allelic record (PanSVMerger logic).
-
-Clustering (vsearch --cluster_fast --id --strand both, split when length gap >50 bp,
-reference cluster -> allele 0) uses PanSVMerger's SV.merge_variants.py functions unchanged.
-Unlike that script, genotypes are written to the output and diploid/haploid GTs are
-remapped as-is, so no dip_to_hap conversion is needed.
-
-Speed: records are independent, so multi-ALT records are clustered by --workers processes
-in parallel (each vsearch with --vsearch-threads); output order and results are the same
-as serial processing. Records are processed in batches to bound memory.
-"""
+"""Cluster SV alleles with PanSVMerger and VSEARCH; remap genotypes and allele counts."""
 import argparse
 import importlib.util
 import multiprocessing as mp
@@ -101,11 +91,7 @@ def merged_record(rec, mapping, header, keep_info):
     for k, v in rec.info.items():
         if k not in keep_info:
             continue
-        # vcfcreatemulti can leave several values in a Number=1 field (e.g. AN=4,4 or ORIGIN of each
-        # merged record); pysam then cannot write them back as one value -> drop non-strings, join
-        # strings with '|' (a ',' inside a string would again be read as several values).
-        # Flag (Number=0): vcfwave writes INV=YES and vcfcreatemulti joins them (INV=YES,YES);
-        # a flag carries no value -> just set it.
+        # Normalize merged scalar INFO and flag fields.
         if header.info[k].type == 'Flag':
             v = True
         elif header.info[k].number == 1:

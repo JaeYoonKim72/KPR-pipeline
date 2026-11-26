@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
-"""Convert a multiple sequence alignment of gene copies into a VCF of
-substitutions, in the coordinates of the reference sequence included in the
-alignment.
-
-Alignment columns where the reference carries a gap are skipped, so the
-positions reported are those of the reference gene. Only substitutions are
-emitted; insertions and deletions are ignored. Every gene copy is one
-observation and is written as a haploid genotype, so that a haplotype carrying
-several copies of a gene contributes one observation per copy.
-
-Usage:
-    python3 msa_to_vcf.py <alignment.fasta> <reference_name> <chromosome> <output.vcf>
-
-    reference_name  identifier of the reference sequence inside the alignment
-    chromosome      name written to the CHROM column, e.g. the gene name
-"""
+"""Convert alignment substitutions to haploid VCF records in reference sequence coordinates."""
 
 import sys
 

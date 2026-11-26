@@ -1,25 +1,5 @@
 #!/usr/bin/env python3
-"""Compute Hudson's FST between two groups of samples from a biallelic VCF.
-
-Hudson's estimator is a ratio of averages: the numerators and the denominators
-of the per-site estimates are summed separately and divided at the end. It is
-robust to unequal sample sizes between the two groups, which matters when the
-groups differ several fold in size.
-
-For every biallelic site with allele frequencies p1 and p2 and sample sizes n1
-and n2,
-
-    numerator   = (p1 - p2)^2 - p1(1 - p1)/(n1 - 1) - p2(1 - p2)/(n2 - 1)
-    denominator = p1(1 - p2) + p2(1 - p1)
-
-and FST is the sum of the numerators divided by the sum of the denominators.
-
-Usage:
-    python3 hudson_fst.py <input.vcf[.gz]> <group1.list> <group2.list> [label1 label2]
-
-Each group file holds one sample name per line. Haploid and diploid genotypes
-are both accepted; every called allele counts as one observation.
-"""
+"""Compute Hudson FST as the ratio of summed site numerators and denominators."""
 
 import gzip
 import sys

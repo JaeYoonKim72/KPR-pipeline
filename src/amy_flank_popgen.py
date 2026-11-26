@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""AMY flanking locus focal summary statistics from a joint diploid biallelic SNP VCF.
-Only GRCh38 chromosome 1 flanks are analyzed. No paralog-level inferences.
-Standard library only; Python 3.9+.
-"""
+"""Diversity, LD and Hudson FST in AMY flanking regions."""
 import argparse
 import csv
 import gzip

@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""Classify every variant of a VCF by the number of alternative alleles it
-carries across all samples.
-
-Each record is assigned to exactly one of the following classes:
-
-    singleton   exactly one alternative allele across all samples
-    doubleton   exactly two alternative alleles across all samples
-    common      more than two alternative alleles, frequency below 95%
-    core        more than two alternative alleles, frequency of 95% or above
-
-The output column 'polymorphism' is a legacy operational count of
-non-singleton variant records (doubleton + common + core). It excludes
-singletons and should not be interpreted as the number of all variable sites.
-
-Usage:
-    python3 typecount.py <input.vcf.gz>
-
-The result is written next to the input file with the extension .typecount.
-"""
+"""Classify VCF records by ALT count and frequency; polymorphism excludes singletons."""
 
 import gzip
 import os

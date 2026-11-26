@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Sum per-chromosome counts (count_groups.py output) into the summary tables.
-
-  variant_comparison_summary.tsv : SV / small variant x locus / allele,
-                                   target-private, shared, other-private, proportion of target-private (%)
-  variant_comparison_by_class.tsv: the same units split by variant class (SNV / INS / DEL / COMPLEX)
-  SV new alleles at shared loci  : printed and written to variant_comparison_shared_loci.tsv
-
-Units used (see 4.compare_pangenome_variant_counts.sh, step count):
-  SV    locus  -> unit 'locus'            (vcfcreatemulti locus, mode locus)
-  SV    allele -> unit 'allele_in_record' (PanSVMerger allele cluster)
-  small locus  -> unit 'locus'            (overlapping REF spans, mode overlap)
-  small allele -> unit 'allele_exact'     (exact CHROM/POS/REF/ALT, mode exact)
-Proportion of target-private (%) = 100 * target-private / (target-private + shared + other-private).
-Locus class OTHER (equal-length multi-base substitution) is reported under COMPLEX.
-"""
+"""Aggregate locus and allele counts; report union-based private proportions."""
 import argparse
 import glob
 import os

@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Tag the genes carried by each haplotype of a subgraph, in walk order and
-with the orientation of the nodes.
-
-Two inputs are required: the GFA of the extracted subgraph, whose W lines give
-the walk of every haplotype, and a node-to-gene table produced from the odgi
-annotation, with the node identifier in the first column and the gene name in
-the second.
-
-The output is one row per haplotype with the ordered list of gene tags, where
-each tag is the gene name followed by the orientation of the node carrying it
-(+ forward, - reverse), and one row per gene occurrence in the long table.
-
-Usage:
-    python3 amy_haplotype_tags.py <subgraph.gfa> <node_gene.tsv> <output_prefix>
-"""
+"""Extract ordered gene tags and orientations from GFA walks."""
 
 import re
 import sys
@@ -99,8 +85,7 @@ def main():
                 strand = "+" if orient == ">" else "-"
                 tag = gene + strand
 
-                # consecutive nodes of the same gene in the same orientation
-                # belong to one copy and are reported once
+                # Collapse consecutive identical gene tags.
                 if tag == previous:
                     continue
 

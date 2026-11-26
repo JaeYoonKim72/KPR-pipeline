@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Merge duplicate records of one sample (same CHROM/POS/REF/ALT) into one record.
-
-After per-sample vcfwave + norm -m-any + vcfdecompose, an allele carried by both haplotypes can be
-written as two records (e.g. 1|0 and 0|1). Without merging, a homozygous variant would be counted
-as two heterozygous ones. Haplotype i of the merged GT = 1 if any record has the ALT there,
-0 if any record has REF there, '.' otherwise. Other fields are taken from the first record.
-
-Input: sorted single-sample VCF (text) on stdin. Output: VCF on stdout.
---report FILE: number of input records, output records and merged duplicates.
-"""
+"""Merge duplicate single-sample alleles by haplotype-wise ALT union; preserve missing genotypes."""
 import argparse
 import re
 import sys

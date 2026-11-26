@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Create aligned, GT-only phased VCFs at the same POS/REF/ALT SNP sites.
-
-Used for the query and reference inputs of selscan --xpnsl.
-Reads only short flank VCFs; missing genotypes remain missing.
-"""
+"""Match phased GT-only SNP VCFs by CHROM/POS/REF/ALT for XP-nSL."""
 import argparse
 import gzip
 
