@@ -43,6 +43,12 @@ GRCH38=${GRCH38:-${REF_DIR}/GRCh38.fa}
 
 BQSR_KNOWN_SITES=${BQSR_KNOWN_SITES:-}
 BQSR_JAVA_MEM=${BQSR_JAVA_MEM:-16g}
+GRAPH_BAM_MODE=${GRAPH_BAM_MODE:-gatk_bqsr}
+case "${GRAPH_BAM_MODE}" in
+  gatk_bqsr) GRAPH_CALL_BAM_SUFFIX=BQSR.bam ;;
+  rmdup) GRAPH_CALL_BAM_SUFFIX=rmdup.bam ;;
+  *) printf 'Invalid GRAPH_BAM_MODE: %s\n' "${GRAPH_BAM_MODE}" >&2; exit 1 ;;
+esac
 
 # One sample identifier per line. For every identifier the reads are expected
 # at ${DATA_DIR}/<sample>_1.fastq.gz and ${DATA_DIR}/<sample>_2.fastq.gz
@@ -276,14 +282,14 @@ surject() {
 
 # Step 6. BAM sorting, duplicate removal and base-quality recalibration
 bam_cleanup() {
-  log "step 6: BAM cleanup and GATK BQSR"
-  verify_bqsr_inputs
+  log "step 6: BAM cleanup"
+  if [[ "${GRAPH_BAM_MODE}" == gatk_bqsr ]]; then verify_bqsr_inputs; fi
 
   for G in $GRAPHS; do
     [[ -d "${BAM_OUT}/$G" ]] || { log "  ${BAM_OUT}/$G not found, skipped"; continue; }
     REF="${REF_OUT}/$G/${REF_SAMPLE}.fa"
     [[ -s "$REF" ]] || { log "  $REF not found, skipped"; continue; }
-    prepare_bqsr_known_args "$G"
+    if [[ "${GRAPH_BAM_MODE}" == gatk_bqsr ]]; then prepare_bqsr_known_args "$G"; fi
 
     while read -r S; do
       [[ -z "$S" ]] && continue
@@ -291,12 +297,16 @@ bam_cleanup() {
 
       samtools sort -O BAM --threads "${THREADS}" -T "${TMP_DIR}/$G.$S.tmp" \
         -o "${B}.sorted.bam" "${B}.raw.bam"
-      gatk --java-options "-Xmx${BQSR_JAVA_MEM}" MarkDuplicates \
-        -I "${B}.sorted.bam" -O "${B}.rmdup.bam" \
-        -M "${B}.duplicate_metrics.txt" \
-        --REMOVE_DUPLICATES true --CREATE_INDEX true
-
-      run_bqsr "$B" "$REF"
+      if [[ "${GRAPH_BAM_MODE}" == rmdup ]]; then
+        samtools rmdup "${B}.sorted.bam" "${B}.rmdup.bam"
+        samtools index -@ "${THREADS}" "${B}.rmdup.bam"
+      else
+        gatk --java-options "-Xmx${BQSR_JAVA_MEM}" MarkDuplicates \
+          -I "${B}.sorted.bam" -O "${B}.rmdup.bam" \
+          -M "${B}.duplicate_metrics.txt" \
+          --REMOVE_DUPLICATES true --CREATE_INDEX true
+        run_bqsr "$B" "$REF"
+      fi
       rm -f "${B}.sorted.bam"
     done < "${SAMPLE_LIST}"
   done
@@ -328,7 +338,7 @@ small_variants() {
         "${DV_IMAGE}" \
         pbrun deepvariant \
         --ref "${REF}" \
-        --in-bam "${BAM_OUT}/${G}/${G}.${S}.BQSR.bam" \
+        --in-bam "${BAM_OUT}/${G}/${G}.${S}.${GRAPH_CALL_BAM_SUFFIX}" \
         --out-variants "${V}.dp.vcf.gz" \
         --logfile "${LOG_OUT}/${G}.${S}.deepvariant.log" \
         --sort-by-haplotypes --parse-sam-aux-fields --mode shortread \
@@ -528,13 +538,13 @@ grch38_baseline() {
                    --runDir "${LINEAR_OUT}/sv/manta_${S}"
     "${LINEAR_OUT}/sv/manta_${S}/runWorkflow.py" -j "${THREADS}"
 
-    bcftools view -i 'QUAL >= 30 && (INFO/SVTYPE=="INS" || INFO/SVTYPE=="DUP")' \
+    bcftools view -f PASS -i 'INFO/IMPRECISE=0 && (INFO/SVTYPE=="INS" || INFO/SVTYPE=="DUP")' \
       -Oz -o "${LINEAR_OUT}/sv/${S}.manta.ins_dup.vcf.gz" \
       "${LINEAR_OUT}/sv/manta_${S}/results/variants/diploidSV.vcf.gz"
 
     delly call -g "${GRCH38}" -o "${LINEAR_OUT}/sv/${S}.delly.bcf" \
                "${LINEAR_OUT}/bam/${S}.BQSR.bam"
-    bcftools view -f PASS -i 'INFO/SVTYPE=="DEL"' \
+    bcftools view -f PASS -i 'INFO/SVTYPE=="DEL" && INFO/PRECISE=1' \
       -Oz -o "${LINEAR_OUT}/sv/${S}.delly.del.vcf.gz" \
       "${LINEAR_OUT}/sv/${S}.delly.bcf"
   done < "${SAMPLE_LIST}"
