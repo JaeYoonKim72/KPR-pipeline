@@ -66,9 +66,13 @@ class GeneAnnotationWorkflowTests(unittest.TestCase):
     def test_docs_and_figure(self):
         for heading in (
             "## 1. Set up", "## 2. Run", "## 3. Steps",
-            "## 4. Configuration", "## 5. Output", "## 6. Analysis procedures",
+            "## 4. Configuration", "## 5. Output", "## 6. Ensemble gene annotation",
         ):
             self.assertIn(heading, self.doc)
+        headings = [line for line in self.doc.splitlines() if line.startswith("## ")]
+        self.assertEqual(headings[:5], ["## 1. Set up", "## 2. Run", "## 3. Steps",
+                                       "## 4. Configuration", "## 5. Output"])
+        self.assertEqual(headings[-2:], ["## References", "## Software and versions"])
         self.assertIn("../gene_annotation_workflow.png", self.doc)
         self.assertTrue(FIGURE.is_file())
         with FIGURE.open("rb") as f:
@@ -77,7 +81,8 @@ class GeneAnnotationWorkflowTests(unittest.TestCase):
         self.assertIn("≥95%", self.doc)
 
     def test_author_year_references_and_clean_shell(self):
-        self.assertIn("## 9. References", self.doc)
+        self.assertIn("## References", self.doc)
+        self.assertIn("## Software and versions", self.doc)
         self.assertIn("(Wu et al., 2026)", self.doc)
         self.assertIn("(Camacho et al., 2009)", self.doc)
         self.assertIn("(Asri et al., 2026)", self.doc)

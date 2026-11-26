@@ -208,9 +208,13 @@ supplementary-table integration.
 
 ## 6. Ensemble gene annotation
 
+![Ensemble gene annotation workflow](../gene_annotation_workflow.png)
+
+We followed the hybrid gene-annotation strategy described for the Asian Pangenome Project phase 1 (Wu et al., 2026).
+
 We used the final soft-masked assembly from stage 1, or the mask step for input assemblies. AUGUSTUS v3.5.0 (--species=human --softmasking=1) predicted protein-coding candidates. Exonerate v2.4.0 aligned human UniProtKB/Swiss-Prot release 2024_01 proteins to the masked assemblies (--model protein2genome --percent 80). AUGUSTUS candidates were retained at ≥95% amino acid identity to the corresponding aligned protein.
 
-Liftoff v1.6.3 transferred GRCh38 GENCODE v46 (-copies -sc 0.95 -polish -exclude_partial). Candidates supported by AUGUSTUS/Exonerate were compared with Liftoff using ≥80% reciprocal CDS overlap and ≥80% intron structure concordance. For loci without a Liftoff annotation, BLASTp v2.15.0 against human Swiss-Prot identified homologous proteins at ≥90% identity. HMM-Flagger v1.0.0 classification BEDs were applied to the final gene set; the entire retained gene span lay in haploid regions.
+Liftoff v1.6.3 transferred GRCh38 GENCODE v46 (-copies -sc 0.95 -polish -exclude_partial). Candidates supported by AUGUSTUS/Exonerate were compared with Liftoff using ≥80% reciprocal CDS overlap and ≥80% intron structure concordance. For loci without a Liftoff annotation, BLASTp v2.15.0 (Camacho et al., 2009) against human Swiss-Prot identified homologous proteins at ≥90% identity. HMM-Flagger v1.0.0 (Asri et al., 2026) classification BEDs were applied to the final gene set; the entire retained gene span lay in haploid regions.
 
 The native workflow also exposes alignment-coverage, exon/intron support and unannotated-candidate filters in section 4. For study replay, supply the original intermediate annotations and settings rather than treating the native defaults as additional manuscript criteria.
 
